@@ -5,11 +5,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
-    const isGitHubActions = process.env.GITHUB_ACTIONS === 'true';
-    const isSharedApp = process.env.AIS_SHARED_APP === 'true';
     
     return {
-      base: isGitHubActions ? '/FajmulsLearning2/' : './',
+      base: './',
       server: {
         port: 3000,
         host: '0.0.0.0',

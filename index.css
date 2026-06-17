@@ -92,19 +92,11 @@
   }
 
   .bg-pattern-fajmuls {
-    position: relative;
-    overflow: hidden;
-  }
-  .bg-pattern-fajmuls::before {
-    content: "";
-    position: absolute;
-    inset: 0;
     background: linear-gradient(-45deg, rgba(238, 119, 82, 0.2), rgba(231, 60, 126, 0.2), rgba(35, 166, 213, 0.2), rgba(35, 213, 171, 0.2));
     background-size: 400% 400%;
     animation: var(--animate-gradient-x);
-    z-index: -1;
   }
-  .dark .bg-pattern-fajmuls::before {
+  .dark .bg-pattern-fajmuls {
     background: linear-gradient(-45deg, rgba(76, 29, 149, 0.3), rgba(190, 24, 93, 0.3), rgba(15, 118, 110, 0.3), rgba(30, 58, 138, 0.3));
     background-size: 400% 400%;
   }
