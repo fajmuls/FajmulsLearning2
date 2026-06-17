@@ -7,9 +7,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { UTBK_EXAM_CONFIG, ADMIN_TOKEN_HASH } from '../constants';
 import * as FirebaseService from '../services/firebase';
 import { useSpeechRecognition } from '../utils/speechRecognition';
-import { verifyToken } from '../utils/security';
+import { verifyToken } from '../src/utils/security';
 import 'katex/dist/katex.min.css';
-import { InlineMath, BlockMath } from 'react-katex';
+import { InlineMath, BlockMath } from './MyKatex';
 import { SimpleMarkdown, MatrixQuestionRenderer, SvgRenderer, formatTopic } from './QuestionRenderer';
 import { InteractiveFigural } from './InteractiveFigural';
 

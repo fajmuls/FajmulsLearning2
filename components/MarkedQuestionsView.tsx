@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Trash2, Flag, FileText, ChevronDown, ChevronUp, CheckCircle, Copy } from 'lucide-react';
-import { InlineMath, BlockMath } from 'react-katex';
+import { InlineMath, BlockMath } from './MyKatex';
 import 'katex/dist/katex.min.css';
 import { MarkedQuestion } from '../types';
 import { SoundManager } from '../services/soundService';

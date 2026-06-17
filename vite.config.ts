@@ -5,8 +5,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
+    
     return {
-      base: mode === 'production' ? '/FajmulsLearning2/' : '/',
+      base: './',
       server: {
         port: 3000,
         host: '0.0.0.0',
@@ -16,7 +17,7 @@ export default defineConfig(({ mode }) => {
         VitePWA({
           registerType: 'autoUpdate',
           devOptions: {
-            enabled: true
+            enabled: false
           },
           manifest: {
             name: 'Fajmuls Learning',
@@ -39,7 +40,7 @@ export default defineConfig(({ mode }) => {
             ]
           },
           workbox: {
-            maximumFileSizeToCacheInBytes: 5000000
+            maximumFileSizeToCacheInBytes: 10000000
           }
         })
       ],

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Swords, Users, Copy, Zap, CheckCircle, XCircle, Trophy, Loader2, Play } from 'lucide-react';
-import { InlineMath, BlockMath } from 'react-katex';
+import { InlineMath, BlockMath } from './MyKatex';
 import 'katex/dist/katex.min.css';
 import { BattleState, CategoryType, Question, UserProfile } from '../types';
 import * as FirebaseService from '../services/firebase';

@@ -5,7 +5,7 @@ import { BenchmarkMode, TestHistoryItem, BenchmarkResultDetails, GlobalBenchmark
 import { TYPING_TEXTS } from '../constants';
 import * as FirebaseService from '../services/firebase';
 import * as Gemini from '../services/geminiService';
-import { generateVocabQuestions, VocabQuestion } from '../utils/synonymDictionary';
+import { generateVocabQuestions, VocabQuestion } from '../src/utils/synonymDictionary';
 
 // --- TYPES ---
 
