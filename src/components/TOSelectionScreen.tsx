@@ -4,7 +4,7 @@ import { ArrowLeft, Upload as UploadIcon, Zap, Lock, Loader2, Download, Trash2, 
 import { CategoryType, SkdStreamType, StaticTestPackage, TestHistoryItem, UserPackageStats, TpaStreamType, TkaLevelType, BackgroundGenTask, UserProfile } from '../types';
 import { SoundManager } from '../services/soundService';
 import { ADMIN_TOKEN_HASH } from '../constants';
-import { verifyToken } from '../src/utils/security';
+import { verifyToken } from '../utils/security';
 import { isUserAdmin } from '../services/firebase';
 
 interface TOSelectionProps {
