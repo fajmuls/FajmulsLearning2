@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
         VitePWA({
           registerType: 'autoUpdate',
           devOptions: {
-            enabled: true
+            enabled: false
           },
           manifest: {
             name: 'Fajmuls Learning',
