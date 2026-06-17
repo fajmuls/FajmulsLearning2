@@ -212,7 +212,7 @@ const NotificationToast: React.FC<{
     );
 
   useEffect(() => {
-    const timer = setTimeout(onClose, 3200);
+    const timer = setTimeout(onClose, 3000);
     return () => clearTimeout(timer);
   }, [onClose]);
 
@@ -4216,111 +4216,88 @@ function App() {
       <AnimatePresence>
         {activeGenTask && currentView !== "SESSION" && (
           <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 50 }}
-            className="fixed top-24 right-4 z-[60] w-72 bg-slate-900/90 dark:bg-slate-950/95 text-white p-3 rounded-2xl shadow-xl border border-slate-700/50 backdrop-blur-md"
+            initial={{ opacity: 0, x: 50, scale: 0.9 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 50, scale: 0.9 }}
+            className="fixed top-24 right-4 sm:top-24 z-[60] flex items-center gap-3 bg-slate-900/90 dark:bg-slate-950/95 text-white px-4 py-2.5 rounded-full shadow-xl border border-slate-700/50 backdrop-blur-md transition-all hover:bg-slate-800/90"
+            title={activeGenTask.title}
           >
-            <div className="flex justify-between items-center mb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
-                <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
-                  AI Task
-                </span>
-              </div>
-              <button
-                onClick={() => {
-                  SoundManager.play("click");
-                  setActiveGenTask(null);
-                }}
-                className="text-slate-500 hover:text-slate-300"
-              >
-                <XCircle size={14} />
-              </button>
-            </div>
-
-            <h4 className="text-xs font-bold text-slate-100 line-clamp-1 mb-2">
-              {activeGenTask.title}
-            </h4>
-
             {activeGenTask.status === "generating" && (
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-[10px] text-slate-300 font-semibold">
-                  <span className="truncate">Meracik soal...</span>
-                  <span>{activeGenTask.progress}%</span>
-                </div>
-                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-indigo-500 rounded-full transition-all duration-300"
-                    style={{ width: `${activeGenTask.progress}%` }}
-                  ></div>
-                </div>
-              </div>
+              <>
+                <Loader2 size={16} className="text-indigo-400 animate-spin shrink-0" />
+                <span className="text-[11px] font-bold text-slate-200 tracking-wide">Meracik {activeGenTask.progress}%</span>
+                <button
+                    onClick={() => {
+                        SoundManager.play("click");
+                        setActiveGenTask(null);
+                    }}
+                    className="text-slate-400 hover:text-slate-200 ml-1 shrink-0"
+                >
+                    <XCircle size={14} />
+                </button>
+              </>
             )}
 
             {activeGenTask.status === "completed" && (
-              <div>
-                <p className="text-xs text-emerald-400 font-bold mb-3 flex items-center gap-1.5">
-                  <CheckCircle size={14} /> Paket Soal Siap!
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      SoundManager.play("click");
-                      const pkg = availablePackages.find(
-                        (p) =>
-                          p.id.includes(activeGenTask.id) ||
-                          p.title === activeGenTask.title,
-                      );
-                      if (pkg) {
-                        handlePackageSelect(pkg);
-                      } else {
-                        // Try to select the newest ai-generated package
-                        const latestAi = availablePackages.find(
-                          (p) =>
-                            p.isAiGenerated &&
-                            p.category === activeGenTask.category,
-                        );
-                        if (latestAi) {
-                          handlePackageSelect(latestAi);
-                        } else {
-                          startSession(StudyMode.SIMULATION);
-                        }
-                      }
-                      setActiveGenTask(null);
-                    }}
-                    className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition-colors text-center"
-                  >
-                    Mulai Kerjakan
-                  </button>
-                  <button
-                    onClick={() => {
-                      SoundManager.play("click");
-                      setActiveGenTask(null);
-                    }}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-lg transition-colors"
-                  >
-                    Nanti
-                  </button>
+              <>
+                <CheckCircle size={16} className="text-emerald-400 shrink-0" />
+                <div className="flex items-center gap-3 pr-1">
+                    <button
+                        onClick={() => {
+                          SoundManager.play("click");
+                          const pkg = availablePackages.find(
+                            (p) =>
+                              p.id.includes(activeGenTask.id) ||
+                              p.title === activeGenTask.title,
+                          );
+                          if (pkg) {
+                            handlePackageSelect(pkg);
+                          } else {
+                            const latestAi = availablePackages.find(
+                              (p) =>
+                                p.isAiGenerated &&
+                                p.category === activeGenTask.category,
+                            );
+                            if (latestAi) {
+                              handlePackageSelect(latestAi);
+                            } else {
+                              startSession(StudyMode.SIMULATION);
+                            }
+                          }
+                          setActiveGenTask(null);
+                        }}
+                        className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors uppercase tracking-wide"
+                    >
+                        Mulai Tes
+                    </button>
+                    <div className="w-px h-3 bg-slate-700 rounded-full"></div>
+                    <button
+                        onClick={() => {
+                          SoundManager.play("click");
+                          setActiveGenTask(null);
+                        }}
+                        className="text-slate-400 hover:text-slate-200"
+                    >
+                        <XCircle size={14} />
+                    </button>
                 </div>
-              </div>
+              </>
             )}
 
             {activeGenTask.status === "failed" && (
-              <div>
-                <p className="text-xs text-rose-400 font-bold mb-3 flex items-center gap-1.5">
-                  <AlertTriangle size={14} /> Gagal meracik soal
-                </p>
+              <>
+                <AlertTriangle size={16} className="text-rose-400 shrink-0" />
+                <span className="text-[11px] font-bold text-rose-300 tracking-wide">Gagal Meracik</span>
                 <button
-                  onClick={() => {
-                    SoundManager.play("click");
-                    setActiveGenTask(null);
-                  }}
-                  className="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-lg transition-colors text-center"
+                    onClick={() => {
+                        SoundManager.play("click");
+                        setActiveGenTask(null);
+                    }}
+                    className="text-slate-400 hover:text-slate-200 ml-1 shrink-0"
                 >
-                  Tutup
+                    <XCircle size={14} />
                 </button>
-              </div>
+              </>
             )}
           </motion.div>
         )}
