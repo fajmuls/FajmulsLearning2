@@ -27,133 +27,6 @@
         border: 1px solid rgba(255, 255, 255, 0.1);
       }
 
-      /* BACKGROUND ANIMATIONS & PATTERNS */
-      /* These classes now only apply PATTERNS/OVERLAYS with transparency. Base color is handled via inline style. */
-
-      .bg-anim-wrapper {
-          position: fixed;
-          top: 0; left: 0; width: 100%; height: 100%;
-          z-index: -10;
-          overflow: hidden;
-          transition: background-color 0.5s ease;
-      }
-
-      /* 1. FAJMULS (Overlay Gradient) */
-      .bg-pattern-fajmuls {
-        background: linear-gradient(-45deg, rgba(238, 119, 82, 0.2), rgba(231, 60, 126, 0.2), rgba(35, 166, 213, 0.2), rgba(35, 213, 171, 0.2));
-        background-size: 400% 400%;
-        animation: gradient-x 15s ease infinite;
-      }
-      .dark .bg-pattern-fajmuls {
-        background: linear-gradient(-45deg, rgba(76, 29, 149, 0.3), rgba(190, 24, 93, 0.3), rgba(15, 118, 110, 0.3), rgba(30, 58, 138, 0.3));
-        background-size: 400% 400%;
-      }
-
-      /* 2. GRID (Transparent) */
-      .bg-pattern-grid {
-        background-image: 
-          linear-gradient(rgba(100, 116, 139, 0.1) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(100, 116, 139, 0.1) 1px, transparent 1px);
-        background-size: 50px 50px;
-        animation: panGrid 60s linear infinite;
-      }
-      .dark .bg-pattern-grid {
-        background-image: 
-          linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-      }
-      @keyframes panGrid {
-        0% { background-position: 0 0; }
-        100% { background-position: 50px 50px; }
-      }
-
-      /* 3. DOTS (Transparent) */
-      .bg-pattern-dots {
-        background-image: radial-gradient(rgba(100, 116, 139, 0.2) 2px, transparent 2px);
-        background-size: 30px 30px;
-        animation: moveDots 20s linear infinite alternate;
-      }
-      .dark .bg-pattern-dots {
-        background-image: radial-gradient(rgba(255, 255, 255, 0.1) 2px, transparent 2px);
-      }
-      @keyframes moveDots {
-          from { background-position: 0 0; }
-          to { background-position: 15px 15px; }
-      }
-
-      /* 4. WAVES (Overlay) */
-      .bg-pattern-waves::after {
-          content: "";
-          position: absolute;
-          width: 200%; height: 200%;
-          top: -50%; left: -50%;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%230ea5e9' fill-opacity='0.05' d='M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3C/svg%3E");
-          background-repeat: repeat-x;
-          opacity: 1;
-          animation: waveMove 30s linear infinite;
-      }
-      @keyframes waveMove {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-      }
-
-      /* 5. AURORA (Overlay) */
-      .bg-pattern-aurora {
-          overflow: hidden;
-      }
-      .bg-pattern-aurora::before {
-          content: "";
-          position: absolute;
-          top: -50%; left: -50%;
-          width: 200%; height: 200%;
-          background: radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.1), transparent 60%),
-                      radial-gradient(circle at 80% 20%, rgba(20, 184, 166, 0.1), transparent 50%),
-                      radial-gradient(circle at 20% 80%, rgba(236, 72, 153, 0.1), transparent 50%);
-          filter: blur(80px);
-          animation: auroraShift 15s ease-in-out infinite alternate;
-      }
-      @keyframes auroraShift {
-          from { transform: scale(1) translate(0, 0); }
-          to { transform: scale(1.2) translate(-20px, 20px); }
-      }
-
-      /* FONT SIZE CLASSES */
-      .fs-xs { font-size: 0.75rem !important; line-height: 1rem !important; }
-      .fs-sm { font-size: 0.875rem !important; line-height: 1.25rem !important; }
-      .fs-md { font-size: 1rem !important; line-height: 1.5rem !important; }
-      .fs-lg { font-size: 1.125rem !important; line-height: 1.75rem !important; }
-      .fs-xl { font-size: 1.25rem !important; line-height: 1.75rem !important; }
-      .prose p, .prose span, .prose li { font-size: inherit; line-height: inherit; }
-
-      /* CUSTOM ANIMATIONS (Moved from index.css) */
-      @keyframes float {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-      }
-      
-      .animate-float {
-        animation: float 6s ease-in-out infinite;
-      }
-
-      @keyframes sparkle {
-        0% { transform: scale(0) rotate(0deg); opacity: 0; }
-        50% { transform: scale(1) rotate(180deg); opacity: 1; }
-        100% { transform: scale(0) rotate(360deg); opacity: 0; }
-      }
-      
-      .animate-sparkle {
-        animation: sparkle 1.5s linear infinite;
-      }
-
-      @keyframes pulse-slow {
-        0%, 100% { opacity: 1; }
-        50% { opacity: .5; }
-      }
-
-      .animate-pulse-slow {
-        animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-      }
-
       /* Magic Card Hover Effect */
       .magic-card-hover {
         transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -162,11 +35,10 @@
         transform: translateY(-8px) scale(1.02);
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
       }
-
     </style>
 </head>
   <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <script type="module" src="./index.tsx"></script>
   </body>
 </html>
