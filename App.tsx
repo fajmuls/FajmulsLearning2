@@ -2351,6 +2351,16 @@ function App() {
     setWeakTopics(weaks);
   }, [testHistory]);
 
+  // Auto-dismiss completed/failed generation tasks
+  useEffect(() => {
+    if (activeGenTask && (activeGenTask.status === 'completed' || activeGenTask.status === 'failed')) {
+      const timer = setTimeout(() => {
+        setActiveGenTask(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [activeGenTask?.status]);
+
   useEffect(() => {
     const handleOpenTutor = (e: CustomEvent) => {
       setTutorContext(e.detail?.context);

@@ -601,7 +601,7 @@ export const buildQuestionPrompt = (
       const isTkp = (typeof context === 'string' && context.toUpperCase().includes('TKP')) || (category === 'SKD' && difficultyOverride === 'TKP');
 
       if (isTwk) {
-           difficultyContext = `CONTEXT: SKD TWK (Tes Wawasan Kebangsaan) 🟢 - EXTREME HOTS DIFFICULTY (MASTER LEVEL).
+           difficultyContext = `CONTEXT: SKD TWK (Tes Wawasan Kebangsaan) - EXTREME HOTS DIFFICULTY (MASTER LEVEL).
            
            THEME & TOPICS (STRICTLY FOLLOW THESE):
            - Pancasila: Ideologi, sejarah perumusan, dan butir-butir pengamalannya.
@@ -618,7 +618,7 @@ export const buildQuestionPrompt = (
            4. DISTRACTORS: Jebakan harus sangat halus, seringkali menggunakan istilah yang mirip atau peristiwa sejarah yang berdekatan waktunya.
            5. Language: Gunakan Bahasa Indonesia formal/akademik yang sangat rapi.`;
       } else if (isTiu) {
-           difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) 🟢 - EXTREME HOTS (ELITE LEVEL).
+           difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - EXTREME HOTS (ELITE LEVEL).
            
            THEME & TOPICS (STRICTLY FOLLOW THESE):
            - Kemampuan Verbal: Analogi (padanan kata yang ambigu), silogisme (penarikan kesimpulan kompleks), dan analitis (posisi/urutan rumit).
@@ -634,7 +634,7 @@ export const buildQuestionPrompt = (
            6. ODD ONE OUT (Ketidaksamaan): Just ask "Pilihlah gambar yang tidak sesuai." Do NOT explain the pattern.
            `;
       } else if (isTkp) {
-           difficultyContext = `CONTEXT: SKD TKP (Tes Karakteristik Pribadi) 🟢 - EXTREME AMBIGUITY (SANGAT MENGECOH).
+           difficultyContext = `CONTEXT: SKD TKP (Tes Karakteristik Pribadi) - EXTREME AMBIGUITY (SANGAT MENGECOH).
            
            THEME & TOPICS (STRICTLY FOLLOW THESE):
            - Pelayanan Publik: Melayani masyarakat dengan ramah, profesional, dan solutif di situasi tersulit.
