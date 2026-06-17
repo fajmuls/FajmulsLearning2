@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ===============================================================
+    // Users Collection
+    // ===============================================================
+    match /users/{userId} {
+      // Allow reading other profiles for friends/leaderboard
+      allow read: if isAuthenticated(); 
+      // Only the owner can create/update their own profile
+      allow write: if isOwner(userId);
+      
+      // Subcollection: sessions
+      match /sessions/{sessionId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      // Subcollection: history
+      match /history/{historyId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      // Subcollection: friend_requests
+      match /friend_requests/{senderId} {
+        // Owner can read their incoming requests
+        allow read: if isOwner(userId);
+        // Anyone authenticated can send a friend request
+        allow write: if isAuthenticated(); 
+      }
+      
+      // Subcollection: friends
+      match /friends/{friendId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // ===============================================================
+    // Benchmark Scores
+    // ===============================================================
+    match /benchmark_scores/{scoreId} {
+      // Anyone can read the benchmark leaderboard
+      allow read: if true;
+      // Authenticated users can submit their scores
+      allow write: if isAuthenticated();
+    }
+    
+    // ===============================================================
+    // Global Leaderboard
+    // ===============================================================
+    match /global_leaderboard/{scoreId} {
+      // Anyone can read the global leaderboard
+      allow read: if true;
+      // Authenticated users can submit their scores
+      allow write: if isAuthenticated();
+    }
+    
+    // ===============================================================
+    // Test Packages
+    // ===============================================================
+    match /test_packages/{packageId} {
+      // Anyone can read test packages
+      allow read: if true;
+      // Allow anyone to write test packages (requested by user for guest access)
+      allow write: if true; 
+    }
+    
+    // ===============================================================
+    // Battles (Multiplayer)
+    // ===============================================================
+    match /battles/{battleId} {
+      // Authenticated users can read and write battle rooms
+      allow read, write: if isAuthenticated();
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "name": "fajmuls-learning",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 3000",
+    "build": "vite build",
+    "lint": "tsc --noEmit",
+    "deploy": "gh-pages -d dist",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@google/genai": "^1.35.0",
+    "@types/canvas-confetti": "^1.9.0",
+    "canvas-confetti": "^1.9.4",
+    "firebase": "^12.7.0",
+    "framer-motion": "^12.34.5",
+    "katex": "^0.17.0",
+    "lucide-react": "^0.562.0",
+    "motion": "^12.34.5",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-katex": "^3.1.0",
+    "recharts": "^3.8.1"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.16.8",
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/react-katex": "^3.0.4",
+    "@vitejs/plugin-react": "^5.0.0",
+    "gh-pages": "^6.3.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0",
+    "vite-plugin-pwa": "^1.3.0"
+  }
+}
