@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     
     return {
-      base: './',
+      base: '/FajmulsLearning2/',
       server: {
         port: 3000,
         host: '0.0.0.0',
@@ -40,7 +40,7 @@ export default defineConfig(({ mode }) => {
             ]
           },
           workbox: {
-            maximumFileSizeToCacheInBytes: 5000000
+            maximumFileSizeToCacheInBytes: 10000000
           }
         })
       ],
