@@ -258,9 +258,9 @@ export const UTBK_SUBTESTS = [
 ];
 
 export const SKD_SUBTESTS = [
-  'Tes Wawasan Kebangsaan (TWK) 🟢',
-  'Tes Intelegensia Umum (TIU) 🟢',
-  'Tes Karakteristik Pribadi (TKP) 🟢'
+  'Tes Wawasan Kebangsaan (TWK)',
+  'Tes Intelegensia Umum (TIU)',
+  'Tes Karakteristik Pribadi (TKP)'
 ];
 
 export const TPA_SUBTESTS = [

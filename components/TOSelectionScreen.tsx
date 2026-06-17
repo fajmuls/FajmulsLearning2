@@ -564,7 +564,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                                             <Box size={14} className="sm:w-4 sm:h-4"/>
                                         </div>
                                         <div>
-                                            <span className="block font-bold text-xs sm:text-sm text-slate-800 dark:text-white">Spesial TWK (30 Soal) 🟢</span>
+                                            <span className="block font-bold text-xs sm:text-sm text-slate-800 dark:text-white">Spesial TWK (30 Soal)</span>
                                             <span className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block">Wawasan Kebangsaan.</span>
                                         </div>
                                     </button>
@@ -577,7 +577,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                                             <Zap size={14} className="sm:w-4 sm:h-4"/>
                                         </div>
                                         <div>
-                                            <span className="block font-bold text-xs sm:text-sm text-slate-800 dark:text-white">Spesial TIU (35 Soal) 🟢</span>
+                                            <span className="block font-bold text-xs sm:text-sm text-slate-800 dark:text-white">Spesial TIU (35 Soal)</span>
                                             <span className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block">Numerik, Verbal, Figural.</span>
                                         </div>
                                     </button>
@@ -590,7 +590,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                                             <Type size={14} className="sm:w-4 sm:h-4"/>
                                         </div>
                                         <div>
-                                            <span className="block font-bold text-xs sm:text-sm text-slate-800 dark:text-white">Spesial TKP (45 Soal) 🟢</span>
+                                            <span className="block font-bold text-xs sm:text-sm text-slate-800 dark:text-white">Spesial TKP (45 Soal)</span>
                                             <span className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block">Karakteristik Pribadi.</span>
                                         </div>
                                     </button>
