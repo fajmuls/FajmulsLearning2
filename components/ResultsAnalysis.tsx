@@ -316,22 +316,14 @@ export const ResultsAnalysis: React.FC<ResultsProps> = ({ answers, questions, on
                                                 >
                                                     <Bot size={10}/> AI
                                                 </button>
-                                                <button 
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        try {
-                                                            const newWin = window.open(`https://www.youtube.com/results?search_query=${topicQuery}`, '_blank');
-                                                            if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
-                                                                alert("Maaf, popup terblokir oleh browser/sistem. Silakan klik kanan lalu 'Buka di Tab Baru'.");
-                                                            }
-                                                        } catch (err) {
-                                                            alert("Gagal membuka YouTube. Coba klik kanan dan Buka di Tab Baru.");
-                                                        }
-                                                    }}
-                                                    className="text-[9px] sm:text-[10px] flex items-center gap-1 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 px-1.5 sm:px-2 py-1 rounded-full font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition whitespace-nowrap cursor-pointer"
+                                                <a 
+                                                    href={`https://www.youtube.com/results?search_query=${topicQuery}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="text-[9px] sm:text-[10px] flex items-center gap-1 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 px-1.5 sm:px-2 py-1 rounded-full font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition whitespace-nowrap"
                                                 >
                                                     <Youtube size={10}/> Video
-                                                </button>
+                                                </a>
                                             </div>
                                         </div>
                                         <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-h-24 overflow-hidden relative mb-1.5">

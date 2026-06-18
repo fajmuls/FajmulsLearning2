@@ -65,7 +65,7 @@ export const AiChatTutor: React.FC<AiChatTutorProps> = ({ initialContext, onClos
             }
 
             const result = await ai.models.generateContent({
-                model: 'gemini-3-flash-preview',
+                model: 'gemini-3.5-flash',
                 contents: [
                     { role: 'user', parts: [{ text: "System prompt: Kamu adalah guru (Tutor) spesialis tes CPNS SKD, UTBK SNBT, dan Psikotes. Berikan penjelasan yang super jelas dan trik 'Cara Cepat'." }] },
                     ...chatHistory,

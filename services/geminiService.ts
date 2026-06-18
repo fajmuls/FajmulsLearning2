@@ -107,8 +107,102 @@ const questionsListSchema: Schema = {
   required: ["questions"]
 };
 
+// Helper functions for parsing robust/truncated JSON from AI models
+function extractValidObjects(text: string): any[] {
+  const foundObjects: any[] = [];
+  const activeStarts: { startIdx: number; depth: number }[] = [];
+  let insideString = false;
+  let escape = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (char === '\\') {
+      escape = true;
+      continue;
+    }
+    if (char === '"') {
+      insideString = !insideString;
+      continue;
+    }
+    if (!insideString) {
+      if (char === '{') {
+        // Increment depth for all currently tracked active starts
+        for (let j = 0; j < activeStarts.length; j++) {
+          activeStarts[j].depth++;
+        }
+        // Start tracking a new potential object
+        activeStarts.push({ startIdx: i, depth: 1 });
+      } else if (char === '}') {
+        // Decrement depth for all currently tracked active starts
+        for (let j = activeStarts.length - 1; j >= 0; j--) {
+          activeStarts[j].depth--;
+          if (activeStarts[j].depth === 0) {
+            const startIdx = activeStarts[j].startIdx;
+            const candidateStr = text.substring(startIdx, i + 1);
+            try {
+              const parsed = JSON.parse(candidateStr);
+              if (parsed && typeof parsed === 'object') {
+                foundObjects.push(parsed);
+              }
+            } catch (e) {
+              // ignore invalid JSON
+            }
+            // Remove from active tracking
+            activeStarts.splice(j, 1);
+          }
+        }
+      }
+    }
+  }
+  return foundObjects;
+}
+
+function tryParsePartialQuestions(text: string): any {
+  try {
+    const candidates = extractValidObjects(text);
+    const questions: any[] = [];
+
+    for (const obj of candidates) {
+      if (obj && typeof obj === 'object') {
+        if (Array.isArray(obj.questions)) {
+          questions.push(...obj.questions);
+        } else if (obj.id && obj.content && obj.correctAnswer) {
+          // Looks like a valid individual question object
+          questions.push(obj);
+        }
+      }
+    }
+
+    // Deduplicate questions to be safe
+    const uniqueQuestions: any[] = [];
+    const seenIds = new Set<string>();
+    const seenContents = new Set<string>();
+
+    for (const q of questions) {
+      const qId = q.id || `q-${Math.random().toString(36).substr(2, 9)}`;
+      const qContent = q.content || '';
+      if (!seenIds.has(qId) && !seenContents.has(qContent)) {
+        seenIds.add(qId);
+        seenContents.add(qContent);
+        uniqueQuestions.push(q);
+      }
+    }
+
+    if (uniqueQuestions.length > 0) {
+      return { questions: uniqueQuestions };
+    }
+  } catch (err) {
+    console.error("Error in tryParsePartialQuestions:", err);
+  }
+  return null;
+}
+
 async function callGemini<T>(prompt: string, schema?: Schema, imageBase64?: string): Promise<T> {
-  const models = ["gemini-3-flash-preview", "gemini-3.5-flash"];
+  const models = ["gemini-3.5-flash", "gemini-flash-latest"];
   
   const config: any = {
     temperature: 0.9, 
@@ -161,12 +255,24 @@ async function callGemini<T>(prompt: string, schema?: Schema, imageBase64?: stri
             }
             return JSON.parse(cleanText);
         } catch (e) {
-            console.error(`JSON Parse Error for model ${model}`, e);
+            console.error(`JSON Parse Error for model ${model}, trying recovery parsing...`, e);
+            
+            // Try to parse partial questions if applicable
+            const partialResult = tryParsePartialQuestions(text);
+            if (partialResult) {
+                console.log(`Successfully recovered ${partialResult.questions.length} questions from incomplete/truncated response.`);
+                return partialResult as unknown as T;
+            }
+
             const match = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
             if (match) {
-                return JSON.parse(match[0]);
+                try {
+                    return JSON.parse(match[0]);
+                } catch (e2) {
+                    throw new Error(`JSON parsing failed after full try and regex-match fallbacks.`);
+                }
             }
-            return text as unknown as T;
+            throw new Error(`Failed to parse response as JSON for schema: ${e instanceof Error ? e.message : e}`);
         }
       }
       return text as unknown as T;
@@ -195,7 +301,7 @@ async function callGemini<T>(prompt: string, schema?: Schema, imageBase64?: stri
 }
 
 async function* callGeminiStream(prompt: string, schema?: Schema, imageBase64?: string): AsyncGenerator<any[], void, unknown> {
-  const models = ["gemini-3-flash-preview", "gemini-3.5-flash"];
+  const models = ["gemini-3.5-flash", "gemini-flash-latest"];
   
   const config: any = {
     temperature: 0.9, 

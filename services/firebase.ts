@@ -1,5 +1,5 @@
 
-import { initializeApp } from 'firebase/app';
+import * as firebaseApp from 'firebase/app';
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, query, where, getDocs, setDoc, doc, deleteDoc, getDoc, updateDoc, orderBy, limit, onSnapshot, serverTimestamp, setLogLevel } from 'firebase/firestore';
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut as firebaseSignOut, User, onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
 import { GlobalBenchmarkScore, BenchmarkMode, StaticTestPackage, TestHistoryItem, SavedSessionState, GlobalLeaderboardEntry, CategoryType, GamificationProfile, BattleState, FriendProfile, Question, FriendRequest, UserProfile } from "../types";
@@ -10,7 +10,7 @@ import { ADMIN_EMAILS } from '../constants';
 
 // Inisialisasi Firebase
 setLogLevel('silent'); // Prevent offline errors from triggering testing failure
-const app = initializeApp(firebaseConfig);
+const app = (firebaseApp as any).initializeApp(firebaseConfig);
 
 let db: any;
 try {

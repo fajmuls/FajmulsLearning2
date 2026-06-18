@@ -1,3 +1,4 @@
+// ... existing imports ...
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -9,10 +10,17 @@ import {
   UserAnswer,
   SkdStreamType,
   TestHistoryItem,
+  InterviewFeedback,
   GeneralStudyMethod,
   FlashcardData,
   MindMapNode,
+  FeynmanFeedback,
   SkripsiFeature,
+  IshiharaPlate,
+  MaterialLength,
+  QuestionDifficulty,
+  StaticTestPackage,
+  AppSettings,
   KecermatanMode,
   UserProfile,
   BenchmarkMode,
@@ -23,8 +31,6 @@ import {
   AppPattern,
   TkaLevelType,
   BackgroundGenTask,
-  AppSettings,
-  StaticTestPackage,
 } from "./types";
 import {
   CATEGORIES,
@@ -50,16 +56,73 @@ import * as FirebaseService from "./services/firebase";
 import * as GamificationService from "./services/gamificationService";
 import { SoundManager } from "./services/soundService";
 import {
-  Clock, Brain, Zap, Target, Upload, FileText, ChevronRight, AlertTriangle, 
-  CheckCircle, XCircle, X, Activity, ArrowLeft, Loader2, BookOpen, GraduationCap, 
-  Briefcase, MessageSquare, Palette, Repeat, Share2, PenTool, Landmark, Building2, 
-  Timer, MessageCircle, Filter, Calendar, TrendingUp, Award, Trash2, LogOut, Book, 
-  FileSearch, User as UserIcon, Download, Search, History, Lightbulb, Moon, Sun, 
-  Grid, Pause, Play, Plus, Lock, Info, Settings, Calculator, Eye, GitMerge, 
-  LayoutGrid, Shapes, Globe, Trophy, PlayCircle, FolderOpen, RotateCcw, BarChart2, 
-  Users, Swords, Flag, Bot 
+  Clock,
+  Brain,
+  Zap,
+  Target,
+  Upload,
+  FileText,
+  ChevronRight,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  X,
+  Activity,
+  ArrowLeft,
+  Loader2,
+  BookOpen,
+  GraduationCap,
+  Briefcase,
+  MessageSquare,
+  Palette,
+  Repeat,
+  Share2,
+  PenTool,
+  Landmark,
+  Building2,
+  Timer,
+  MessageCircle,
+  Filter,
+  Calendar,
+  TrendingUp,
+  Award,
+  Trash2,
+  LogOut,
+  Book,
+  FileSearch,
+  User as UserIcon,
+  Download,
+  Upload as UploadIcon,
+  Search,
+  History,
+  Lightbulb,
+  Moon,
+  Sun,
+  Grid,
+  Pause,
+  Play,
+  Plus,
+  Lock,
+  Info,
+  Settings,
+  Calculator,
+  Eye,
+  GitMerge,
+  LayoutGrid,
+  Shapes,
+  Globe,
+  Trophy,
+  PlayCircle,
+  FolderOpen,
+  RotateCcw,
+  BarChart2,
+  Users,
+  Swords,
+  Flag,
+  Bot,
 } from "lucide-react";
 import { PomodoroTimer } from "./components/PomodoroTimer";
+import { Flashcard } from "./components/Flashcard";
 import { MindMapViewer } from "./components/MindMapViewer";
 import { SkeletonLoader, CardSkeleton } from "./components/SkeletonLoader";
 import { SplashScreen } from "./components/SplashScreen";
@@ -74,21 +137,1973 @@ import { ColorBlindTest } from "./components/ColorBlindTest";
 import { HumanBenchmark } from "./components/HumanBenchmark";
 import { GlobalLeaderboardScreen } from "./components/GlobalLeaderboardScreen";
 import {
-  GamificationBar, AchievementsModal, LevelUpModal, AchievementToast,
+  GamificationBar,
+  AchievementsModal,
+  LevelUpModal,
+  AchievementToast,
 } from "./components/Gamification";
 import { AcademicHub } from "./components/AcademicHub";
 import { SocialHub } from "./components/SocialHub";
 import { BattleArena } from "./components/BattleArena";
 import { MarkedQuestionsView } from "./components/MarkedQuestionsView";
 import { AiChatTutor } from "./components/AiChatTutor";
-import { safeStorage } from "./utils/safeStorage";
-import { getCircularReplacer } from "./utils/helpers";
-import { Dashboard } from "./components/dashboard/Dashboard";
-import { UserAvatar, SimpleMarkdown, NotificationToast, GoogleIcon } from "./components/common/UIComponents";
-import { LoginScreen, UsernameSetupScreen } from "./components/auth/AuthScreens";
-import { SkripsiSession, InterviewSession, FlashcardSession, FeynmanSession, SQ3RSession, ResumeModal, ResumeSessionList } from "./components/sessions/SessionInteractions";
 
-const localStorage = safeStorage;
+// ... (Helper components remain the same: UserAvatar, SimpleMarkdown, NotificationToast, ResumeModal, GoogleIcon, LoginScreen, UsernameSetupScreen, SkripsiSession, InterviewSession, FlashcardSession, FeynmanSession, SQ3RSession, ResumeSessionList, Dashboard) ...
+const UserAvatar: React.FC<{ user: UserProfile | null }> = ({ user }) => {
+  const [imgError, setImgError] = useState(false);
+  useEffect(() => {
+    setImgError(false);
+  }, [user?.photoURL]);
+  if (user?.photoURL && !imgError) {
+    return (
+      <img
+        src={user.photoURL}
+        alt="Profile"
+        className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 object-cover"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+  return (
+    <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-sm">
+      {" "}
+      {user?.username?.[0]?.toUpperCase() || "T"}{" "}
+    </div>
+  );
+};
+
+const SimpleMarkdown: React.FC<{ text: string }> = ({ text }) => {
+  if (!text) return null;
+  let formatted = text
+    .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+    .replace(/\*(.*?)\*/g, "<i>$1</i>")
+    .replace(/\n- (.*?)/g, "<br/>• $1")
+    .replace(/\n\n/g, "</p><p>")
+    .replace(/\n/g, "<br/>");
+  formatted = `<p>${formatted}</p>`;
+  return (
+    <div
+      dangerouslySetInnerHTML={{ __html: formatted }}
+      className="text-slate-700 dark:text-slate-300 leading-relaxed text-sm font-sans text-justify markdown-content"
+      style={{ textAlign: "justify", textJustify: "inter-word" }}
+    />
+  );
+};
+
+const NotificationToast: React.FC<{
+  message: string;
+  type: "success" | "error" | "info";
+  onClose: () => void;
+}> = ({ message, type, onClose }) => {
+  const borderAndIconColor =
+    type === "success"
+      ? "border-emerald-500/25 text-emerald-400 bg-emerald-500/10"
+      : type === "error"
+        ? "border-rose-500/25 text-rose-400 bg-rose-500/10"
+        : "border-indigo-500/25 text-indigo-400 bg-indigo-500/10";
+
+  const icon =
+    type === "success" ? (
+      <CheckCircle size={16} className="shrink-0 text-emerald-400" />
+    ) : type === "error" ? (
+      <AlertTriangle size={16} className="shrink-0 text-rose-400" />
+    ) : (
+      <Info size={16} className="shrink-0 text-indigo-400" />
+    );
+
+  useEffect(() => {
+    const timer = setTimeout(onClose, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20, scale: 0.95, x: "-50%" }}
+      animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+      exit={{ opacity: 0, y: -15, scale: 0.95, x: "-50%" }}
+      transition={{ type: "spring", duration: 0.35, bounce: 0.25 }}
+      style={{ left: "50%" }}
+      className={`fixed top-4 z-[100] flex items-center gap-2.5 px-4 py-2.5 rounded-xl shadow-xl backdrop-blur-md border ${borderAndIconColor} bg-slate-900/95 dark:bg-slate-950/95 text-slate-100 min-w-[280px] w-auto max-w-[92%] sm:max-w-md transition-all`}
+    >
+      {icon}
+      <p className="flex-grow text-[11px] sm:text-xs font-semibold leading-relaxed text-slate-100 text-left select-none pr-1">
+        {message}
+      </p>
+      <button
+        onClick={onClose}
+        className="text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 p-1 rounded-lg transition-colors shrink-0"
+        aria-label="Tutup"
+      >
+        <XCircle size={14} />
+      </button>
+    </motion.div>
+  );
+};
+const ResumeModal: React.FC<{
+  session: SavedSessionState;
+  onResume: () => void;
+  onDiscard: () => void;
+}> = ({ session, onResume, onDiscard }) => {
+  const progress = Math.round(
+    (Object.keys(session.answerMap).length / session.questions.length) * 100,
+  );
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+      {" "}
+      <div className="bg-white dark:bg-slate-800 p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl max-w-sm w-full border border-slate-200 dark:border-slate-700 text-center">
+        {" "}
+        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4 animate-pulse">
+          {" "}
+          <History size={24} className="sm:w-8 sm:h-8" />{" "}
+        </div>{" "}
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-1.5">
+          Tes Belum Selesai
+        </h2>{" "}
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-4 sm:mb-6">
+          {" "}
+          Ditemukan sesi{" "}
+          <b className="text-indigo-600 dark:text-indigo-400">
+            {session.packageTitle || session.category}
+          </b>{" "}
+          yang belum diselesaikan. Ingin melanjutkan?{" "}
+        </p>{" "}
+        <div className="bg-slate-50 dark:bg-slate-700/50 p-3 sm:p-4 rounded-xl mb-4 sm:mb-6 text-left">
+          {" "}
+          <div className="flex justify-between text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">
+            {" "}
+            <span>Progress</span> <span>{progress}%</span>{" "}
+          </div>{" "}
+          <div className="w-full bg-slate-200 dark:bg-slate-600 h-1.5 sm:h-2 rounded-full overflow-hidden">
+            {" "}
+            <div
+              className="h-full bg-indigo-500 rounded-full"
+              style={{ width: `${progress}%` }}
+            ></div>{" "}
+          </div>{" "}
+        </div>{" "}
+        <div className="flex flex-col gap-2.5">
+          {" "}
+          <button
+            onClick={onResume}
+            className="w-full py-2.5 sm:py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs sm:text-sm hover:bg-indigo-700 transition flex items-center justify-center gap-1.5"
+          >
+            {" "}
+            <Play size={16} /> Lanjutkan Tes{" "}
+          </button>{" "}
+          <button
+            onClick={onDiscard}
+            className="w-full py-2.5 sm:py-3 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition flex items-center justify-center gap-1.5"
+          >
+            {" "}
+            <Trash2 size={16} /> Hapus & Menu Utama{" "}
+          </button>{" "}
+        </div>{" "}
+      </div>{" "}
+    </div>
+  );
+};
+const GoogleIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 48 48"
+    width="24px"
+    height="24px"
+  >
+    {" "}
+    <path
+      fill="#FFC107"
+      d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"
+    />{" "}
+    <path
+      fill="#FF3D00"
+      d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"
+    />{" "}
+    <path
+      fill="#4CAF50"
+      d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"
+    />{" "}
+    <path
+      fill="#1976D2"
+      d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"
+    />{" "}
+  </svg>
+);
+
+const LoginScreen: React.FC<{
+  onGoogleLogin: (rememberMe: boolean) => void;
+  onGuestLogin: () => void;
+  isLoading: boolean;
+}> = ({ onGoogleLogin, onGuestLogin, isLoading }) => {
+  const [rememberMe, setRememberMe] = useState(true);
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-6 transition-colors duration-300">
+      {" "}
+      <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl w-full max-w-md border border-slate-200 dark:border-slate-700 text-center relative overflow-hidden">
+        {" "}
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 z-20 flex flex-col items-center justify-center">
+            {" "}
+            <Loader2 className="animate-spin text-indigo-600 w-10 h-10 mb-4" />{" "}
+            <p className="font-bold text-slate-600 dark:text-slate-300">
+              Menghubungkan...
+            </p>{" "}
+          </div>
+        )}{" "}
+        <div className="mb-8 flex justify-center">
+          {" "}
+          <img
+            src={APP_LOGO_URL}
+            alt="Logo"
+            className="w-24 h-24 object-contain animate-bounce-slow"
+          />{" "}
+        </div>{" "}
+        <div className="text-center mb-8">
+          {" "}
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            Fajmuls Learning
+          </h1>{" "}
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+            Platform Belajar Cerdas Terintegrasi AI
+          </p>{" "}
+        </div>{" "}
+        <div className="space-y-4">
+          {" "}
+          <button
+            onClick={() => onGoogleLogin(rememberMe)}
+            className="w-full py-3 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-full border border-slate-300 shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-3 relative"
+          >
+            {" "}
+            <div className="absolute left-4">
+              <GoogleIcon />
+            </div>{" "}
+            <span className="text-base font-roboto font-bold">
+              Masuk dengan Google
+            </span>{" "}
+          </button>{" "}
+          <div className="flex items-center justify-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+            {" "}
+            <input
+              type="checkbox"
+              id="remember"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+            />{" "}
+            <label htmlFor="remember" className="cursor-pointer select-none">
+              Tetap masuk di perangkat ini
+            </label>{" "}
+          </div>{" "}
+          <div className="relative flex py-2 items-center">
+            {" "}
+            <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>{" "}
+            <span className="flex-shrink-0 mx-4 text-slate-400 text-xs">
+              ATAU
+            </span>{" "}
+            <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>{" "}
+          </div>{" "}
+          <button
+            onClick={onGuestLogin}
+            className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 shadow-lg shadow-indigo-200 dark:shadow-none transition flex items-center justify-center gap-2"
+          >
+            {" "}
+            Masuk sebagai Tamu <ChevronRight size={20} />{" "}
+          </button>{" "}
+          <p className="text-xs text-slate-400 mt-2">
+            {" "}
+            *Mode Tamu: Riwayat hanya tersimpan di perangkat ini & tidak masuk
+            Leaderboard.{" "}
+          </p>{" "}
+        </div>{" "}
+      </div>{" "}
+    </div>
+  );
+};
+const UsernameSetupScreen: React.FC<{
+  onSubmit: (username: string) => void;
+  isLoading: boolean;
+}> = ({ onSubmit, isLoading }) => {
+  const [username, setUsername] = useState("");
+  const [error, setError] = useState("");
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (username.length < 3) {
+      setError("Username minimal 3 karakter.");
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      setError("Hanya huruf, angka, dan underscore (_).");
+      return;
+    }
+    onSubmit(username);
+  };
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-6">
+      {" "}
+      <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl w-full max-w-md border border-slate-200 dark:border-slate-700">
+        {" "}
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+          Buat Username
+        </h2>{" "}
+        <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
+          Pilih nama unik untuk identitas belajarmu.
+        </p>{" "}
+        <form onSubmit={handleSubmit}>
+          {" "}
+          <div className="mb-4">
+            {" "}
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+              Username
+            </label>{" "}
+            <input
+              type="text"
+              className="w-full p-4 border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white rounded-xl focus:border-indigo-600 focus:ring-0 outline-none font-bold"
+              placeholder="Username_Unik"
+              value={username}
+              onChange={(e) => {
+                setUsername(e.target.value.replace(/\s/g, ""));
+                setError("");
+              }}
+              autoFocus
+            />{" "}
+            {error && (
+              <p className="text-rose-500 text-xs mt-2 font-bold">{error}</p>
+            )}{" "}
+          </div>{" "}
+          <button
+            type="submit"
+            disabled={isLoading || !username}
+            className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 transition flex items-center justify-center gap-2"
+          >
+            {" "}
+            {isLoading ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <CheckCircle size={20} />
+            )}{" "}
+            Simpan & Lanjut{" "}
+          </button>{" "}
+        </form>{" "}
+      </div>{" "}
+    </div>
+  );
+};
+const SkripsiSession: React.FC<{
+  result: string;
+  feature: SkripsiFeature;
+  onBack: () => void;
+}> = ({ result, feature, onBack }) => (
+  <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-6 flex flex-col items-center">
+    <div className="max-w-3xl w-full">
+      <button
+        onClick={onBack}
+        className="mb-4 text-slate-500 dark:text-slate-400 flex items-center gap-2"
+      >
+        <ArrowLeft size={18} /> Kembali
+      </button>
+      <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700">
+        <h2 className="text-2xl font-bold mb-6 text-slate-800 dark:text-white flex items-center gap-2">
+          <Book size={28} className="text-indigo-600" /> Hasil {feature}
+        </h2>
+        <div className="prose prose-slate dark:prose-invert max-w-none">
+          <SimpleMarkdown text={result} />
+        </div>
+      </div>
+    </div>
+  </div>
+);
+const InterviewSession: React.FC<{
+  questions: Question[];
+  onComplete: (answers: UserAnswer[]) => void;
+}> = ({ questions, onComplete }) => {
+  const [index, setIndex] = useState(0);
+  const [answer, setAnswer] = useState("");
+  const [feedback, setFeedback] = useState<InterviewFeedback | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<UserAnswer[]>([]);
+  const currentQ = questions[index];
+  const handleSubmit = async () => {
+    if (!answer.trim()) return;
+    setLoading(true);
+    try {
+      const fb = await Gemini.evaluateInterviewAnswer(currentQ.content, answer);
+      setFeedback(fb);
+    } catch (e) {
+      alert("Gagal evaluasi.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleNext = () => {
+    const newResult: UserAnswer = {
+      questionId: currentQ.id,
+      selectedAnswer: answer,
+      isCorrect: true,
+      scoreEarned: feedback?.score || 0,
+      timeTakenSeconds: 0,
+      isOverthinking: false,
+      isGuessing: false,
+      interviewFeedback: feedback || undefined,
+    };
+    const updatedResults = [...results, newResult];
+    setResults(updatedResults);
+    setAnswer("");
+    setFeedback(null);
+    if (index < questions.length - 1) {
+      setIndex(index + 1);
+    } else {
+      onComplete(updatedResults);
+    }
+  };
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-6 flex flex-col items-center justify-center">
+      <div className="max-w-2xl w-full bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700">
+        <div className="mb-4 text-sm font-bold text-slate-400">
+          Pertanyaan {index + 1} dari {questions.length}
+        </div>
+        <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6">
+          {currentQ.content}
+        </h2>
+        {!feedback ? (
+          <>
+            <textarea
+              className="w-full p-4 border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white rounded-xl mb-4 h-40 focus:ring-2 focus:ring-indigo-500"
+              placeholder="Jawab seolah sedang interview..."
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+            />
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !answer}
+              className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <MessageSquare size={18} />
+              )}{" "}
+              Submit Jawaban
+            </button>
+          </>
+        ) : (
+          <div className="animate-fade-in-up">
+            <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-bold text-slate-700 dark:text-slate-300">
+                  Skor: {feedback.score}/100
+                </span>
+                <span className="text-sm bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded">
+                  {feedback.toneAnalysis}
+                </span>
+              </div>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                <b>Feedback:</b> {feedback.feedback}
+              </p>
+              <div className="text-sm bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300 p-3 rounded-lg border border-emerald-100 dark:border-emerald-800">
+                <b>Saran Jawaban:</b> {feedback.improvedAnswer}
+              </div>
+            </div>
+            <button
+              onClick={handleNext}
+              className="w-full py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold hover:opacity-90"
+            >
+              Lanjut
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+const FlashcardSession: React.FC<{
+  flashcards: FlashcardData[];
+  onFinish: () => void;
+}> = ({ flashcards, onFinish }) => {
+  const [index, setIndex] = useState(0);
+  const handleNext = (rating: "easy" | "medium" | "hard") => {
+    if (index < flashcards.length - 1) setIndex(index + 1);
+    else onFinish();
+  };
+  if (flashcards.length === 0) return <div>No Flashcards</div>;
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-6 flex flex-col items-center justify-center">
+      <div className="w-full max-w-xl mb-6 flex justify-between items-center">
+        <button
+          onClick={onFinish}
+          className="text-slate-500 hover:text-indigo-600"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <span className="font-bold text-slate-400">
+          {index + 1} / {flashcards.length}
+        </span>
+      </div>
+      <Flashcard data={flashcards[index]} onNext={handleNext} />
+    </div>
+  );
+};
+const FeynmanSession: React.FC<{ topic: string; onFinish: () => void }> = ({
+  topic,
+  onFinish,
+}) => {
+  const [explanation, setExplanation] = useState("");
+  const [feedback, setFeedback] = useState<FeynmanFeedback | null>(null);
+  const [loading, setLoading] = useState(false);
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      const fb = await Gemini.evaluateFeynman(topic, explanation);
+      setFeedback(fb);
+    } catch (e) {
+      alert("Error");
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-6 flex flex-col items-center justify-center">
+      <div className="max-w-2xl w-full bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700">
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">
+          Feynman Technique
+        </h2>
+        <p className="text-slate-500 dark:text-slate-400 mb-6">
+          Jelaskan topik <b>"{topic}"</b> seolah-olah Anda sedang mengajari anak
+          kecil (5 tahun).
+        </p>
+        {!feedback ? (
+          <>
+            <textarea
+              className="w-full p-4 border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white rounded-xl mb-4 h-48 focus:ring-2 focus:ring-indigo-500"
+              placeholder="Mulai jelaskan di sini..."
+              value={explanation}
+              onChange={(e) => setExplanation(e.target.value)}
+            />
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !explanation}
+              className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {loading ? "Menganalisis..." : "Cek Pemahaman Saya"}
+            </button>
+          </>
+        ) : (
+          <div className="animate-fade-in-up">
+            <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-700 mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div
+                  className={`text-2xl font-bold ${feedback.understandingScore > 70 ? "text-emerald-500" : "text-amber-500"}`}
+                >
+                  {feedback.understandingScore}/100
+                </div>
+              </div>
+              <div className="space-y-3 text-sm text-slate-700 dark:text-slate-300">
+                <p>
+                  <b>Kualitas Penyederhanaan:</b>{" "}
+                  {feedback.simplificationQuality}
+                </p>
+                <p>
+                  <b>Konsep yang Terlewat:</b>{" "}
+                  {feedback.missingConcepts.join(", ") || "Tidak ada"}
+                </p>
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg border border-indigo-100 dark:border-indigo-800 text-indigo-800 dark:text-indigo-300">
+                  <b>Koreksi / Saran:</b> {feedback.correction}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={onFinish}
+              className="w-full py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold"
+            >
+              Selesai Belajar
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+const SQ3RSession: React.FC<{ topic: string; onFinish: () => void }> = ({
+  topic,
+  onFinish,
+}) => {
+  const steps = ["Survey", "Question", "Read", "Recite", "Review"];
+  const [step, setStep] = useState(0);
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-6 flex flex-col items-center justify-center">
+      <div className="max-w-2xl w-full bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 text-center">
+        <div className="flex justify-center mb-8">
+          {steps.map((s, i) => (
+            <div
+              key={s}
+              className={`flex items-center ${i < steps.length - 1 ? "w-full" : ""}`}
+            >
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${i <= step ? "bg-indigo-600 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-400"}`}
+              >
+                {s[0]}
+              </div>
+              {i < steps.length - 1 && (
+                <div
+                  className={`h-1 flex-1 ${i < step ? "bg-indigo-600" : "bg-slate-100 dark:bg-slate-700"}`}
+                ></div>
+              )}
+            </div>
+          ))}
+        </div>
+        <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">
+          {steps[step]}
+        </h2>
+        <p className="text-lg text-slate-600 dark:text-slate-300 mb-8">
+          Lakukan tahap {steps[step]} untuk materi "{topic}".
+        </p>
+        <button
+          onClick={() => {
+            if (step < 4) setStep(step + 1);
+            else onFinish();
+          }}
+          className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition"
+        >
+          {step < 4 ? "Lanjut Tahap Berikutnya" : "Selesai SQ3R"}
+        </button>
+      </div>
+    </div>
+  );
+};
+const getCircularReplacer = () => {
+  const seen = new WeakSet();
+  return (key: any, value: any) => {
+    if (typeof value === "object" && value !== null) {
+      if (seen.has(value)) {
+        return;
+      }
+      seen.add(value);
+    }
+    return value;
+  };
+};
+const ResumeSessionList: React.FC<{
+  sessions: SavedSessionState[];
+  onBack: () => void;
+  onResume: (s: SavedSessionState) => void;
+  onDelete: (id: string) => void;
+  loading: boolean;
+}> = ({ sessions, onBack, onResume, onDelete, loading }) => {
+  const getVisuals = (category: CategoryType) => {
+    switch (category) {
+      case "UTBK":
+        return {
+          icon: GraduationCap,
+          color: "text-rose-600",
+          bg: "bg-rose-100 dark:bg-rose-900/30",
+          border: "border-rose-200 dark:border-rose-800",
+        };
+      case "SKD":
+        return {
+          icon: Briefcase,
+          color: "text-amber-600",
+          bg: "bg-amber-100 dark:bg-amber-900/30",
+          border: "border-amber-200 dark:border-amber-800",
+        };
+      case "PSIKOTEST":
+        return {
+          icon: Brain,
+          color: "text-purple-600",
+          bg: "bg-purple-100 dark:bg-purple-900/30",
+          border: "border-purple-200 dark:border-purple-800",
+        };
+      case "TPA":
+        return {
+          icon: Zap,
+          color: "text-blue-600",
+          bg: "bg-blue-100 dark:bg-blue-900/30",
+          border: "border-blue-200 dark:border-blue-800",
+        };
+      case "KECERMATAN":
+        return {
+          icon: Eye,
+          color: "text-emerald-600",
+          bg: "bg-emerald-100 dark:bg-emerald-900/30",
+          border: "border-emerald-200 dark:border-emerald-800",
+        };
+      default:
+        return {
+          icon: FileText,
+          color: "text-slate-600",
+          bg: "bg-slate-100 dark:bg-slate-800",
+          border: "border-slate-200 dark:border-slate-700",
+        };
+    }
+  };
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    return `${h > 0 ? h + ":" : ""}${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 sm:p-6 transition-colors">
+      <div className="max-w-5xl mx-auto">
+        <div className="flex items-center gap-3 mb-6 sm:mb-8">
+          <button
+            onClick={onBack}
+            className="p-1.5 sm:p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition text-slate-700 dark:text-slate-300"
+          >
+            <ArrowLeft size={18} className="sm:w-5 sm:h-5" />
+          </button>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+            Sesi Tersimpan
+          </h1>
+        </div>
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="animate-spin text-indigo-600 w-8 h-8" />
+          </div>
+        ) : sessions.length === 0 ? (
+          <div className="text-center py-20 text-slate-500 dark:text-slate-400">
+            <History size={40} className="mx-auto mb-3 opacity-20" />
+            <p className="text-sm">Tidak ada sesi tersimpan.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-6">
+            {sessions.map((s) => {
+              const progress = Math.round(
+                (Object.keys(s.answerMap).length / s.questions.length) * 100,
+              );
+              const visual = getVisuals(s.category);
+              const Icon = visual.icon;
+              return (
+                <div
+                  key={s.id || s.timestamp}
+                  className={`bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border ${visual.border} shadow-sm flex flex-col gap-3 sm:gap-4 animate-fade-in-up hover:shadow-md transition-all`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div
+                      className={`p-2 sm:p-3 rounded-xl ${visual.bg} ${visual.color}`}
+                    >
+                      <Icon size={18} className="sm:w-6 sm:h-6" />
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5 sm:mb-1">
+                        SISA WAKTU
+                      </span>
+                      <div
+                        className={`font-mono text-base sm:text-xl font-bold ${s.timeLeft < 300 ? "text-rose-500 font-black" : "text-slate-800 dark:text-white"}`}
+                      >
+                        {formatTime(s.timeLeft)}
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span
+                        className="font-bold text-sm sm:text-lg text-slate-800 dark:text-white line-clamp-2"
+                        title={s.packageTitle || s.category}
+                      >
+                        {s.packageTitle || s.category}
+                      </span>
+                    </div>
+                    <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 sm:py-1 rounded inline-block mb-2.5 sm:mb-3">
+                      {new Date(s.timestamp).toLocaleDateString()} •{" "}
+                      {s.questions.length} Soal
+                    </div>
+                    <div className="flex justify-between text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">
+                      <span>Progress</span>
+                      <span>{progress}%</span>
+                    </div>
+                    <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 sm:h-2 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${s.category === "UTBK" ? "bg-rose-500" : "bg-indigo-500"}`}
+                        style={{ width: `${progress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-1.5 sm:mt-2">
+                    <button
+                      onClick={() => onDelete(s.id!)}
+                      className="p-2 sm:p-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition border border-rose-100 dark:border-rose-900/50"
+                    >
+                      <Trash2 size={16} className="sm:w-5 sm:h-5" />
+                    </button>
+                    <button
+                      onClick={() => onResume(s)}
+                      className="flex-1 px-3 py-2 sm:px-4 sm:py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs sm:text-sm hover:bg-indigo-700 transition flex items-center justify-center gap-1.5"
+                    >
+                      <Play
+                        size={14}
+                        fill="currentColor"
+                        className="sm:w-[16px] sm:h-[16px]"
+                      />{" "}
+                      Lanjutkan
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Dashboard Component with New Button Colors
+const Dashboard: React.FC<{
+  category: CategoryType;
+  onBack: () => void;
+  onStartSession: (
+    mode: StudyMode,
+    difficulty?: string,
+    count?: number,
+  ) => void;
+  onOpenTOSelection: () => void;
+  onStartTesKoran: () => void;
+  onStartTesKecermatan: (mode: KecermatanMode) => void;
+  onGeneralInputSubmit: (input: GeneralMaterialInput) => void;
+  generalInput: GeneralMaterialInput | null;
+  setGeneralInput?: (input: GeneralMaterialInput | null) => void;
+  isReadingMaterial: boolean;
+  onResetMaterial: () => void;
+  onSubtestSelect: (s: string) => void;
+  selectedSubtest: string;
+  weakTopics: string[];
+  loading: boolean;
+  skdStream: SkdStreamType | null;
+  onSkdStreamSelect: (s: SkdStreamType) => void;
+  onHistory: () => void;
+  onStartGeneralSession: (m: GeneralStudyMethod) => void;
+  onStartSkripsiSession?: (feature: SkripsiFeature, input: string) => void;
+  username: string;
+  isDarkMode?: boolean;
+  onToggleDarkMode?: () => void;
+  tpaStream?: TpaStreamType | null;
+  onTpaStreamSelect?: (s: TpaStreamType) => void;
+  tkaLevel?: TkaLevelType | null;
+  onTkaLevelSelect?: (s: TkaLevelType) => void;
+  onOpenAcademicHub?: () => void;
+  onBattle: () => void;
+}> = (props) => {
+  const {
+    category,
+    onBack,
+    onStartSession,
+    onOpenTOSelection,
+    onStartTesKoran,
+    onStartTesKecermatan,
+    onGeneralInputSubmit,
+    generalInput,
+    setGeneralInput,
+    isReadingMaterial,
+    onResetMaterial,
+    onSubtestSelect,
+    selectedSubtest,
+    weakTopics,
+    loading,
+    skdStream,
+    onSkdStreamSelect,
+    onHistory,
+    onStartGeneralSession,
+    onStartSkripsiSession,
+    username,
+    isDarkMode,
+    onToggleDarkMode,
+    tpaStream,
+    onTpaStreamSelect,
+    tkaLevel,
+    onTkaLevelSelect,
+    onOpenAcademicHub,
+    onBattle,
+  } = props;
+  const [inputText, setInputText] = useState("");
+  const [pdfName, setPdfName] = useState<string | null>(null);
+  const [materialLength, setMaterialLength] =
+    useState<MaterialLength>("MEDIUM");
+  const [questionDiff, setQuestionDiff] =
+    useState<QuestionDifficulty>("MEDIUM");
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [practiceCount, setPracticeCount] = useState<number>(8);
+  const [practiceDifficulty, setPracticeDifficulty] = useState<string>("Medium");
+  const [loadingTimer, setLoadingTimer] = useState(0);
+
+  useEffect(() => {
+    let interval: any;
+    if (loading) {
+      setLoadingTimer(0);
+      interval = setInterval(() => {
+        setLoadingTimer(prev => prev + 1);
+      }, 1000);
+    } else {
+      setLoadingTimer(0);
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type !== "application/pdf") {
+        alert("Hanya file PDF yang diperbolehkan.");
+        return;
+      }
+      setPdfName(file.name);
+      setInputText("");
+      setPdfLoading(true);
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const rawBase64 = (ev.target?.result as string).split(",")[1];
+        setTimeout(() => {
+          if (setGeneralInput) {
+            setGeneralInput({
+              type: "pdf",
+              content: rawBase64,
+              title: file.name,
+              lengthPreference: materialLength,
+              difficultyPreference: questionDiff,
+            });
+          }
+          setPdfLoading(false);
+        }, 800);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  const handleInputSubmit = () => {
+    if (generalInput?.type === "pdf") {
+      onGeneralInputSubmit({
+        ...generalInput,
+        lengthPreference: materialLength,
+        difficultyPreference: questionDiff,
+      });
+    } else if (inputText) {
+      onGeneralInputSubmit({
+        type: "text",
+        content: inputText,
+        title: "Input Manual",
+        lengthPreference: materialLength,
+        difficultyPreference: questionDiff,
+      });
+    } else {
+      alert("Mohon masukkan teks atau upload PDF.");
+    }
+  };
+  const renderSubtests = (list: string[]) => {
+    const filteredList = list.filter((sub) =>
+      sub.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+    return (
+      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm mb-4 sm:mb-6 animate-fade-in-up">
+        <h3 className="font-bold text-sm sm:text-base text-slate-800 dark:text-white mb-2.5">
+          Pilih Topik / Subtes:
+        </h3>
+        <div className="mb-3.5 relative">
+          <Search
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
+            size={16}
+          />
+          <input
+            type="text"
+            placeholder="Cari topik..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          />
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {filteredList.length > 0 ? (
+            filteredList.map((sub) => (
+              <button
+                key={sub}
+                onClick={() => {
+                  SoundManager.play("tap");
+                  onSubtestSelect(sub);
+                }}
+                className={`px-2.5 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition ${selectedSubtest === sub ? "bg-indigo-600 text-white shadow-md" : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"}`}
+              >
+                {sub}
+              </button>
+            ))
+          ) : (
+            <div className="text-xs text-slate-500 italic p-1">
+              Tidak ada topik yang cocok.
+            </div>
+          )}
+        </div>
+        {selectedSubtest &&
+          category !== "INTERVIEW" &&
+          category !== "SKRIPSI" && (
+            <div className="mt-5 border-t border-slate-100 dark:border-slate-700 pt-5 animate-fade-in-up">
+              <div className="flex flex-col sm:flex-row gap-3 items-end">
+                <div className="flex-1 w-full">
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 block uppercase">
+                    Jumlah Soal
+                  </label>
+                  <select
+                    value={practiceCount}
+                    onChange={(e) => setPracticeCount(Number(e.target.value))}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium dark:text-white"
+                  >
+                    <option value="5">5 Soal</option>
+                    <option value="8">8 Soal</option>
+                    <option value="10">10 Soal</option>
+                    <option value="15">15 Soal</option>
+                    <option value="20">20 Soal</option>
+                  </select>
+                </div>
+                <div className="flex-1 w-full">
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 block uppercase">
+                    Tingkat Kesulitan
+                  </label>
+                  <select
+                    value={practiceDifficulty}
+                    onChange={(e) => setPracticeDifficulty(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium dark:text-white"
+                  >
+                    <option value="Easy">Mudah</option>
+                    <option value="Medium">Sedang</option>
+                    <option value="Hard">Sulit</option>
+                    <option value="HOTS">HOTS (Analisis Tinggi)</option>
+                  </select>
+                </div>
+                <button
+                  onClick={() => {
+                    SoundManager.play("click");
+                    onStartSession(
+                      StudyMode.PRACTICE,
+                      practiceDifficulty,
+                      practiceCount,
+                    );
+                  }}
+                  className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 dark:shadow-none transition flex items-center justify-center gap-1.5 text-sm"
+                >
+                  <PenTool size={16} /> Mulai Latihan
+                </button>
+              </div>
+            </div>
+          )}
+        {category === "INTERVIEW" && selectedSubtest && (
+          <div className="mt-5 border-t border-slate-100 dark:border-slate-700 pt-3.5 animate-fade-in-up">
+            <button
+              onClick={() => {
+                SoundManager.play("click");
+                onStartSession(StudyMode.DRILL);
+              }}
+              className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 dark:shadow-none transition flex items-center justify-center gap-2"
+            >
+              <MessageSquare size={18} /> Mulai Sesi Wawancara
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+  return (
+    <div className="min-h-screen bg-transparent">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center mb-6">
+          <button
+            onClick={() => {
+              SoundManager.play("back");
+              onBack();
+            }}
+            className="flex items-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 font-medium"
+          >
+            <ArrowLeft size={18} className="mr-2" /> Kembali
+          </button>
+          <div className="flex items-center gap-3">
+            {onToggleDarkMode && (
+              <button
+                onClick={() => {
+                  onToggleDarkMode();
+                }}
+                className="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition"
+              >
+                {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
+            )}
+            <span className="text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full flex items-center gap-1">
+              <UserIcon size={12} /> {username}
+            </span>
+          </div>
+        </div>
+        <div className="flex justify-between items-end mb-8">
+          <div>
+            <span className="text-sm font-bold tracking-wider text-indigo-600 uppercase mb-1 block">
+              {category === "TPA"
+                ? "Seleksi Lanjutan"
+                : category + " Dashboard"}
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+              Pusat Kendali Belajar
+            </h1>
+          </div>
+        </div>
+        
+        <AnimatePresence>
+            {loading && (
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.5, x: 50, y: -50 }}
+                    animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.5, x: 50, y: -50 }}
+                    className="fixed bottom-4 right-4 z-[100] bg-indigo-600 px-4 py-3 rounded-full shadow-xl flex items-center gap-3 border border-indigo-500"
+                >
+                    <Loader2 className="animate-spin text-white w-5 h-5" />
+                    <span className="text-sm font-bold text-white">Generating Questions...</span>
+                </motion.div>
+            )}
+        </AnimatePresence>
+
+        <div className="transition-all duration-300">
+          <>
+            {weakTopics.length > 0 && category !== "KECERMATAN" && category !== "SKRIPSI" && category !== "GENERAL" && category !== "BENCHMARK" && (
+              <div className="mb-8 animate-fade-in-up bg-gradient-to-br from-rose-50 to-orange-50 dark:from-rose-900/20 dark:to-orange-900/20 rounded-2xl p-5 sm:p-6 border border-rose-200 dark:border-rose-800">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Target size={20} className="text-rose-600 dark:text-rose-400" />
+                      <h3 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white">Fokus Perbaikan: Topik Lemah</h3>
+                    </div>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xl">
+                      Sistem mendeteksi ada {weakTopics.length} topik dimana akurasi Anda masih di bawah target. Mari berlatih kembali dengan soal latihan HOTS khusus untuk menyempurnakan kelemahan.
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {weakTopics.slice(0, 3).map((topic, i) => (
+                        <span key={i} className="text-[10px] sm:text-xs font-semibold bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 px-2.5 py-1.5 rounded-lg border border-rose-100 dark:border-rose-900 shadow-sm">
+                          {topic}
+                        </span>
+                      ))}
+                      {weakTopics.length > 3 && (
+                        <span className="text-[10px] sm:text-xs font-semibold bg-transparent border border-rose-200/50 dark:border-rose-800 text-rose-500 px-2.5 py-1.5 rounded-lg">
+                          +{weakTopics.length - 3} lainnya
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      SoundManager.play("click");
+                      onStartSession(StudyMode.WEAKNESS);
+                    }}
+                    className="w-full sm:w-auto mt-2 sm:mt-0 px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-lg shadow-rose-200 dark:shadow-none transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap"
+                  >
+                    <Brain size={18} /> Latih Topik Ini
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {category === "KECERMATAN" && (
+              <div className="animate-fade-in-up">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <button
+                    onClick={() => {
+                      SoundManager.play("click");
+                      onStartTesKecermatan("ANGKA");
+                    }}
+                    className="p-4 sm:p-6 bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-500 rounded-2xl text-left transition group shadow-sm"
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="p-2 bg-indigo-100 dark:bg-indigo-900/40 rounded-lg text-indigo-600 dark:text-indigo-400">
+                        <Activity size={24} />
+                      </span>
+                      <span className="font-bold text-base sm:text-lg text-slate-800 dark:text-white">
+                        Angka Hilang
+                      </span>
+                    </div>
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                      Standar tes kedinasan/Polri. Temukan angka yang hilang
+                      dari kolom.
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => {
+                      SoundManager.play("click");
+                      onStartTesKecermatan("HURUF");
+                    }}
+                    className="p-4 sm:p-6 bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 rounded-2xl text-left transition group shadow-sm"
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="p-2 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg text-emerald-600 dark:text-emerald-400">
+                        <FileText size={24} />
+                      </span>
+                      <span className="font-bold text-base sm:text-lg text-slate-800 dark:text-white">
+                        Huruf Hilang
+                      </span>
+                    </div>
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                      Variasi huruf. Melatih ketelitian visual terhadap karakter
+                      mirip.
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => {
+                      SoundManager.play("click");
+                      onStartTesKecermatan("SIMBOL_HILANG");
+                    }}
+                    className="p-6 bg-white dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-purple-900/20 border-2 border-slate-200 dark:border-slate-700 hover:border-purple-500 rounded-2xl text-left transition group shadow-sm"
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="p-2 bg-purple-100 dark:bg-purple-900/40 rounded-lg text-purple-600 dark:text-purple-400">
+                        <Shapes size={24} />
+                      </span>
+                      <span className="font-bold text-lg text-slate-800 dark:text-white">
+                        Simbol Hilang
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Temukan simbol yang hilang. Melatih ketelitian visual
+                      bentuk abstrak.
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => {
+                      SoundManager.play("click");
+                      onStartTesKecermatan("SAMA_BEDA");
+                    }}
+                    className="p-6 bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-900/20 border-2 border-slate-200 dark:border-slate-700 hover:border-amber-500 rounded-2xl text-left transition group shadow-sm"
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-lg text-amber-600 dark:text-amber-400">
+                        <GitMerge size={24} />
+                      </span>
+                      <span className="font-bold text-lg text-slate-800 dark:text-white">
+                        Sama Beda Simbol
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Bandingkan dua baris simbol. Tentukan SAMA atau BEDA
+                      secepat mungkin.
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => {
+                      SoundManager.play("click");
+                      onStartTesKecermatan("MATCHING");
+                    }}
+                    className="p-6 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-900/20 border-2 border-slate-200 dark:border-slate-700 hover:border-rose-500 rounded-2xl text-left transition group shadow-sm"
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="p-2 bg-rose-100 dark:bg-rose-900/40 rounded-lg text-rose-600 dark:text-rose-400">
+                        <Target size={24} />
+                      </span>
+                      <span className="font-bold text-lg text-slate-800 dark:text-white">
+                        Matching (Pencocokan)
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Cocokkan simbol dengan kode kuncinya. Melatih memori kerja
+                      jangka pendek.
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => {
+                      SoundManager.play("click");
+                      onStartTesKecermatan("GROUPING");
+                    }}
+                    className="p-6 bg-white dark:bg-slate-800 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 border-2 border-slate-200 dark:border-slate-700 hover:border-cyan-500 rounded-2xl text-left transition group shadow-sm"
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="p-2 bg-cyan-100 dark:bg-cyan-900/40 rounded-lg text-cyan-600 dark:text-cyan-400">
+                        <LayoutGrid size={24} />
+                      </span>
+                      <span className="font-bold text-lg text-slate-800 dark:text-white">
+                        Grouping (Pengelompokan)
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Pilih semua simbol yang diminta dari grid acak. Melatih
+                      fokus selektif.
+                    </p>
+                  </button>
+                </div>
+              </div>
+            )}
+            {category === "SKRIPSI" && (
+              <div className="animate-fade-in-up max-w-2xl mx-auto">
+                <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm mb-6">
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                    <Book size={24} className="text-indigo-600" /> Skripsi
+                    Assistant
+                  </h3>
+                  <p className="text-slate-500 dark:text-slate-400 mb-6">
+                    Masukkan topik atau judul skripsi Anda untuk mendapatkan
+                    bantuan AI.
+                  </p>
+                  <textarea
+                    className="w-full p-4 border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white rounded-xl mb-6 focus:ring-2 focus:ring-indigo-500 h-32"
+                    placeholder="Contoh: Pengaruh Kecerdasan Buatan terhadap Minat Belajar Mahasiswa Teknik Informatika..."
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        onStartSkripsiSession &&
+                          onStartSkripsiSession("TITLE_IDEAS", inputText);
+                      }}
+                      className="p-4 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-xl font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/40 flex flex-col items-center gap-2 border border-indigo-100 dark:border-indigo-800"
+                    >
+                      <Brain size={24} /> Ide Judul
+                    </button>
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        onStartSkripsiSession &&
+                          onStartSkripsiSession("OUTLINE", inputText);
+                      }}
+                      className="p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-xl font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/40 flex flex-col items-center gap-2 border border-emerald-100 dark:border-emerald-800"
+                    >
+                      <FileText size={24} /> Buat Outline
+                    </button>
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        onStartSkripsiSession &&
+                          onStartSkripsiSession("METHODOLOGY", inputText);
+                      }}
+                      className="p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-xl font-bold hover:bg-amber-100 dark:hover:bg-amber-900/40 flex flex-col items-center gap-2 border border-amber-100 dark:border-amber-800"
+                    >
+                      <Search size={24} /> Cek Metodologi
+                    </button>
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        onStartSkripsiSession &&
+                          onStartSkripsiSession("PARAPHRASE", inputText);
+                      }}
+                      className="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 rounded-xl font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40 flex flex-col items-center gap-2 border border-rose-100 dark:border-rose-800"
+                    >
+                      <FileSearch size={24} /> Parafrase Teks
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {category === "GENERAL" && (
+              <div className="space-y-8 animate-fade-in-up">
+                {!isReadingMaterial ? (
+                  <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+                    <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                      <Upload size={20} /> Input Materi
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                      Masukkan topik, teks materi, atau upload PDF yang ingin
+                      dipelajari.
+                    </p>
+                    <div className="flex gap-2 mb-4">
+                      <input
+                        type="text"
+                        className="flex-1 p-3 border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white rounded-xl"
+                        placeholder={
+                          pdfName
+                            ? `PDF Terpilih: ${pdfName}`
+                            : "Contoh: Perang Dunia II, Hukum Newton, atau paste teks..."
+                        }
+                        value={inputText}
+                        disabled={!!pdfName}
+                        onChange={(e) => {
+                          setInputText(e.target.value);
+                        }}
+                      />
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="application/pdf"
+                        className="hidden"
+                        onChange={handleFileChange}
+                      />
+                      <button
+                        className={`p-3 rounded-xl transition flex items-center gap-2 ${pdfName ? "bg-indigo-600 text-white" : "bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200"}`}
+                        title="Upload PDF"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <FileText size={20} />
+                        <span className="hidden sm:inline font-bold text-sm">
+                          Upload PDF
+                        </span>
+                      </button>
+                    </div>
+                    {pdfName && (
+                      <div className="mb-4 text-sm bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 px-4 py-2 rounded-lg flex items-center justify-between animate-fade-in-up border border-emerald-100 dark:border-emerald-800">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={16} />{" "}
+                          <span>
+                            File siap: <b>{pdfName}</b>
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setPdfName(null);
+                            setGeneralInput && setGeneralInput(null);
+                            if (fileInputRef.current)
+                              fileInputRef.current.value = "";
+                          }}
+                          className="text-slate-400 hover:text-rose-500"
+                          title="Hapus PDF"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
+                    {pdfLoading ? (
+                      <div className="mb-6 space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
+                          <Loader2 size={14} className="animate-spin" /> Memuat
+                          Preview PDF...
+                        </div>
+                        <SkeletonLoader
+                          height="h-[300px]"
+                          className="rounded-xl"
+                        />
+                      </div>
+                    ) : (
+                      generalInput?.type === "pdf" &&
+                      generalInput.content && (
+                        <div className="mb-6 animate-fade-in-up">
+                          <label className="text-xs font-bold text-slate-500 mb-2 block">
+                            Preview PDF:
+                          </label>
+                          <embed
+                            src={`data:application/pdf;base64,${generalInput.content}`}
+                            className="w-full h-[300px] rounded-xl border border-slate-200 dark:border-slate-700"
+                            type="application/pdf"
+                          />
+                        </div>
+                      )
+                    )}
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 mb-1 block">
+                          Panjang Materi (Ringkasan)
+                        </label>
+                        <select
+                          value={materialLength}
+                          onChange={(e) =>
+                            setMaterialLength(e.target.value as MaterialLength)
+                          }
+                          className="w-full p-3 bg-slate-50 dark:bg-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium"
+                        >
+                          <option value="SHORT">Ringkas / Poin Penting</option>
+                          <option value="MEDIUM">Standar (Rekomedasi)</option>
+                          <option value="LONG">Mendalam / Detail</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 mb-1 block">
+                          Tingkat Kesulitan Soal
+                        </label>
+                        <select
+                          value={questionDiff}
+                          onChange={(e) =>
+                            setQuestionDiff(
+                              e.target.value as QuestionDifficulty,
+                            )
+                          }
+                          className="w-full p-3 bg-slate-50 dark:bg-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium"
+                        >
+                          <option value="EASY">Mudah (Recall)</option>
+                          <option value="MEDIUM">Sedang (Konseptual)</option>
+                          <option value="HARD">Sulit / HOTS</option>
+                        </select>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        handleInputSubmit();
+                      }}
+                      className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition"
+                    >
+                      Proses & Baca Materi
+                    </button>
+                  </div>
+                ) : (
+                  <div className="animate-fade-in-up">
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 mb-6">
+                      <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-100 dark:border-slate-700">
+                        <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                          <BookOpen size={20} /> Materi Belajar
+                        </h3>
+                        <button
+                          onClick={onResetMaterial}
+                          className="text-sm text-rose-500 hover:underline"
+                        >
+                          Ganti Materi
+                        </button>
+                      </div>
+                      {generalInput?.type === "pdf" && generalInput.content && (
+                        <div className="mb-6">
+                          <embed
+                            src={`data:application/pdf;base64,${generalInput.content}`}
+                            className="w-full h-[500px] rounded-xl border border-slate-200 dark:border-slate-700"
+                            type="application/pdf"
+                          />
+                        </div>
+                      )}
+                      <div className="prose prose-sm max-w-none text-slate-700 dark:text-slate-300 leading-relaxed max-h-[400px] overflow-y-auto p-2 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-700">
+                        <SimpleMarkdown
+                          text={
+                            generalInput?.extractedText ||
+                            generalInput?.content ||
+                            ""
+                          }
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800 dark:text-white mb-4">
+                        Sudah selesai membaca? Pilih Metode Belajar:
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {GENERAL_METHODS.map((m) => {
+                          const iconMap: Record<string, any> = {
+                            Brain,
+                            Repeat,
+                            MessageCircle,
+                            Share2,
+                            Search,
+                            GraduationCap,
+                            BookOpen,
+                            PenTool,
+                          };
+                          const Icon = iconMap[m.icon] || Brain;
+                          return (
+                            <button
+                              key={m.id}
+                              onClick={() => {
+                                SoundManager.play("click");
+                                onStartGeneralSession(m.id);
+                              }}
+                              className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 hover:shadow-md transition text-left flex flex-col h-full"
+                            >
+                              <div className="mb-3 text-indigo-600 dark:text-indigo-400">
+                                <Icon size={24} />
+                              </div>
+                              <h4 className="font-bold text-sm mb-1 text-slate-900 dark:text-white">
+                                {m.name}
+                              </h4>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {m.desc}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {category === "UTBK" && (
+              <>
+                <button
+                  onClick={() => {
+                    SoundManager.play("click");
+                    onOpenTOSelection();
+                  }}
+                  className="w-full bg-emerald-600 dark:bg-emerald-600 text-white p-4 sm:p-6 rounded-2xl mb-8 flex justify-between items-center group shadow-lg shadow-emerald-200 dark:shadow-none hover:bg-emerald-700 transition-all"
+                >
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                      <Clock size={24} className="text-white/80" /> Simulasi
+                      UTBK SNBT Full
+                    </h3>
+                    <p className="text-emerald-100 text-xs sm:text-sm mt-1">
+                      160 Soal. Durasi 195 Menit. Format Resmi 2025.
+                    </p>
+                  </div>
+                  <ChevronRight className="group-hover:translate-x-2 transition-transform" />
+                </button>
+                {renderSubtests(UTBK_SUBTESTS)}
+              </>
+            )}
+            {category === "TPA" && (
+              <>
+                {!tpaStream ? (
+                  <div className="grid md:grid-cols-2 gap-6 mb-8 animate-fade-in-up">
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        if (onTpaStreamSelect) onTpaStreamSelect("TPA_TBI");
+                      }}
+                      className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 transition text-center group shadow-sm"
+                    >
+                      <Brain className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition" />
+                      <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">
+                        TPA & TBI
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
+                        Seleksi Pascasarjana & Umum
+                      </p>
+                    </button>
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        if (onTpaStreamSelect)
+                          onTpaStreamSelect("PSIKOTEST_KEDINASAN");
+                      }}
+                      className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-purple-500 dark:hover:border-purple-500 transition text-center group shadow-sm"
+                    >
+                      <Briefcase className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition" />
+                      <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">
+                        Psikotes Kedinasan
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
+                        Seleksi Lanjutan I PKN STAN
+                      </p>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="animate-fade-in-up">
+                    <div className="flex items-center gap-2 mb-4 text-sm text-slate-600 dark:text-slate-300">
+                      <button
+                        onClick={() => {
+                          SoundManager.play("click");
+                          if (onTpaStreamSelect) onTpaStreamSelect(null as any);
+                        }}
+                        className="underline hover:text-indigo-600"
+                      >
+                        Ubah Jalur
+                      </button>{" "}
+                      <ChevronRight size={14} />{" "}
+                      <b className="uppercase">
+                        {tpaStream === "TPA_TBI"
+                          ? "TPA & TBI"
+                          : "Psikotes PKN STAN"}
+                      </b>
+                    </div>
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        onOpenTOSelection();
+                      }}
+                      className="w-full bg-emerald-600 dark:bg-emerald-600 text-white p-4 sm:p-6 rounded-2xl mb-8 flex justify-between items-center group shadow-lg hover:bg-emerald-700 transition-all"
+                    >
+                      <div>
+                        <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                          <Clock size={24} className="text-white/80" /> Simulasi{" "}
+                          {tpaStream === "TPA_TBI" ? "TPA & TBI" : "Psikotes"}{" "}
+                          Full
+                        </h3>
+                        <p className="text-emerald-100 text-xs sm:text-sm mt-1">
+                          {tpaStream === "TPA_TBI"
+                            ? "65 Soal. 100 Menit."
+                            : "TIU, Logika Gambar, Kepribadian."}
+                        </p>
+                      </div>
+                      <ChevronRight className="group-hover:translate-x-2 transition-transform" />
+                    </button>
+                    {renderSubtests(
+                      tpaStream === "TPA_TBI"
+                        ? TPA_SUBTESTS
+                        : PSIKOTEST_KEDINASAN_SUBTESTS,
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+            {category === "TKA" && (
+              <>
+                {!tkaLevel ? (
+                  <div className="grid md:grid-cols-3 gap-6 mb-8 animate-fade-in-up">
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        if (onTkaLevelSelect) onTkaLevelSelect("SD");
+                      }}
+                      className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition text-center group shadow-sm"
+                    >
+                      <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition" />
+                      <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">
+                        TKA SD
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
+                        Matematika, B. Indonesia, B. Inggris
+                      </p>
+                    </button>
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        if (onTkaLevelSelect) onTkaLevelSelect("SMP");
+                      }}
+                      className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition text-center group shadow-sm"
+                    >
+                      <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition" />
+                      <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">
+                        TKA SMP
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
+                        Matematika, B. Indonesia, B. Inggris
+                      </p>
+                    </button>
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        if (onTkaLevelSelect) onTkaLevelSelect("SMA");
+                      }}
+                      className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition text-center group shadow-sm"
+                    >
+                      <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition" />
+                      <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">
+                        TKA SMA
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
+                        Matematika, B. Indonesia, B. Inggris
+                      </p>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="animate-fade-in-up">
+                    <div className="flex items-center gap-2 mb-4 text-sm text-slate-600 dark:text-slate-300">
+                      <button
+                        onClick={() => {
+                          SoundManager.play("click");
+                          if (onTkaLevelSelect) onTkaLevelSelect(null as any);
+                        }}
+                        className="underline hover:text-indigo-600"
+                      >
+                        Ubah Jenjang
+                      </button>{" "}
+                      <ChevronRight size={14} />{" "}
+                      <b className="uppercase">TKA {tkaLevel}</b>
+                    </div>
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        onOpenTOSelection();
+                      }}
+                      className="w-full bg-emerald-600 dark:bg-emerald-600 text-white p-4 sm:p-6 rounded-2xl mb-8 flex justify-between items-center group shadow-lg hover:bg-emerald-700 transition-all"
+                    >
+                      <div>
+                        <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                          <Clock size={24} className="text-white/80" /> Simulasi
+                          TKA {tkaLevel} Full
+                        </h3>
+                        <p className="text-emerald-100 text-xs sm:text-sm mt-1">
+                          90 Soal. 80% HOTS.
+                        </p>
+                      </div>
+                      <ChevronRight className="group-hover:translate-x-2 transition-transform" />
+                    </button>
+                    {renderSubtests(
+                      tkaLevel === "SD"
+                        ? ["Matematika", "Bahasa Indonesia"]
+                        : ["Matematika", "Bahasa Indonesia", "Bahasa Inggris"],
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+            {category === "PSIKOTEST" && (
+              <>
+                <div className="grid md:grid-cols-2 gap-6 mb-8">
+                  <button
+                    onClick={() => {
+                      SoundManager.play("click");
+                      onStartTesKoran();
+                    }}
+                    className="bg-white dark:bg-slate-800 p-6 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition text-center group shadow-sm"
+                  >
+                    <Calculator
+                      size={48}
+                      className="mx-auto mb-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition"
+                    />
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+                      Tes Koran (Pauli/Kraepelin)
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                      Uji kecepatan, ketelitian, dan stabilitas emosi dengan
+                      menjumlahkan angka.
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => {
+                      SoundManager.play("click");
+                      onOpenTOSelection();
+                    }}
+                    className="bg-white dark:bg-slate-800 p-6 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition text-center group shadow-sm"
+                  >
+                    <Brain
+                      size={48}
+                      className="mx-auto mb-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition"
+                    />
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+                      Psikotes Logika & IQ
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                      Analogi, Deret Angka, dan Penalaran Logis (HOTS).
+                    </p>
+                  </button>
+                </div>
+                <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
+                  <h3 className="font-bold text-slate-800 dark:text-white mb-4">
+                    Latihan Per Subtes
+                  </h3>
+                  {renderSubtests(PSIKOTEST_SUBTESTS)}
+                </div>
+              </>
+            )}
+            {category === "INTERVIEW" && renderSubtests(INTERVIEW_TOPICS)}
+            {category === "SKD" &&
+              (!skdStream ? (
+                <div className="grid md:grid-cols-2 gap-6 mb-8">
+                  <button
+                    onClick={() => {
+                      SoundManager.play("click");
+                      onSkdStreamSelect("KEDINASAN");
+                    }}
+                    className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 transition text-center group"
+                  >
+                    <Landmark className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition" />
+                    <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">
+                      Sekolah Kedinasan
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
+                      STAN, STIS, IPDN, dll
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => {
+                      SoundManager.play("click");
+                      onSkdStreamSelect("CPNS");
+                    }}
+                    className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 transition text-center group"
+                  >
+                    <Building2 className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition" />
+                    <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">
+                      CPNS Umum
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
+                      Kementerian & Lembaga
+                    </p>
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 mb-4 text-sm text-slate-600 dark:text-slate-300">
+                    <button
+                      onClick={() => onSkdStreamSelect(null as any)}
+                      className="underline"
+                    >
+                      Ubah Jalur
+                    </button>{" "}
+                    <ChevronRight size={14} /> <b>{skdStream}</b>
+                  </div>
+                  <button
+                    onClick={() => {
+                      SoundManager.play("click");
+                      onOpenTOSelection();
+                    }}
+                    className="w-full bg-emerald-600 dark:bg-emerald-600 text-white p-4 sm:p-6 rounded-2xl mb-8 flex justify-between items-center shadow-lg hover:bg-emerald-700 transition-all"
+                  >
+                    <div>
+                      <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                        <Clock size={24} className="text-white/80" /> Simulasi
+                        SKD CAT (110 Soal)
+                      </h3>
+                      <p className="text-emerald-100 text-xs sm:text-sm mt-1">
+                        TWK, TIU, TKP. Durasi 100 Menit. Scoring Resmi.
+                      </p>
+                    </div>
+                    <ChevronRight className="group-hover:translate-x-2 transition-transform" />
+                  </button>
+                  {renderSubtests(SKD_SUBTESTS)}
+                </>
+              ))}
+            {category !== "GENERAL" &&
+              category !== "INTERVIEW" &&
+              category !== "SKRIPSI" &&
+              category !== "PSIKOTEST" &&
+              category !== "KECERMATAN" &&
+              category !== "BENCHMARK" && (
+                <div className="mt-5 sm:mt-8 animate-fade-in-up delay-100">
+                  <h3 className="font-bold text-sm sm:text-base text-slate-800 dark:text-white mb-2.5 sm:mb-4">
+                    Mode Belajar Lainnya
+                  </h3>
+                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-4">
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        onStartSession(StudyMode.DRILL);
+                      }}
+                      className="p-3 sm:p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-indigo-500 hover:shadow-md transition text-left"
+                    >
+                      <Zap
+                        size={20}
+                        className="text-amber-500 mb-1.5 sm:mb-2"
+                      />
+                      <div className="font-bold text-[13px] sm:text-sm text-slate-800 dark:text-white">
+                        Learn & Drill
+                      </div>
+                      <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 leading-tight">
+                        Materi + 1 Soal
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        onStartSession(StudyMode.ACTIVE_RECALL);
+                      }}
+                      className="p-3 sm:p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-indigo-500 hover:shadow-md transition text-left"
+                    >
+                      <Brain
+                        size={20}
+                        className="text-emerald-500 mb-1.5 sm:mb-2"
+                      />
+                      <div className="font-bold text-[13px] sm:text-sm text-slate-800 dark:text-white">
+                        Active Recall
+                      </div>
+                      <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 leading-tight">
+                        Isian Singkat
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        if (onOpenAcademicHub) onOpenAcademicHub();
+                      }}
+                      className="p-3 sm:p-4 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-900 rounded-xl hover:border-emerald-500 hover:shadow-md transition text-left"
+                    >
+                      <BarChart2
+                        size={20}
+                        className="text-emerald-500 mb-1.5 sm:mb-2"
+                      />
+                      <div className="font-bold text-[13px] sm:text-sm text-slate-800 dark:text-white">
+                        Analisis Akademik
+                      </div>
+                      <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 leading-tight">
+                        Target Skor & Review
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        if (onBattle) onBattle();
+                      }}
+                      className="p-3 sm:p-4 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-900 rounded-xl hover:border-indigo-500 hover:shadow-md transition text-left"
+                    >
+                      <Swords
+                        size={20}
+                        className="text-indigo-500 mb-1.5 sm:mb-2"
+                      />
+                      <div className="font-bold text-[13px] sm:text-sm text-slate-800 dark:text-white">
+                        Battle Arena
+                      </div>
+                      <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 leading-tight">
+                        1v1 Duel
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+          </>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- MAIN APP COMPONENT ---
 
 function App() {
   const [currentView, setCurrentView] = useState<

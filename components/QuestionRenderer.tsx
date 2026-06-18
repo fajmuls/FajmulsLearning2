@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { InlineMath, BlockMath } from './KatexReact';
+import { InlineMath, BlockMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
 import { Grid, Shapes } from 'lucide-react';
 import { InteractiveFigural } from './InteractiveFigural';
