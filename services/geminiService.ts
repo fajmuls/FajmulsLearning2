@@ -18,8 +18,15 @@ import {
   TargetScoreCalcResult
 } from '../types';
 
-// Initialize API
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize API dynamically to avoid load-time crashes if GEMINI_API_KEY is omitted during statically generated client builds
+let aiInstance: GoogleGenAI | null = null;
+function getAiClient(): GoogleGenAI {
+  if (!aiInstance) {
+    const key = process.env.API_KEY || "AIzaSy-placeholder-for-compilation-only";
+    aiInstance = new GoogleGenAI({ apiKey: key });
+  }
+  return aiInstance;
+}
 
 // Helper for shuffling options
 function shuffleArray<T>(array: T[]): T[] {
@@ -233,7 +240,7 @@ async function callGemini<T>(prompt: string, schema?: Schema, imageBase64?: stri
   while (retries > 0) {
     const model = models[modelIdx % models.length];
     try {
-      const result = await ai.models.generateContent({
+      const result = await getAiClient().models.generateContent({
         model,
         contents: { role: 'user', parts },
         config
@@ -327,7 +334,7 @@ async function* callGeminiStream(prompt: string, schema?: Schema, imageBase64?: 
   while (retries > 0) {
     const model = models[modelIdx % models.length];
     try {
-      const resultStream = await ai.models.generateContentStream({
+      const resultStream = await getAiClient().models.generateContentStream({
         model,
         contents: { role: 'user', parts },
         config

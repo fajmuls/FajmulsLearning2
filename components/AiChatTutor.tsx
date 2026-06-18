@@ -16,7 +16,14 @@ interface Message {
     timestamp: number;
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let aiInstance: GoogleGenAI | null = null;
+const getAiClient = (): GoogleGenAI => {
+    if (!aiInstance) {
+        const key = process.env.API_KEY || "AIzaSy-placeholder-for-compilation-only";
+        aiInstance = new GoogleGenAI({ apiKey: key });
+    }
+    return aiInstance;
+};
 
 export const AiChatTutor: React.FC<AiChatTutorProps> = ({ initialContext, onClose, userId }) => {
     const [messages, setMessages] = useState<Message[]>([]);
@@ -64,7 +71,7 @@ export const AiChatTutor: React.FC<AiChatTutorProps> = ({ initialContext, onClos
                 finalPrompt = `Tolong jelaskan dengan gaya mengajar yang bersahabat, step-by-step, jangan menggurui, namun mudah dimengerti (gunakan trik/shortcut jika ada): ${text}`;
             }
 
-            const result = await ai.models.generateContent({
+            const result = await getAiClient().models.generateContent({
                 model: 'gemini-3.5-flash',
                 contents: [
                     { role: 'user', parts: [{ text: "System prompt: Kamu adalah guru (Tutor) spesialis tes CPNS SKD, UTBK SNBT, dan Psikotes. Berikan penjelasan yang super jelas dan trik 'Cara Cepat'." }] },
