@@ -9,9 +9,13 @@ import * as FirebaseService from '../services/firebase';
 import { useSpeechRecognition } from '../utils/speechRecognition';
 import { verifyToken } from '../src/utils/security';
 import 'katex/dist/katex.min.css';
-import { InlineMath, BlockMath } from './MyKatex';
+import { InlineMath, BlockMath } from './KatexReact';
 import { SimpleMarkdown, MatrixQuestionRenderer, SvgRenderer, formatTopic } from './QuestionRenderer';
 import { InteractiveFigural } from './InteractiveFigural';
+import { safeStorage } from '../utils/safeStorage';
+
+// Shadow standard localStorage with safeStorage for iframe storage access resiliency
+const localStorage = safeStorage;
 
 // --- SUB-COMPONENTS ---
 
@@ -170,7 +174,7 @@ const QuestionFlagModal: React.FC<{
     if (!isOpen) return null;
 
     const handleMark = () => {
-        const stored = localStorage.getItem('fajmuls_marked_questions');
+        const stored = safeStorage.getItem('fajmuls_marked_questions');
         const existing: MarkedQuestion[] = stored ? JSON.parse(stored) : [];
         
         if (existing.some(q => q.id === question.id)) {
@@ -186,7 +190,7 @@ const QuestionFlagModal: React.FC<{
             dateMarked: Date.now()
         };
 
-        localStorage.setItem('fajmuls_marked_questions', JSON.stringify([newMarked, ...existing]));
+        safeStorage.setItem('fajmuls_marked_questions', JSON.stringify([newMarked, ...existing]));
         showToast("Soal berhasil ditandai!", 'success');
         onClose();
     };
@@ -666,14 +670,14 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
         };
 
         try {
-            localStorage.setItem('fajmuls_active_session', JSON.stringify(sessionState, getCircularReplacer()));
+            safeStorage.setItem('fajmuls_active_session', JSON.stringify(sessionState, getCircularReplacer()));
         } catch (e) {
             console.warn("Failed to save session state", e);
         }
     }, [timeLeft, answerMap, currentIndex, utbkSubtestIndex, userId, skdStream, tpaStream, endTime]); 
 
     const clearSavedSession = () => {
-        localStorage.removeItem('fajmuls_active_session');
+        safeStorage.removeItem('fajmuls_active_session');
     };
 
     // Filter questions for current UTBK subtest

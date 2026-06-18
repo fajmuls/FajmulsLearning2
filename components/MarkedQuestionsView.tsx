@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Trash2, Flag, FileText, ChevronDown, ChevronUp, CheckCircle, Copy } from 'lucide-react';
-import { InlineMath, BlockMath } from './MyKatex';
+import { InlineMath, BlockMath } from './KatexReact';
 import 'katex/dist/katex.min.css';
 import { MarkedQuestion } from '../types';
 import { SoundManager } from '../services/soundService';
+import { safeStorage } from '../utils/safeStorage';
+
+// Shadow standard localStorage with safeStorage for iframe storage access resiliency
+const localStorage = safeStorage;
 
 const ensureLaTeXWrapping = (text: string): string => {
     if (!text) return text;
@@ -110,7 +114,7 @@ export const MarkedQuestionsView: React.FC<{ onBack: () => void, showToast: (msg
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
     useEffect(() => {
-        const stored = localStorage.getItem('fajmuls_marked_questions');
+        const stored = safeStorage.getItem('fajmuls_marked_questions');
         if (stored) {
             try {
                 setQuestions(JSON.parse(stored));
@@ -124,7 +128,7 @@ export const MarkedQuestionsView: React.FC<{ onBack: () => void, showToast: (msg
         SoundManager.play('click');
         const updated = questions.filter(q => q.id !== id);
         setQuestions(updated);
-        localStorage.setItem('fajmuls_marked_questions', JSON.stringify(updated));
+        safeStorage.setItem('fajmuls_marked_questions', JSON.stringify(updated));
         showToast("Soal berhasil dihapus.", 'success');
     };
 

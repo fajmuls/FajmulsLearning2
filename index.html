@@ -7,6 +7,16 @@
     <link rel="icon" type="image/png" href="https://files.catbox.moe/02xqjo.png" />
     <title>Fajmuls Learning</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+      // Global error handler for module loading
+      window.addEventListener('error', function(e) {
+        document.body.innerHTML = '<div style="color:red;padding:20px;font-family:sans-serif"><h2>Module Load Error:</h2><p>' + e.message + '</p><pre>' + (e.error ? e.error.stack : '') + '</pre></div>';
+      });
+      // Polyfill for process.env in browser
+      if (typeof window.process === 'undefined') {
+        window.process = { env: {} };
+      }
+    </script>
     <style>
       body { font-family: 'Inter', sans-serif; }
       /* Custom scrollbar for cleaner UI */
