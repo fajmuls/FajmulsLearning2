@@ -2150,20 +2150,42 @@ function App() {
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
-  // Updated Settings State
-  const [settings, setSettings] = useState<AppSettings>({
-    soundEnabled: true,
-    musicEnabled: true,
-    vibrationEnabled: true,
-    autoNextQuestion: true,
-    volume: 0.5,
-    funnyNotifications: true,
-    confirmActions: true,
-    darkMode: false,
-    theme: "light",
-    appBaseColor: "#ffffff", // Default Base Color
-    appPattern: "none", // Default Pattern
-    fontSize: "md",
+  // Updated Settings State with Lazy Initialization
+  const [settings, setSettings] = useState<AppSettings>(() => {
+    const savedSettings = localStorage.getItem("fajmuls_settings");
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        if (!parsed.theme) parsed.theme = parsed.darkMode ? "dark" : "light";
+        if (!parsed.appBaseColor) {
+          parsed.appBaseColor = parsed.darkMode ? "#0f172a" : "#ffffff";
+          if (parsed.appBackground === "grid") parsed.appPattern = "grid";
+          else if (parsed.appBackground === "dots") parsed.appPattern = "dots";
+          else if (parsed.appBackground === "waves") parsed.appPattern = "waves";
+          else if (parsed.appBackground === "aurora") parsed.appPattern = "aurora";
+          else if (parsed.appBackground === "fajmuls") parsed.appPattern = "fajmuls";
+          else parsed.appPattern = "none";
+        }
+        if (!parsed.fontSize) parsed.fontSize = "md";
+        return parsed;
+      } catch (e) {
+        console.error("Gagal memanggil pengaturan di awal", e);
+      }
+    }
+    return {
+      soundEnabled: true,
+      musicEnabled: true,
+      vibrationEnabled: true,
+      autoNextQuestion: true,
+      volume: 0.5,
+      funnyNotifications: true,
+      confirmActions: true,
+      darkMode: false,
+      theme: "light",
+      appBaseColor: "#ffffff",
+      appPattern: "none",
+      fontSize: "md",
+    };
   });
 
   const isSettingsLoadedFromCloudRef = useRef(false);
@@ -2368,38 +2390,6 @@ function App() {
     };
     window.addEventListener("openAiTutor", handleOpenTutor as EventListener);
 
-    const savedSettings = localStorage.getItem("fajmuls_settings");
-    if (savedSettings) {
-      const parsed = JSON.parse(savedSettings);
-      if (!parsed.theme) parsed.theme = parsed.darkMode ? "dark" : "light";
-
-      // MIGRATION: Convert old appBackground string to new structure if needed
-      if (!parsed.appBaseColor) {
-        parsed.appBaseColor = parsed.darkMode ? "#0f172a" : "#ffffff"; // Default base
-        // Map old strings to patterns
-        if (parsed.appBackground === "grid") parsed.appPattern = "grid";
-        else if (parsed.appBackground === "dots") parsed.appPattern = "dots";
-        else if (parsed.appBackground === "waves") parsed.appPattern = "waves";
-        else if (parsed.appBackground === "aurora")
-          parsed.appPattern = "aurora";
-        else if (parsed.appBackground === "fajmuls")
-          parsed.appPattern = "fajmuls";
-        else parsed.appPattern = "none";
-      }
-
-      if (!parsed.fontSize) parsed.fontSize = "md";
-      setSettings(parsed);
-    } else if (
-      window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches
-    ) {
-      setSettings((prev) => ({
-        ...prev,
-        theme: "dark",
-        darkMode: true,
-        appBaseColor: "#0f172a",
-      }));
-    }
     const unsubscribe = FirebaseService.subscribeToAuth(
       async (firebaseUser) => {
         setIsInitializing(true);

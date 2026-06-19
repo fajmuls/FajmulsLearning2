@@ -599,7 +599,8 @@ export const buildQuestionPrompt = (
   // FORMATTING INSTRUCTIONS
   const formattingInstructions = `
   CRITICAL FORMATTING RULES:
-  - **DISTRACTOR QUALITY (Near-Miss Logic)**: For incorrect options (distractors), do NOT use random or easily guessable wrong answers. Construct them logically based on common calculation errors, misread signs, logical traps, or near-misses of the exact correct answer.
+  - **EQUAL OPTION LENGTHS (ANTI-GUESSING)**: You MUST ensure that all 5 options (A, B, C, D, E) are roughly the EXACT SAME LENGTH (character and word count). The correct answer MUST NEVER be noticeably longer or more detailed than the distractor options. If you need to add detail to the correct answer, you MUST also add equally complex and long details to the incorrect answers to camouflage it.
+  - **DISTRACTOR QUALITY (Near-Miss Logic for HOTS)**: For incorrect options (distractors), do NOT use random or easily guessable wrong answers. Construct them logically based on common calculation errors, misread signs, logical traps, or near-misses of the exact correct answer. In TWK and TKP, distractors must sound incredibly plausible, academic, and highly professional.
   - **PREMISES**:
     - If a question involves multiple premises, EACH item must be on a NEW LINE with clean spacing.
   - **READABILITY**:
@@ -726,10 +727,10 @@ export const buildQuestionPrompt = (
 
            CRITICAL TWK RULES (ELITE DIFFICULTY & SANGAT MENGECOH):
            1. **NO IMAGES/SVG**: DILARANG KERAS menghasilkan gambar, SVG, atau visual apa pun. Soal TWK HARUS 100% TEKS.
-           2. FORMAT: Gunakan narasi/studi kasus yang kompleks. Analisis contoh soal SKD tahun-tahun sebelumnya (Field Report) dan buat variasi yang LEBIH SULIT (HOTS Tingkat Tinggi).
-           3. JAWABAN: Harus ada 1 Benar (nilai 5) dan 4 Salah (nilai 0). Opsi jawaban harus menguji pemahaman KONSEPTUAL dan ANALITIS, bukan sekadar hafalan.
-           4. DISTRACTORS: Jebakan harus sangat halus, seringkali menggunakan istilah yang mirip atau peristiwa sejarah yang berdekatan waktunya.
-           5. Language: Gunakan Bahasa Indonesia formal/akademik yang sangat rapi.`;
+           2. FORMAT: Gunakan narasi/studi kasus yang kompleks panjang lebar, tetapi fokus pertanyaannya mengecoh. Analisis contoh soal SKD tahun-tahun sebelumnya (Field Report) dan buat variasi yang LEBIH SULIT (HOTS Tingkat Tinggi).
+           3. JAWABAN: Harus ada 1 Benar (nilai 5) dan 4 Salah (nilai 0). Opsi jawaban harus menguji pemahaman KONSEPTUAL dan ANALITIS, bukan sekadar hafalan. **PANJANG JAWABAN HARUS RELATIF SAMA PANJANGNYA UNTUK SEMUA OPSI (A, B, C, D, E)** agar tidak bisa ditebak dari opsi terpanjang.
+           4. DISTRACTORS / PENGECOH: Pengecoh HARUS SANGAT SULIT (SUPER JEBAKAN). Gunakan penjelasan yang secara historis atau konstitusional "terdengar benar" dan "normatif" tapi terbalik konteksnya. Jawaban salah HARUS SAMA PANJANG detailnya dengan jawaban benar.
+           5. Language: Gunakan Bahasa Indonesia formal/akademik yang sangat rapi. Bentuk soal harus membutuhkan nalar analitis (misalnya analisis sikap, pemecahan masalah), bukan sekadar menyebut pasal.`;
       } else if (isTiu) {
            difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - EXTREME HOTS (ELITE LEVEL).
            
@@ -738,14 +739,14 @@ export const buildQuestionPrompt = (
            - Kemampuan Numerik: Berhitung cepat, deret angka (pola bertingkat/interleaved), perbandingan kuantitatif, dan soal cerita matematika analisis tinggi.
            - Kemampuan Figural: Analogi gambar, ketidaksamaan gambar, dan serial gambar (Gunakan SVG yang kompleks).
 
-           CRITICAL TIU RULES (ELITE DIFFICULTY):
+           CRITICAL TIU RULES (ELITE DIFFICULTY & PENGECOH EKSTREM):
            1. VERBAL ANALOGY: Gunakan analogi bertingkat dengan kosa kata KBBI level tinggi yang membingungkan. Wrap all concepts in LaTeX if they involve numbers or symbols.
            2. NUMERICAL SERIES: Gunakan pola bertingkat yang tidak masuk akal tanpa penalaran tajam. EVERY NUMBER MUST BE IN LaTeX ($ ... $).
-           3. LOGICAL REASONING: Gunakan silogisme dengan 3+ premis dan kuantor ganda dengan complex structure.
+           3. LOGICAL REASONING: Gunakan silogisme dengan 3+ premis dan kuantor ganda dengan complex structure. Pengecoh/Distractor harus menggunakan penalaran fallacy yang terasa "logis" jika dibaca sekilas.
            4. FIGURAL: (Already defined in Master Figural instructions). Only TIU is allowed to have visual SVG logic.
            5. MATH: Probability, Statistics, and Geometry must require multiple steps. EVERY CALCULATION IN LaTeX. Opsi yang salah harus berisi jebakan perhitungan parsial.
            6. ODD ONE OUT (Ketidaksamaan): Just ask "Pilihlah gambar yang tidak sesuai." Do NOT explain the pattern.
-           `;
+           7. ANTI-GUESSING BY LENGTH: PANJANG OPSI (A-E) HARUS SAMA UNTUK VERBAL/LOGIKA. Jangan biarkan jawaban yang benar tampak paling panjang.`;
       } else if (isTkp) {
            difficultyContext = `CONTEXT: SKD TKP (Tes Karakteristik Pribadi) - EXTREME AMBIGUITY (SANGAT MENGECOH).
            
@@ -757,13 +758,13 @@ export const buildQuestionPrompt = (
            - Profesionalisme: Disiplin, tanggung jawab, integritas, dan performa kerja di bawah tekanan.
            - Anti Radikalisme: Pemahaman dan sikap tegas terhadap ideologi yang bertentangan dengan Pancasila.
 
-           CRITICAL TKP RULES:
-           1. DIFFICULTY: Options must be VERY SIMILAR in length, tone, and logic. Avoid obvious outliers. Opsi poin 5 dan 4 harus LUAR BIASA sulit dibedakan, keduanya memuat solusi ideal dan sangat baik, hanya terpisah oleh prioritas inisiatif jangka panjang, SOP, atau penyelesaian mendasarnya.
-           2. DISTRACTORS: Jawaban bernilai 1 atau 2 TIDAK BOLEH terlihat buruk/jahat, namun terlihat wajar dalam perspektif normatif biasa tapi kurang memenuhi kriteria profesionalisme tertinggi ASN.
-           3. NO LENGTH BIAS: Do not make the correct answer significantly longer than others.
-           4. AMBIGUITY: The difference between 5 points and 4 points should be subtle (e.g., direct action vs. procedural action).
+           CRITICAL TKP RULES (ANTI MENGIRA-NGIRA DENGAN PANJANG TEKS):
+           1. DIFFICULTY: Opsi poin 5 dan 4 harus LUAR BIASA sulit dibedakan, keduanya memuat solusi ideal dan sangat baik, hanya terpisah oleh inisiatif/SOP.
+           2. DISTRACTORS: Jawaban bernilai 1, 2, atau 3 TIDAK BOLEH terlihat buruk/jahat, namun terlihat "normatif wajar" tapi kurang solutif tuntas.
+           3. STRICT NO LENGTH BIAS (SANGAT PENTING): PANJANG TEKS KELIMA OPSI (A, B, C, D, E) HARUS IDENTIK / HAMPIR SAMA PERSIS. DILARANG KERAS membuat jawaban poin 5 menjadi jawaban yang paling panjang. Ratakan deskripsi jawaban opsi 1, 2, dan 3 agar terlihat komprehensif, logis, dan menjebak!
+           4. AMBIGUITY: The difference between 5 points and 4 points should be extremely subtle and context-dependent.
            5. VISUALS: DO NOT use images, icons, or SVG. Use professional text only.
-           6. TOPICS: Focus strictly on the themes above. Focuskan ke dilema kerja berat.`;
+           6. TOPICS: Focus strictly on the themes above. Focuskan ke dilema kerja berat yang membingungkan.`;
       }
 
       if (category === 'SKD' && typeof context === 'string' && (context.toUpperCase().includes('TIU') || context.toUpperCase().includes('INTELEGENSIA'))) {
@@ -1124,7 +1125,9 @@ export const buildQuestionPrompt = (
         prompt += `\nGenerate ${count} distinct questions. Provide DETAILED explanation.`;
 
       } else {
-        const commonInstruction = `Generate ${count} distinct questions. ${difficultyContext}. Provide DETAILED explanation. ${shapeInstructions} ${mathInstructions} ${formattingInstructions}`;
+        const commonInstruction = `Generate ${count} distinct questions. ${difficultyContext}. Provide DETAILED explanation. 
+        CRITICAL REMINDER: ALL MULTIPLE CHOICE OPTIONS MUST BE THE EXACT SAME LENGTH. NEVER MAKE THE CORRECT ANSWER THE LONGEST OPTION. 
+        ${shapeInstructions} ${mathInstructions} ${formattingInstructions}`;
         
         if (isTkp) {
            prompt = `SKD TKP MODE. ${commonInstruction} SCORING: 1-5 points via 'tkpPoints'. Ensure high ambiguity between top choices. The 'option' field in tkpPoints MUST BE THE EXACT FULL TEXT of the option, NOT A/B/C/D/E.`;
