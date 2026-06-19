@@ -104,7 +104,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
         } else {
             // Admin Skip Token for ALL actions (including GENERATE)
             if (isUserAdmin(userProfile)) {
-                handleBypassAuth();
+                handleBypassAuth(type, payload);
                 return;
             }
 
@@ -114,23 +114,26 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
         }
     };
 
-    const handleBypassAuth = () => {
+    const handleBypassAuth = (overrideType?: string, overridePayload?: any) => {
         SoundManager.play('success');
-        if (pendingAction?.type === 'GENERATE') {
+        const typeTarget = overrideType || pendingAction?.type;
+        const payloadTarget = overridePayload !== undefined ? overridePayload : pendingAction?.payload;
+
+        if (typeTarget === 'GENERATE') {
             performGenerate();
-        } else if (pendingAction?.type === 'IMPORT') {
+        } else if (typeTarget === 'IMPORT') {
             fileInputRef.current?.click();
-        } else if (pendingAction?.type === 'DELETE') {
-            performDelete(pendingAction.payload);
-        } else if (pendingAction?.type === 'DELETE_MULTIPLE') {
-            if (onDeleteMultiplePackages && pendingAction.payload) {
-                onDeleteMultiplePackages(pendingAction.payload);
+        } else if (typeTarget === 'DELETE') {
+            performDelete(payloadTarget);
+        } else if (typeTarget === 'DELETE_MULTIPLE') {
+            if (onDeleteMultiplePackages && payloadTarget) {
+                onDeleteMultiplePackages(payloadTarget);
                 setSelectedIds(new Set());
                 setIsSelectionMode(false);
             }
-        } else if (pendingAction?.type === 'FIX_DUPLICATES') {
+        } else if (typeTarget === 'FIX_DUPLICATES') {
             if (onFixDuplicates) onFixDuplicates();
-        } else if (pendingAction?.type === 'FIX_GAPS') {
+        } else if (typeTarget === 'FIX_GAPS') {
             if (onFixGaps) onFixGaps();
         }
         setPendingAction(null);

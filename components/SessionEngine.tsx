@@ -1143,16 +1143,19 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
         
         if (category === 'SKD') {
             if (currentQ.tkpPoints && currentQ.tkpPoints.length > 0) {
-                let pointData = currentQ.tkpPoints.find(tp => tp.option.trim().toLowerCase() === option.trim().toLowerCase());
+                const normalizeText = (text: string) => text.trim().toLowerCase().replace(/[^a-z0-9]/gi, '');
+                const normSelected = normalizeText(option);
                 
-                // Fallback for older packages where tkpPoints might be A, B, C, D, E or A., B.
+                let pointData = currentQ.tkpPoints.find(tp => normalizeText(tp.option) === normSelected);
+                
+                // Fallback for older packages where tkpPoints might strictly be A/B/C/D/E
                 if (!pointData && currentQ.options) {
                     const optIndex = currentQ.options.findIndex(o => o === option);
                     if (optIndex !== -1) {
                         const letter = String.fromCharCode(65 + optIndex); // 0 -> A, 1 -> B
                         pointData = currentQ.tkpPoints.find(tp => {
-                            const cleanTp = tp.option.trim().toUpperCase().replace(/[^A-E]/g, '');
-                            return cleanTp === letter;
+                            const cleanTp = tp.option.trim().toUpperCase();
+                            return cleanTp === letter || cleanTp === `${letter}.`;
                         });
                     }
                 }
@@ -1172,16 +1175,19 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
             const isTBI = currentQ.metadata?.subtest?.includes('TBI') || currentQ.metadata?.subtest?.includes('Inggris');
             if (tpaStream === 'PSIKOTEST_KEDINASAN') {
                 if (currentQ.tkpPoints && currentQ.tkpPoints.length > 0) {
-                    let pointData = currentQ.tkpPoints.find(tp => tp.option.trim().toLowerCase() === option.trim().toLowerCase());
+                    const normalizeText = (text: string) => text.trim().toLowerCase().replace(/[^a-z0-9]/gi, '');
+                    const normSelected = normalizeText(option);
                     
-                    // Fallback for older packages where tkpPoints might be A, B, C, D, E
+                    let pointData = currentQ.tkpPoints.find(tp => normalizeText(tp.option) === normSelected);
+                    
+                    // Fallback for older packages where tkpPoints might strictly be A/B/C/D/E
                     if (!pointData && currentQ.options) {
                         const optIndex = currentQ.options.findIndex(o => o === option);
                         if (optIndex !== -1) {
                             const letter = String.fromCharCode(65 + optIndex); // 0 -> A, 1 -> B
                             pointData = currentQ.tkpPoints.find(tp => {
-                                const cleanTp = tp.option.trim().toUpperCase().replace(/[^A-E]/g, '');
-                                return cleanTp === letter;
+                                const cleanTp = tp.option.trim().toUpperCase();
+                                return cleanTp === letter || cleanTp === `${letter}.`;
                             });
                         }
                     }
@@ -1711,14 +1717,18 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                                 if (mode !== StudyMode.SIMULATION && currentAns) {
                                                     let isCorrect = false;
                                                     if (currentQ.tkpPoints && currentQ.tkpPoints.length > 0) {
-                                                        let pointData = currentQ.tkpPoints.find(p => p.option.trim().toLowerCase() === opt.trim().toLowerCase());
+                                                        const normalizeText = (text: string) => text.trim().toLowerCase().replace(/[^a-z0-9]/gi, '');
+                                                        const normSelected = normalizeText(opt);
+                                                        
+                                                        let pointData = currentQ.tkpPoints.find(p => normalizeText(p.option) === normSelected);
+                                                        
                                                         if (!pointData && currentQ.options) {
                                                             const optIndex = currentQ.options.findIndex(o => o === opt);
                                                             if (optIndex !== -1) {
                                                                 const letter = String.fromCharCode(65 + optIndex);
                                                                 pointData = currentQ.tkpPoints.find(tp => {
-                                                                    const cleanTp = tp.option.trim().toUpperCase().replace(/[^A-E]/g, '');
-                                                                    return cleanTp === letter;
+                                                                    const cleanTp = tp.option.trim().toUpperCase();
+                                                                    return cleanTp === letter || cleanTp === `${letter}.`;
                                                                 });
                                                             }
                                                         }
