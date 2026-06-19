@@ -489,8 +489,8 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
 
     useEffect(() => {
         if (showAdminModal && !isAdminAuthenticated) {
-            const email = FirebaseService.auth.currentUser?.email;
-            if (email && (email === 'mrachmanfm@gmail.com' || email.endsWith('@fajmuls.com'))) {
+            const user = FirebaseService.auth.currentUser;
+            if (user && (FirebaseService.isUserAdmin(user) || user.email?.endsWith('@fajmuls.com'))) {
                 setIsAdminAuthenticated(true);
             }
         }
@@ -1145,12 +1145,15 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
             if (currentQ.tkpPoints && currentQ.tkpPoints.length > 0) {
                 let pointData = currentQ.tkpPoints.find(tp => tp.option.trim().toLowerCase() === option.trim().toLowerCase());
                 
-                // Fallback for older packages where tkpPoints might be A, B, C, D, E
+                // Fallback for older packages where tkpPoints might be A, B, C, D, E or A., B.
                 if (!pointData && currentQ.options) {
                     const optIndex = currentQ.options.findIndex(o => o === option);
                     if (optIndex !== -1) {
                         const letter = String.fromCharCode(65 + optIndex); // 0 -> A, 1 -> B
-                        pointData = currentQ.tkpPoints.find(tp => tp.option.trim().toUpperCase() === letter);
+                        pointData = currentQ.tkpPoints.find(tp => {
+                            const cleanTp = tp.option.trim().toUpperCase().replace(/[^A-E]/g, '');
+                            return cleanTp === letter;
+                        });
                     }
                 }
                 
@@ -1176,7 +1179,10 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                         const optIndex = currentQ.options.findIndex(o => o === option);
                         if (optIndex !== -1) {
                             const letter = String.fromCharCode(65 + optIndex); // 0 -> A, 1 -> B
-                            pointData = currentQ.tkpPoints.find(tp => tp.option.trim().toUpperCase() === letter);
+                            pointData = currentQ.tkpPoints.find(tp => {
+                                const cleanTp = tp.option.trim().toUpperCase().replace(/[^A-E]/g, '');
+                                return cleanTp === letter;
+                            });
                         }
                     }
                     
@@ -1710,7 +1716,10 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                                             const optIndex = currentQ.options.findIndex(o => o === opt);
                                                             if (optIndex !== -1) {
                                                                 const letter = String.fromCharCode(65 + optIndex);
-                                                                pointData = currentQ.tkpPoints.find(tp => tp.option.trim().toUpperCase() === letter);
+                                                                pointData = currentQ.tkpPoints.find(tp => {
+                                                                    const cleanTp = tp.option.trim().toUpperCase().replace(/[^A-E]/g, '');
+                                                                    return cleanTp === letter;
+                                                                });
                                                             }
                                                         }
                                                         isCorrect = pointData?.points === 5;

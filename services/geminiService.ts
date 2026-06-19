@@ -759,11 +759,15 @@ export const buildQuestionPrompt = (
            - Anti Radikalisme: Pemahaman dan sikap tegas terhadap ideologi yang bertentangan dengan Pancasila.
 
            CRITICAL TKP RULES (ANTI MENGIRA-NGIRA DENGAN PANJANG TEKS):
-           1. DIFFICULTY: Opsi poin 5 dan 4 harus LUAR BIASA sulit dibedakan, keduanya memuat solusi ideal dan sangat baik, hanya terpisah oleh inisiatif/SOP.
-           2. DISTRACTORS: Jawaban bernilai 1, 2, atau 3 TIDAK BOLEH terlihat buruk/jahat, namun terlihat "normatif wajar" tapi kurang solutif tuntas.
-           3. STRICT NO LENGTH BIAS (SANGAT PENTING): PANJANG TEKS KELIMA OPSI (A, B, C, D, E) HARUS IDENTIK / HAMPIR SAMA PERSIS. DILARANG KERAS membuat jawaban poin 5 menjadi jawaban yang paling panjang. Ratakan deskripsi jawaban opsi 1, 2, dan 3 agar terlihat komprehensif, logis, dan menjebak!
-           4. AMBIGUITY: The difference between 5 points and 4 points should be extremely subtle and context-dependent.
-           5. VISUALS: DO NOT use images, icons, or SVG. Use professional text only.
+           1. SISTEM SCORING WAJIB:
+              - Poin 5: Jawaban paling solutif, tepat, dan konteksnya sangat sesuai.
+              - Poin 4: Jawaban benar tapi konteksnya sedikit berbeda atau tindakannya kurang komprehensif.
+              - Poin 3: Jawaban netral, tidak menyelesaikan masalah secara tuntas tapi tidak merugikan.
+              - Poin 2: Jawaban salah atau tindakan yang kurang pantas.
+              - Poin 1: Jawaban salah ekstrim dan beda konteks sepenuhnya.
+           2. STRICT NO LENGTH BIAS (SANGAT PENTING): PANJANG TEKS KELIMA OPSI (A, B, C, D, E) HARUS IDENTIK / HAMPIR SAMA PERSIS. DILARANG KERAS membuat jawaban poin 5 menjadi jawaban yang paling panjang. Ratakan deskripsi jawaban opsi 1, 2, 3, 4, dan 5 agar mengecoh dan sangat sulit dibedakan melalui bentuk visualnya!
+           3. DIFFICULTY & DISTRACTORS: Jawaban bernilai 5 dan 4 harus LUAR BIASA sulit dibedakan, keduanya memuat solusi ideal, hanya terpisah oleh inisiatif/SOP. Jawaban 1, 2, atau 3 TIDAK BOLEH terlihat seperti penjahat/jahat, namun terlihat "normatif wajar". Susun jawaban agar level mengecohnya tinggi!
+           4. VISUALS: DO NOT use images, icons, or SVG. Use professional text only.
            6. TOPICS: Focus strictly on the themes above. Focuskan ke dilema kerja berat yang membingungkan.`;
       }
 
