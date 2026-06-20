@@ -12,11 +12,12 @@ interface ResultsProps {
     onHome: () => void;
     onRetry: () => void;
     onHistory?: () => void;
+    onRemedial?: (topic: string) => void;
     category: CategoryType;
     details?: any;
 }
 
-export const ResultsAnalysis: React.FC<ResultsProps> = ({ answers, questions, onHome, onRetry, onHistory, category, details }) => {
+export const ResultsAnalysis: React.FC<ResultsProps> = ({ answers, questions, onHome, onRetry, onHistory, onRemedial, category, details }) => {
     const correctCount = answers.filter(a => a.isCorrect).length;
     let score = details?.total || details?.average || details?.iqScore || Math.round((correctCount / questions.length) * 100);
     
@@ -272,18 +273,27 @@ export const ResultsAnalysis: React.FC<ResultsProps> = ({ answers, questions, on
                             <button 
                                 onClick={handleGetAdvice}
                                 disabled={loadingAdvice}
-                                className="text-xs sm:text-sm font-bold text-rose-700 dark:text-rose-400 underline flex items-center gap-1 hover:text-rose-900 dark:hover:text-rose-300"
+                                className="text-xs sm:text-sm font-bold text-rose-700 dark:text-rose-400 underline flex items-center gap-1 hover:text-rose-900 dark:hover:text-rose-300 mb-4"
                             >
                                 {loadingAdvice ? <Loader2 className="animate-spin" size={14}/> : <Lightbulb size={14}/>}
                                 Minta Saran Perbaikan AI
                             </button>
                         ) : (
-                            <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-rose-200 dark:border-rose-800">
+                            <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-rose-200 dark:border-rose-800 mb-4">
                                 <h4 className="font-bold text-xs sm:text-sm text-rose-800 dark:text-rose-400 mb-2">Saran AI:</h4>
                                 <div className="prose prose-sm prose-rose max-w-none text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-xl border border-rose-100 dark:border-rose-800 text-xs sm:text-sm">
                                     <SimpleMarkdown text={improvementAdvice} />
                                 </div>
                             </div>
+                        )}
+
+                        {onRemedial && (
+                            <button 
+                                onClick={() => onRemedial(weakTopics[0])}
+                                className="w-full py-2.5 sm:py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition text-xs sm:text-sm shadow-md"
+                            >
+                                <Bot size={16} /> Latihan Remedial AI ({weakTopics[0]})
+                            </button>
                         )}
                     </div>
                 )}

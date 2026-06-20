@@ -1,5 +1,5 @@
 // ... existing imports ...
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   CategoryType,
@@ -126,27 +126,29 @@ import { Flashcard } from "./components/Flashcard";
 import { MindMapViewer } from "./components/MindMapViewer";
 import { SkeletonLoader, CardSkeleton } from "./components/SkeletonLoader";
 import { SplashScreen } from "./components/SplashScreen";
-import { SettingsModal } from "./components/SettingsModal";
-import { TOSelectionScreen } from "./components/TOSelectionScreen";
-import { ResultsAnalysis } from "./components/ResultsAnalysis";
-import { HistoryView, ReviewView } from "./components/HistoryView";
-import { SessionEngine } from "./components/SessionEngine";
-import { TesKoran } from "./components/TesKoran";
-import { TesKecermatan } from "./components/TesKecermatan";
-import { ColorBlindTest } from "./components/ColorBlindTest";
-import { HumanBenchmark } from "./components/HumanBenchmark";
-import { GlobalLeaderboardScreen } from "./components/GlobalLeaderboardScreen";
-import {
-  GamificationBar,
-  AchievementsModal,
-  LevelUpModal,
-  AchievementToast,
-} from "./components/Gamification";
-import { AcademicHub } from "./components/AcademicHub";
-import { SocialHub } from "./components/SocialHub";
-import { BattleArena } from "./components/BattleArena";
-import { MarkedQuestionsView } from "./components/MarkedQuestionsView";
-import { AiChatTutor } from "./components/AiChatTutor";
+
+// ==== CODE SPLITTING: Lazy Load Route Components ====
+const SettingsModal = React.lazy(() => import("./components/SettingsModal").then(m => ({ default: m.SettingsModal })));
+const TOSelectionScreen = React.lazy(() => import("./components/TOSelectionScreen").then(m => ({ default: m.TOSelectionScreen })));
+const ResultsAnalysis = React.lazy(() => import("./components/ResultsAnalysis").then(m => ({ default: m.ResultsAnalysis })));
+const HistoryView = React.lazy(() => import("./components/HistoryView").then(m => ({ default: m.HistoryView })));
+const ReviewView = React.lazy(() => import("./components/HistoryView").then(m => ({ default: m.ReviewView })));
+const SessionEngine = React.lazy(() => import("./components/SessionEngine").then(m => ({ default: m.SessionEngine })));
+const TesKoran = React.lazy(() => import("./components/TesKoran").then(m => ({ default: m.TesKoran })));
+const TesKecermatan = React.lazy(() => import("./components/TesKecermatan").then(m => ({ default: m.TesKecermatan })));
+const ColorBlindTest = React.lazy(() => import("./components/ColorBlindTest").then(m => ({ default: m.ColorBlindTest })));
+const HumanBenchmark = React.lazy(() => import("./components/HumanBenchmark").then(m => ({ default: m.HumanBenchmark })));
+const GlobalLeaderboardScreen = React.lazy(() => import("./components/GlobalLeaderboardScreen").then(m => ({ default: m.GlobalLeaderboardScreen })));
+const AchievementsModal = React.lazy(() => import("./components/Gamification").then(m => ({ default: m.AchievementsModal })));
+const LevelUpModal = React.lazy(() => import("./components/Gamification").then(m => ({ default: m.LevelUpModal })));
+const GamificationBar = React.lazy(() => import("./components/Gamification").then(m => ({ default: m.GamificationBar })));
+const AchievementToast = React.lazy(() => import("./components/Gamification").then(m => ({ default: m.AchievementToast })));
+const AcademicHub = React.lazy(() => import("./components/AcademicHub").then(m => ({ default: m.AcademicHub })));
+const SocialHub = React.lazy(() => import("./components/SocialHub").then(m => ({ default: m.SocialHub })));
+const BattleArena = React.lazy(() => import("./components/BattleArena").then(m => ({ default: m.BattleArena })));
+const MarkedQuestionsView = React.lazy(() => import("./components/MarkedQuestionsView").then(m => ({ default: m.MarkedQuestionsView })));
+const AiChatTutor = React.lazy(() => import("./components/AiChatTutor").then(m => ({ default: m.AiChatTutor })));
+
 
 // ... (Helper components remain the same: UserAvatar, SimpleMarkdown, NotificationToast, ResumeModal, GoogleIcon, LoginScreen, UsernameSetupScreen, SkripsiSession, InterviewSession, FlashcardSession, FeynmanSession, SQ3RSession, ResumeSessionList, Dashboard) ...
 const UserAvatar: React.FC<{ user: UserProfile | null }> = ({ user }) => {
@@ -2912,6 +2914,7 @@ function App() {
     mode: StudyMode,
     difficultyOverride?: string,
     countOverride?: number,
+    topicOverride?: string
   ) => {
     if (!selectedCategory) return;
     setCurrentPackageTitle(undefined);
@@ -2920,7 +2923,7 @@ function App() {
       ["UTBK", "SKD", "TPA", "PSIKOTEST", "INTERVIEW"].includes(
         selectedCategory,
       ) &&
-      !selectedSubtest &&
+      !selectedSubtest && !topicOverride &&
       mode !== StudyMode.SIMULATION &&
       mode !== StudyMode.WEAKNESS
     ) {
@@ -2941,7 +2944,7 @@ function App() {
     setQuestions([]);
     setDrillContent(null);
     try {
-      const context = selectedSubtest;
+      const context = topicOverride || selectedSubtest;
       if (mode === StudyMode.DRILL) {
         const data = await Gemini.generateDrillContent(
           selectedCategory,
@@ -3800,7 +3803,7 @@ function App() {
             skdVariant,
           );
           if (skdVariant === "TWK") duration = 30;
-          else if (skdVariant === "TIU") duration = 35;
+          else if (skdVariant === "TIU") duration = 30;
           else if (skdVariant === "TKP") duration = 40;
           else duration = 100;
         } else if (selectedCategory === "UTBK") {
@@ -4478,6 +4481,7 @@ function App() {
       <div
         className={`${currentView !== "SESSION" && currentView !== "TES_KORAN" && currentView !== "TES_KECERMATAN" && currentView !== "BENCHMARK" && currentView !== "GLOBAL_LEADERBOARD" && currentView !== "ACADEMIC_HUB" && currentView !== "SOCIAL_HUB" && currentView !== "BATTLE" && currentView !== "MARKED_QUESTIONS" ? "pt-16 sm:pt-16" : ""}`}
       >
+        <Suspense fallback={<div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900"><Loader2 className="w-10 h-10 animate-spin text-indigo-500 mb-4"/><div className="text-slate-500 font-bold animate-pulse">Memuat Modul...</div></div>}>
         <AnimatePresence mode="wait">
           {currentView === "HOME" && (
             <motion.div
@@ -5089,6 +5093,10 @@ function App() {
                   SoundManager.play("click");
                   startSession(sessionMode!);
                 }}
+                onRemedial={(topic) => {
+                  SoundManager.play("click");
+                  startSession(StudyMode.DRILL, undefined, undefined, topic);
+                }}
                 onHistory={() => {
                   SoundManager.play("click");
                   setCurrentView("HISTORY");
@@ -5167,6 +5175,7 @@ function App() {
             </motion.div>
           )}
         </AnimatePresence>
+        </Suspense>
 
         {/* COMMANDER BUBBLE & MENU */}
         {userProfile &&

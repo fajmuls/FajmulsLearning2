@@ -1115,7 +1115,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                     SoundManager.play('click');
                     setCurrentIndex(prev => prev - 1);
                 }
-            } else if (e.key === 'r' || e.key === 'R') {
+            } else if (e.key === 'm' || e.key === 'M' || e.key === 'r' || e.key === 'R') {
                 e.preventDefault();
                 toggleDoubtful();
             } else if (e.key === ' ') {

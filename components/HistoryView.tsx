@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { 
     ArrowLeft, User as UserIcon, Download, Upload as UploadIcon, Filter, 
     TrendingUp, Award, History, Calendar, CheckCircle, XCircle, 
@@ -6,6 +6,7 @@ import {
     Briefcase, GraduationCap, Brain, FileText, MessageSquare, Palette, Book, Package,
     Square, CheckSquare, Grid, ShieldCheck, AlertTriangle, Flag, Bot
 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { TestHistoryItem, CategoryType, SkdResultDetails, TesKoranResultDetails, TesKecermatanResultDetails, UtbkResultDetails, BenchmarkResultDetails, Question, UserAnswer, UserProfile } from '../types';
 import { CATEGORIES } from '../constants';
 import { SoundManager } from '../services/soundService';
@@ -444,6 +445,30 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                         <div className="text-sm sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{highestScore}</div>
                     </div>
                 </div>
+
+                {filteredHistory.length > 1 && (
+                    <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 mb-4 sm:mb-6 transition-all hidden sm:block">
+                        <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-2 flex items-center gap-2">
+                            <BarChart2 className="text-indigo-500 w-4 h-4" /> Grafik Perkembangan Skor
+                        </h3>
+                        <div className="h-48 sm:h-64 w-full mt-4">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={[...filteredHistory].reverse()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
+                                    <XAxis dataKey={(d) => new Date(d.date).toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '11px' }}
+                                        itemStyle={{ color: '#818cf8', fontWeight: 'bold' }}
+                                        labelStyle={{ color: '#94a3b8', marginBottom: '2px' }}
+                                        formatter={(val: any) => [`Skor: ${val}`]}
+                                    />
+                                    <Line type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: '#6366f1', strokeWidth: 2 }} />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                )}
 
                 {/* SHOW DETAILS TOGGLE */}
                 <div className="flex justify-end mb-4">
