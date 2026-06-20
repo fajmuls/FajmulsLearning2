@@ -710,7 +710,15 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                 {/* ADMIN ACTIONS PANEL */}
                 <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 mb-6 sm:mb-8">
                      <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
-                         <h3 className="font-bold text-sm sm:text-lg text-slate-800 dark:text-white flex items-center gap-1.5 sm:gap-2"><Lock size={16} className="text-slate-400 sm:w-[18px] sm:h-[18px]"/> Admin Zone</h3>
+                         <h3 className="font-bold text-sm sm:text-lg text-slate-800 dark:text-white flex items-center gap-1.5 sm:gap-2">
+                             <Lock size={16} className="text-slate-400 sm:w-[18px] sm:h-[18px]"/> Admin Zone
+                             {(gapCount > 0 || duplicateCount > 0) && (
+                                 <span className="relative flex h-3 w-3 sm:h-3.5 sm:w-3.5 ml-1" title="Masalah urutan/duplikat terdeteksi">
+                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                     <span className="relative inline-flex rounded-full h-3 w-3 sm:h-3.5 sm:w-3.5 bg-rose-500"></span>
+                                 </span>
+                             )}
+                         </h3>
                          
                          <div className="flex gap-3 w-full sm:w-auto">
                              <button 

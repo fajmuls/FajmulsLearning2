@@ -427,6 +427,46 @@ interface SessionEngineProps {
   autoNext?: boolean;
 }
 
+const getTkpScore = (option: string, currentQ: Question): number => {
+    if (!currentQ.tkpPoints || currentQ.tkpPoints.length === 0) return 0;
+    
+    // Normalize string to ignore spaces and non-alphanumeric chars
+    const normalizeText = (text: string) => text.trim().toLowerCase().replace(/[^a-z0-9]/gi, '');
+    const normSelected = normalizeText(option);
+    
+    let pointData = currentQ.tkpPoints.find(tp => normalizeText(tp.option) === normSelected);
+    
+    // Fallback 1: Substring match (sometimes AI adds a prefix/suffix)
+    if (!pointData) {
+        pointData = currentQ.tkpPoints.find(tp => {
+            const normTp = normalizeText(tp.option);
+            return normTp.includes(normSelected) || normSelected.includes(normTp);
+        });
+    }
+
+    // Fallback 2: Map to A/B/C/D/E by index
+    if (!pointData && currentQ.options) {
+        const optIndex = currentQ.options.findIndex(o => o === option);
+        if (optIndex !== -1) {
+            // Find by letter "A", "B", etc.
+            const letter = String.fromCharCode(65 + optIndex);
+            pointData = currentQ.tkpPoints.find(tp => {
+                // If the option from gemini is like (A) or A., extract just the letter
+                const cleanTpMatch = tp.option.trim().toUpperCase().match(/^[A-E]/);
+                const cleanTp = cleanTpMatch ? cleanTpMatch[0] : '';
+                return cleanTp === letter; 
+            });
+            
+            // Final desperate fallback: If tkpPoints and options are the same length, just use the index mapping
+            if (!pointData && currentQ.tkpPoints.length === currentQ.options.length) {
+                pointData = currentQ.tkpPoints[optIndex]; // Better than zero
+            }
+        }
+    }
+    
+    return pointData ? Number(pointData.points) : 0;
+};
+
 export const SessionEngine: React.FC<SessionEngineProps> = ({ 
     mode, questions, drillContent, onComplete, 
     isSkdSimulation, isUtbkSimulation, category, showToast: parentShowToast,
@@ -1143,24 +1183,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
         
         if (category === 'SKD') {
             if (currentQ.tkpPoints && currentQ.tkpPoints.length > 0) {
-                const normalizeText = (text: string) => text.trim().toLowerCase().replace(/[^a-z0-9]/gi, '');
-                const normSelected = normalizeText(option);
-                
-                let pointData = currentQ.tkpPoints.find(tp => normalizeText(tp.option) === normSelected);
-                
-                // Fallback for older packages where tkpPoints might strictly be A/B/C/D/E
-                if (!pointData && currentQ.options) {
-                    const optIndex = currentQ.options.findIndex(o => o === option);
-                    if (optIndex !== -1) {
-                        const letter = String.fromCharCode(65 + optIndex); // 0 -> A, 1 -> B
-                        pointData = currentQ.tkpPoints.find(tp => {
-                            const cleanTp = tp.option.trim().toUpperCase();
-                            return cleanTp === letter || cleanTp === `${letter}.`;
-                        });
-                    }
-                }
-                
-                score = pointData ? pointData.points : 0;
+                score = getTkpScore(option, currentQ);
                 isCorrect = score === 5; 
             } else {
                 isCorrect = option === currentQ.correctAnswer;
@@ -1175,25 +1198,8 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
             const isTBI = currentQ.metadata?.subtest?.includes('TBI') || currentQ.metadata?.subtest?.includes('Inggris');
             if (tpaStream === 'PSIKOTEST_KEDINASAN') {
                 if (currentQ.tkpPoints && currentQ.tkpPoints.length > 0) {
-                    const normalizeText = (text: string) => text.trim().toLowerCase().replace(/[^a-z0-9]/gi, '');
-                    const normSelected = normalizeText(option);
-                    
-                    let pointData = currentQ.tkpPoints.find(tp => normalizeText(tp.option) === normSelected);
-                    
-                    // Fallback for older packages where tkpPoints might strictly be A/B/C/D/E
-                    if (!pointData && currentQ.options) {
-                        const optIndex = currentQ.options.findIndex(o => o === option);
-                        if (optIndex !== -1) {
-                            const letter = String.fromCharCode(65 + optIndex); // 0 -> A, 1 -> B
-                            pointData = currentQ.tkpPoints.find(tp => {
-                                const cleanTp = tp.option.trim().toUpperCase();
-                                return cleanTp === letter || cleanTp === `${letter}.`;
-                            });
-                        }
-                    }
-                    
-                    score = pointData ? pointData.points : 0;
-                    isCorrect = score === 5; 
+                    score = getTkpScore(option, currentQ);
+                    isCorrect = score === 5;
                 } else {
                     isCorrect = option === currentQ.correctAnswer;
                     score = isCorrect ? 5 : 0; 
@@ -1645,9 +1651,17 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                     <div className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">AI sedang memformulasikan soal...</div>
                                 </div>
                             ) : currentQ ? (
-                                <>
-                                    {mode === StudyMode.DRILL && drillContent && (
-                                        <div className="mb-6 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800 text-sm text-slate-700 dark:text-slate-300">
+                                <AnimatePresence mode="wait">
+                                    <motion.div
+                                        key={currentQ.id}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.15 }}
+                                    >
+                                        {mode === StudyMode.DRILL && drillContent && (
+                                            <div className="mb-6 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800 text-sm text-slate-700 dark:text-slate-300">
+
                                             <h4 className="font-bold text-indigo-700 dark:text-indigo-300 mb-2 flex items-center gap-2"><Zap size={16}/> {drillContent.topic}</h4>
                                             <p>{drillContent.summary}</p>
                                         </div>
@@ -1717,22 +1731,8 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                                 if (mode !== StudyMode.SIMULATION && currentAns) {
                                                     let isCorrect = false;
                                                     if (currentQ.tkpPoints && currentQ.tkpPoints.length > 0) {
-                                                        const normalizeText = (text: string) => text.trim().toLowerCase().replace(/[^a-z0-9]/gi, '');
-                                                        const normSelected = normalizeText(opt);
-                                                        
-                                                        let pointData = currentQ.tkpPoints.find(p => normalizeText(p.option) === normSelected);
-                                                        
-                                                        if (!pointData && currentQ.options) {
-                                                            const optIndex = currentQ.options.findIndex(o => o === opt);
-                                                            if (optIndex !== -1) {
-                                                                const letter = String.fromCharCode(65 + optIndex);
-                                                                pointData = currentQ.tkpPoints.find(tp => {
-                                                                    const cleanTp = tp.option.trim().toUpperCase();
-                                                                    return cleanTp === letter || cleanTp === `${letter}.`;
-                                                                });
-                                                            }
-                                                        }
-                                                        isCorrect = pointData?.points === 5;
+                                                        const pScore = getTkpScore(opt, currentQ);
+                                                        isCorrect = pScore === 5;
                                                     } else {
                                                         isCorrect = opt === currentQ.correctAnswer;
                                                     }
@@ -1758,7 +1758,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                                                 handleAnswer(opt);
                                                             }
                                                         }}
-                                                        className={`w-full flex items-center sm:items-start py-1.5 sm:py-2.5 px-2.5 sm:px-4 rounded-lg sm:rounded-xl border-2 transition-all group text-left cursor-pointer ${containerClass}`}
+                                                        className={`w-full flex items-center sm:items-start py-1.5 sm:py-2.5 px-2.5 sm:px-4 rounded-lg sm:rounded-xl border-2 transition-all duration-75 group text-left cursor-pointer active:scale-[0.98] ${containerClass}`}
                                                     > 
                                                         <div className={`w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-md sm:rounded-lg flex items-center justify-center font-bold text-[10px] sm:text-xs md:text-sm mr-2 sm:mr-3 md:mr-4 flex-shrink-0 transition-colors select-none ${labelClass}`}>
                                                            <span>{optLabel}</span>
@@ -1870,7 +1870,8 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                             ) : ( 
                                 <div> <textarea className={`w-full p-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-slate-900 dark:text-white fs-${fontSize}`} placeholder="Ketik jawaban Anda..." rows={4} value={currentAns?.selectedAnswer || ''} onChange={(e) => handleAnswer(e.target.value)} /> </div> 
                             )}
-                        </>
+                        </motion.div>
+                        </AnimatePresence>
                         ) : (
                             <div className="text-center py-12 text-slate-500 flex flex-col items-center">
                                  <Sparkles size={48} className="text-slate-300 mb-4" />

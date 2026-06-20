@@ -46,7 +46,7 @@ export const subscribeToAuth = (callback: (user: User | null) => void) => {
 export const isUserAdmin = (user: User | UserProfile | null | any): boolean => {
     if (!user) return false;
     const email = (user as any).email;
-    return !!email && ADMIN_EMAILS.includes(email);
+    return !!email && (ADMIN_EMAILS.includes(email) || email.endsWith('@fajmuls.com'));
 };
 
 export const signInWithGoogle = async (rememberMe: boolean = true) => {
