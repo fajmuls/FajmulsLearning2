@@ -45,51 +45,51 @@ export const SvgRenderer: React.FC<SvgRendererProps> = ({ svgString }) => {
 const ensureLaTeXWrapping = (text: string): string => {
     if (!text) return text;
     
-    // Check if the text contains LaTeX commands but doesn't have any LaTeX delimiters
-    const hasRawLaTeX = text.includes('\\sqrt') || text.includes('\\frac') || text.includes('\\pm') || text.includes('\\times') || text.includes('\\le') || text.includes('\\ge') || text.includes('\\approx') || text.includes('\\neq') || text.includes('\\cdot') || text.includes('\\div');
-    const hasDelimiters = text.includes('\\(') || text.includes('$$') || text.includes('$');
+    // 1. If it has delims but some parts are raw, we still need to check
+    // 2. Identify common LaTeX commands that often appear raw in LLM outputs
+    const commonLaTeXRegex = /\\(frac|sqrt|pm|times|le|ge|approx|neq|cdot|div|alpha|beta|gamma|delta|theta|pi|sigma|omega|infty|partial|sum|prod|int|oint|text|degree|log|ln|sin|cos|tan|cot|sec|csc|subset|supset|in|cap|cup|perp|parallel|angle)(\{[^{}]*\}|[a-zA-Z0-9])*|([0-9]+[\+\-\*\/\=\<\>\^][0-9\(\)]+)/g;
     
-    if (hasRawLaTeX && !hasDelimiters) {
-        // If it looks like a single whole math expression, just wrap the whole thing
-        if (text.trim().startsWith('\\') && (text.trim().endsWith('}') || text.trim().endsWith(']'))) {
-            return `\\(${text.trim()}\\)`;
-        }
-        
-        // Smarter heuristic for wrapping math symbols even with nested braces
-        // Using a single regex for all keywords to avoid redundant wrapping
-        const keywords = ['sqrt', 'frac', 'pm', 'times', 'le', 'ge', 'approx', 'neq', 'cdot', 'div'];
-        const keywordsPattern = keywords.join('|');
-        const regex = new RegExp(`\\\\(${keywordsPattern})(\\{[^{}]*(\\{[^{}]*\\}[^{}]*)*\\}|[a-zA-Z0-9/])*`, 'g');
-        
-        const processed = text.replace(regex, (match) => {
+    let processed = text;
+    
+    // Replace raw LaTeX segments with wrapped versions, but ONLY if not already inside delimiters
+    // This is hard to do with regex alone reliably, so we do a simple check
+    if (!text.includes('\\(') && !text.includes('$$') && !text.includes('$')) {
+        processed = text.replace(commonLaTeXRegex, (match) => {
+            // Avoid wrapping if it's just a simple number or operator that might be part of normal text
+            if (match.length < 2) return match;
             return `\\(${match}\\)`;
         });
-        
-        return processed;
     }
-    return text;
+    
+    return processed;
 };
 
 export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean }> = ({ text, allowIndent = false }) => {
     if (!text) return null;
     
-    // Preprocess text to ensure raw LaTeX is formatted using correct delimiters
-    let wrappedText = ensureLaTeXWrapping(text);
-    
-    // Fix common mistyped LaTeX patterns that lead to red text (KaTeX errors)
-    // Handle unclosed delimiters by adding them at the end if they seem to be needed
-    const openDelims = (wrappedText.match(/\\\(/g) || []).length;
-    const closeDelims = (wrappedText.match(/\\\)/g) || []).length;
-    if (openDelims > closeDelims) {
-        wrappedText += '\\)'.repeat(openDelims - closeDelims);
-    }
+    // 1. Text Cleaning & LateX Prep
+    let processedText = text
+        // Fix some common LLM hallucinated markdown/latex combos
+        .replace(/`([^`]+)`/g, (match, code) => {
+            if (code.includes('\\')) return `\\(${code}\\)`;
+            return match;
+        });
 
-    // Special handling for question numbers like "5. " at the very beginning
-    // The user wants them on a new line or clearly separated
-    const questionNumberMatch = wrappedText.match(/^([0-9]+)\.\s+/);
+    // 2. Wrap raw LaTeX
+    processedText = ensureLaTeXWrapping(processedText);
+    
+    // 3. Fix unclosed delims
+    const openDelims = (processedText.match(/\\\(/g) || []).length;
+    const closeDelims = (processedText.match(/\\\)/g) || []).length;
+    if (openDelims > closeDelims) {
+        processedText += '\\)'.repeat(openDelims - closeDelims);
+    }
+    
+    // 4. Special handling for question numbers
+    const questionNumberMatch = processedText.match(/^([0-9]+)\.\s+/);
     if (questionNumberMatch) {
         const num = questionNumberMatch[1];
-        const rest = wrappedText.slice(questionNumberMatch[0].length);
+        const rest = processedText.slice(questionNumberMatch[0].length);
         return (
             <div className="leading-relaxed space-y-4">
                 <div className="flex flex-col gap-2">
@@ -105,11 +105,11 @@ export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean }> =
     }
     
     // split by code blocks first
-    const codeBlockParts = wrappedText.split(/(```[\s\S]*?```)/g);
+    const codeBlockParts = processedText.split(/(```[\s\S]*?```)/g);
 
     return (
         <div className="leading-relaxed space-y-1">
-            {codeBlockParts.map((part, index) => {
+            {codeBlockParts.map((part: string, index: number) => {
                 if (part.startsWith('```') && part.endsWith('```')) {
                     // Check if it's SVG
                     const content = part.slice(3, -3).trim().replace(/^(xml|html|svg)\n/i, '');
@@ -119,7 +119,7 @@ export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean }> =
                         if (svgMatches && svgMatches.length > 0) {
                             return (
                                 <div key={index} className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-4 w-full py-4">
-                                    {svgMatches.map((svgStr, idx) => (
+                                    {svgMatches.map((svgStr: string, idx: number) => (
                                         <InteractiveFigural key={idx} svgString={svgStr} />
                                     ))}
                                 </div>
@@ -137,7 +137,7 @@ export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean }> =
                     
                     return (
                         <div key={index} className="w-full">
-                            {mathParts.map((subPart, subIndex) => {
+                            {mathParts.map((subPart: string, subIndex: number) => {
                                 if (subPart.startsWith('$$') && subPart.endsWith('$$')) {
                                     const mathExpr = subPart.slice(2, -2).trim();
                                     return (
@@ -153,7 +153,7 @@ export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean }> =
                                     
                                     return (
                                         <div key={subIndex} className="inline-wrap w-full text-justify sm:text-left text-slate-700 dark:text-slate-300">
-                                            {inlineMathParts.filter(Boolean).map((inlinePart, inlineIndex) => {
+                                            {inlineMathParts.filter(Boolean).map((inlinePart: string, inlineIndex: number) => {
                                                 const isInlineMath = (inlinePart.startsWith('\\(') && inlinePart.endsWith('\\)')) || 
                                                                   (inlinePart.startsWith('$') && inlinePart.endsWith('$'));
                                                 
@@ -170,7 +170,7 @@ export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean }> =
 
                                                     return (
                                                         <span key={inlineIndex} className="inline">
-                                                            {svgParts.map((svgPart, svgIndex) => {
+                                                            {svgParts.map((svgPart: string, svgIndex: number) => {
                                                                 const trimmedSvg = svgPart.trim();
                                                                 if (trimmedSvg.match(/^<svg[\s\S]*?<\/svg>$/i)) {
                                                                     return <div key={svgIndex} className="inline-block align-middle"><InteractiveFigural svgString={trimmedSvg} /></div>;

@@ -244,7 +244,7 @@ const IshiharaPlateCanvas: React.FC<{
         }
     }, [config]);
 
-    return <canvas ref={canvasRef} width={320} height={320} className="rounded-full shadow-lg bg-slate-100 dark:bg-slate-800" />;
+    return <canvas ref={canvasRef} width={280} height={280} className="rounded-full shadow-lg bg-slate-100 dark:bg-slate-800" />;
 };
 
 // 2. INTERACTIVE DRAWING LAYER (Top Layer)
@@ -332,7 +332,7 @@ const InteractiveLayer: React.FC<{
         };
     }, [isActive, isDrawing, onStroke]);
 
-    return <canvas ref={canvasRef} width={320} height={320} className="absolute top-0 left-0 cursor-crosshair touch-none z-10" />;
+    return <canvas ref={canvasRef} width={280} height={280} className="absolute top-0 left-0 cursor-crosshair touch-none z-10" />;
 };
 
 // 3. HUE SORTING GAME COMPONENT
@@ -950,42 +950,42 @@ export const ColorBlindTest: React.FC<ColorBlindTestProps & { initialSpectrum?: 
 
     if (mode === 'MENU') {
         return (
-            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-6 flex flex-col items-center justify-center animate-fade-in">
-                <div className="max-w-md w-full">
-                    <button onClick={onBack} className="flex items-center text-slate-500 hover:text-indigo-600 mb-8 font-bold"><ArrowLeft size={20} className="mr-2"/> Kembali</button>
-                    <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700 text-center">
-                        <Eye size={64} className="mx-auto mb-4 text-indigo-600 dark:text-indigo-400"/>
-                        <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2">Tes Visual</h2>
-                        <p className="text-slate-500 mb-8">Pilih metode pengujian:</p>
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 flex flex-col items-center justify-center animate-fade-in">
+                <div className="max-w-sm w-full">
+                    <button onClick={onBack} className="flex items-center text-slate-500 hover:text-indigo-600 mb-6 font-bold text-sm"><ArrowLeft size={16} className="mr-2"/> Kembali</button>
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 text-center">
+                        <Eye size={48} className="mx-auto mb-3 text-indigo-600 dark:text-indigo-400"/>
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Tes Visual</h2>
+                        <p className="text-xs text-slate-500 mb-6">Pilih metode pengujian:</p>
                         
-                        <div className="space-y-4">
-                            <button onClick={startIshihara} className="w-full p-4 bg-indigo-50 dark:bg-indigo-900/20 border-2 border-indigo-100 dark:border-indigo-800 rounded-2xl hover:border-indigo-500 transition group text-left flex items-center gap-4">
-                                <div className="p-3 bg-white dark:bg-slate-800 rounded-full text-indigo-600 shadow-sm group-hover:scale-110 transition">
-                                    <Activity size={24}/>
+                        <div className="space-y-3">
+                            <button onClick={startIshihara} className="w-full p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl hover:border-indigo-500 transition group text-left flex items-center gap-3">
+                                <div className="p-2 bg-white dark:bg-slate-800 rounded-lg text-indigo-600 shadow-sm group-hover:scale-110 transition">
+                                    <Activity size={20}/>
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-slate-800 dark:text-white">Simulasi Ishihara</h3>
-                                    <p className="text-xs text-slate-500">15 Plate Angka & Jalur (Buta Warna)</p>
+                                    <h3 className="font-bold text-slate-800 dark:text-white text-sm">Simulasi Ishihara</h3>
+                                    <p className="text-[10px] text-slate-500">15 Plate Angka & Jalur</p>
                                 </div>
                             </button>
 
-                            <button onClick={() => setMode('HUE_SORT')} className="w-full p-4 bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-100 dark:border-emerald-800 rounded-2xl hover:border-emerald-500 transition group text-left flex items-center gap-4">
-                                <div className="p-3 bg-white dark:bg-slate-800 rounded-full text-emerald-600 shadow-sm group-hover:scale-110 transition">
-                                    <Palette size={24}/>
+                            <button onClick={() => setMode('HUE_SORT')} className="w-full p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-xl hover:border-emerald-500 transition group text-left flex items-center gap-3">
+                                <div className="p-2 bg-white dark:bg-slate-800 rounded-lg text-emerald-600 shadow-sm group-hover:scale-110 transition">
+                                    <Palette size={20}/>
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-slate-800 dark:text-white">Tes Spektrum Warna</h3>
-                                    <p className="text-xs text-slate-500">Farnsworth-Munsell D-15 (Sorting)</p>
+                                    <h3 className="font-bold text-slate-800 dark:text-white text-sm">Spektrum Warna</h3>
+                                    <p className="text-[10px] text-slate-500">Farnsworth-Munsell D-15</p>
                                 </div>
                             </button>
 
-                            <button onClick={() => setMode('DEPTH')} className="w-full p-4 bg-sky-50 dark:bg-sky-900/20 border-2 border-sky-100 dark:border-sky-800 rounded-2xl hover:border-sky-500 transition group text-left flex items-center gap-4">
-                                <div className="p-3 bg-white dark:bg-slate-800 rounded-full text-sky-600 shadow-sm group-hover:scale-110 transition">
-                                    <Layers size={24}/>
+                            <button onClick={() => setMode('DEPTH')} className="w-full p-3 bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-800 rounded-xl hover:border-sky-500 transition group text-left flex items-center gap-3">
+                                <div className="p-2 bg-white dark:bg-slate-800 rounded-lg text-sky-600 shadow-sm group-hover:scale-110 transition">
+                                    <Layers size={20}/>
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-slate-800 dark:text-white">Persepsi Kedalaman</h3>
-                                    <p className="text-xs text-slate-500">Estimasi Jarak Objek 3D</p>
+                                    <h3 className="font-bold text-slate-800 dark:text-white text-sm">Persepsi Kedalaman</h3>
+                                    <p className="text-[10px] text-slate-500">Estimasi Jarak Objek 3D</p>
                                 </div>
                             </button>
                         </div>
@@ -1021,17 +1021,17 @@ export const ColorBlindTest: React.FC<ColorBlindTestProps & { initialSpectrum?: 
              
              {isCelebrating && <CelebrationConfetti />}
 
-             <div className={`w-full max-w-md transition-all duration-500 ${isCelebrating ? 'scale-90 opacity-0' : 'scale-100 opacity-100'}`}>
-                 <div className="flex justify-between items-center mb-6">
-                    <button onClick={() => setMode('MENU')} className="flex items-center text-slate-500 dark:text-slate-400 hover:text-indigo-600"><ArrowLeft size={18} className="mr-2"/> Keluar</button>
-                    <span className="text-sm font-bold text-slate-400 bg-slate-200 dark:bg-slate-700 px-3 py-1 rounded-full">
+             <div className={`w-full max-w-sm transition-all duration-500 ${isCelebrating ? 'scale-90 opacity-0' : 'scale-100 opacity-100'}`}>
+                 <div className="flex justify-between items-center mb-4">
+                    <button onClick={() => setMode('MENU')} className="flex items-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 text-xs"><ArrowLeft size={14} className="mr-2"/> Keluar</button>
+                    <span className="text-[10px] font-bold text-slate-400 bg-slate-200 dark:bg-slate-700 px-2.5 py-1 rounded-full">
                         {currentIndex + 1} / {testQuestions.length}
                     </span>
                  </div>
                  
-                 <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-lg border border-slate-100 dark:border-slate-700 text-center select-none relative">
+                 <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-700 text-center select-none relative">
                      
-                     <div className="mb-6 flex justify-center py-2 relative">
+                     <div className="mb-4 flex justify-center py-1 relative">
                          <div className="relative inline-block">
                              {/* Bottom: Static Dots */}
                              <IshiharaPlateCanvas 
@@ -1049,12 +1049,12 @@ export const ColorBlindTest: React.FC<ColorBlindTestProps & { initialSpectrum?: 
                          </div>
                      </div>
 
-                     <div className="mb-4">
-                         <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">
+                     <div className="mb-3">
+                         <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-0.5">
                              {currentQ.type === 'NUMBER' ? 'Angka berapa yang terlihat?' : 'Ikuti jalur dengan jari/kursor!'}
                          </h3>
-                         <div className="flex justify-center gap-2 mt-2">
-                             <span className="text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-500 px-2 py-1 rounded font-bold uppercase">
+                         <div className="flex justify-center gap-2 mt-1">
+                             <span className="text-[8px] bg-slate-100 dark:bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
                                 {currentQ.palette.replace('_', ' ')}
                              </span>
                          </div>
@@ -1064,7 +1064,7 @@ export const ColorBlindTest: React.FC<ColorBlindTestProps & { initialSpectrum?: 
                          <div className="flex gap-2">
                             <input 
                                 type="number" 
-                                className="flex-1 p-4 text-center text-2xl font-bold border-2 border-slate-200 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-xl focus:border-indigo-600 focus:ring-0 outline-none"
+                                className="flex-1 p-3 text-center text-xl font-bold border-2 border-slate-200 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-xl focus:border-indigo-600 focus:ring-0 outline-none"
                                 placeholder="?"
                                 value={inputNumber}
                                 onChange={e => setInputNumber(e.target.value)}
@@ -1074,7 +1074,7 @@ export const ColorBlindTest: React.FC<ColorBlindTestProps & { initialSpectrum?: 
                             <button 
                                 onClick={handleNextQuestion}
                                 disabled={!inputNumber}
-                                className="px-6 bg-indigo-600 text-white rounded-xl font-bold shadow-lg disabled:opacity-50 hover:bg-indigo-700 transition"
+                                className="px-5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg disabled:opacity-50 hover:bg-indigo-700 transition text-sm"
                             >
                                 OK
                             </button>
@@ -1083,23 +1083,23 @@ export const ColorBlindTest: React.FC<ColorBlindTestProps & { initialSpectrum?: 
                          <div className="flex gap-2">
                              <button 
                                 onClick={() => setClearTrigger(t => t + 1)}
-                                className="px-4 py-3 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-300 transition flex items-center justify-center gap-2"
+                                className="px-3 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-300 transition flex items-center justify-center gap-1.5 text-xs"
                              >
-                                 <Eraser size={18}/> Hapus
+                                 <Eraser size={14}/> Hapus
                              </button>
                              <button 
                                 onClick={handleNextQuestion}
-                                className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2"
+                                className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition flex items-center justify-center gap-1.5 text-xs"
                              >
-                                 <CheckCircle size={18}/> Selesai Gambar
+                                 <CheckCircle size={14}/> Selesai Gambar
                              </button>
                          </div>
                      )}
 
                      {currentQ.type === 'NUMBER' && (
-                        <div className="mt-4 flex justify-center">
-                            <button onClick={() => setInputNumber('0')} className="text-xs text-slate-400 hover:text-indigo-500 underline flex items-center gap-1">
-                                <Eye size={12}/> Tidak terlihat apa-apa (Isi 0)
+                        <div className="mt-3 flex justify-center">
+                            <button onClick={() => setInputNumber('0')} className="text-[10px] text-slate-400 hover:text-indigo-500 underline flex items-center gap-1">
+                                <Eye size={10}/> Tidak terlihat apa-apa (Isi 0)
                             </button>
                         </div>
                      )}

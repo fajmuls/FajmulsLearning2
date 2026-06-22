@@ -74,9 +74,9 @@ export const AiChatTutor: React.FC<AiChatTutorProps> = ({ initialContext, onClos
             }
 
             const result = await getAiClient().models.generateContent({
-                model: 'gemini-3.5-flash',
+                model: 'gemini-1.5-flash',
                 contents: [
-                    { role: 'user', parts: [{ text: "System prompt: Kamu adalah guru (Tutor) spesialis tes CPNS SKD, UTBK SNBT, dan Psikotes. Berikan penjelasan yang super jelas dan trik 'Cara Cepat'." }] },
+                    { role: 'user', parts: [{ text: "System prompt: Kamu adalah guru (Tutor) spesialis tes CPNS SKD, UTBK SNBT, dan Psikotes. Berikan penjelasan yang super jelas dan trik 'Cara Cepat'. PENTING: Gunakan format markdown yang rapi. Untuk matematika, ALWAYS gunakan LaTeX dengan delimiter \\( ... \\) untuk inline. Jangan gunakan block math $$ ... $$. Gunakan bahasa Indonesia yang bersahabat." }] },
                     ...chatHistory,
                     { role: 'user', parts: [{ text: finalPrompt }] }
                 ],

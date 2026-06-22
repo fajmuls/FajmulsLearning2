@@ -94,28 +94,28 @@ const getGameColor = (game: BenchmarkMode) => {
 
 const getGameIcon = (game: BenchmarkMode) => {
     switch(game) {
-        case 'REACTION': return <Zap size={16}/>;
-        case 'SEQUENCE': return <Grid size={16}/>;
-        case 'AIM': return <Target size={16}/>;
-        case 'CHIMP': return <Brain size={16}/>;
-        case 'VISUAL': return <Grid size={16}/>;
-        case 'NUMBER': return <Hash size={16}/>;
-        case 'VERBAL': return <Type size={16}/>;
-        case 'TYPING': return <FileText size={16}/>;
-        case 'BRIDGE': return <Map size={16}/>;
-        case 'MATCH': return <Copy size={16}/>;
-        case 'HANGMAN': return <Users size={16}/>;
-        case 'HOTCOLD': return <TrendingUp size={16}/>;
-        case 'NUMBER_RANGE': return <Search size={16}/>;
-        case 'POSITION_MEMORY': return <MapPin size={16}/>;
-        case 'PATTERN_BREAKER': return <Brain size={16}/>;
-        case 'DECISION_LAB': return <Briefcase size={16}/>;
-        case 'REVERSE_THINKING': return <RefreshCw size={16}/>;
-        case 'LOGIC_MAZE': return <Route size={16}/>;
-        case 'TIME_PRESSURE': return <Clock size={16}/>;
-        case 'MULTI_LAYER': return <Layers size={16}/>;
-        case 'SYNONYM_ANTONYM': return <Type size={16}/>;
-        default: return <Activity size={16}/>;
+        case 'REACTION': return <Zap size={24}/>;
+        case 'SEQUENCE': return <Grid size={24}/>;
+        case 'AIM': return <Target size={24}/>;
+        case 'CHIMP': return <Brain size={24}/>;
+        case 'VISUAL': return <Grid size={24}/>;
+        case 'NUMBER': return <Hash size={24}/>;
+        case 'VERBAL': return <Type size={24}/>;
+        case 'TYPING': return <FileText size={24}/>;
+        case 'BRIDGE': return <Map size={24}/>;
+        case 'MATCH': return <Copy size={24}/>;
+        case 'HANGMAN': return <Users size={24}/>;
+        case 'HOTCOLD': return <TrendingUp size={24}/>;
+        case 'NUMBER_RANGE': return <Search size={24}/>;
+        case 'POSITION_MEMORY': return <MapPin size={24}/>;
+        case 'PATTERN_BREAKER': return <Brain size={24}/>;
+        case 'DECISION_LAB': return <Briefcase size={24}/>;
+        case 'REVERSE_THINKING': return <RefreshCw size={24}/>;
+        case 'LOGIC_MAZE': return <Route size={24}/>;
+        case 'TIME_PRESSURE': return <Clock size={24}/>;
+        case 'MULTI_LAYER': return <Layers size={24}/>;
+        case 'SYNONYM_ANTONYM': return <Type size={24}/>;
+        default: return <Activity size={24}/>;
     }
 }
 
@@ -910,18 +910,18 @@ const ActivityFeed: React.FC<{ history: TestHistoryItem[] }> = ({ history }) => 
 
     return (
         <div className="mt-8 animate-fade-in-up">
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                <Activity className="text-indigo-500" /> Recent Activity
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                <Activity size={18} className="text-indigo-500" /> Recent Activity
             </h3>
             
-            <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                          <thead className="bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700">
                             <tr>
-                                <th className="p-5 text-sm font-bold text-slate-400 uppercase tracking-wider">Test</th>
-                                <th className="p-5 text-sm font-bold text-slate-400 uppercase tracking-wider">Date</th>
-                                <th className="p-5 text-sm font-bold text-slate-400 uppercase tracking-wider text-right">Score</th>
+                                <th className="p-3 sm:p-4 text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Test</th>
+                                <th className="p-3 sm:p-4 text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Date</th>
+                                <th className="p-3 sm:p-4 text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Score</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -935,32 +935,32 @@ const ActivityFeed: React.FC<{ history: TestHistoryItem[] }> = ({ history }) => 
                                 
                                 return (
                                     <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
-                                        <td className="p-5">
-                                            <div className="flex items-center gap-4">
-                                                <div className={`p-2 rounded-xl ${getGameColor(gameType)}`}>
+                                        <td className="p-3 sm:p-4">
+                                            <div className="flex items-center gap-2 sm:gap-4">
+                                                <div className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl ${getGameColor(gameType)}`}>
                                                     {getGameIcon(gameType)}
                                                 </div>
-                                                <span className={`font-bold text-base ${getGameColor(gameType).split(' ')[0]}`}>
+                                                <span className={`font-bold text-xs sm:text-sm ${getGameColor(gameType).split(' ')[0]}`}>
                                                     {getGameLabel(gameType)}
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="p-5">
+                                        <td className="p-3 sm:p-4">
                                             <div className="flex flex-col">
-                                                <span className="font-medium text-slate-700 dark:text-slate-300">
-                                                    {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                <span className="font-bold text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+                                                    {new Date(item.date).toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })}
                                                 </span>
-                                                 <span className="text-xs text-slate-400">
-                                                    {new Date(item.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                                 <span className="text-[9px] sm:text-[10px] text-slate-400">
+                                                    {new Date(item.date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="p-5 text-right">
+                                        <td className="p-3 sm:p-4 text-right">
                                             <div className="flex flex-col items-end">
-                                                <span className="text-xl font-black text-slate-800 dark:text-white font-mono">
+                                                <span className="text-sm sm:text-lg font-black text-slate-800 dark:text-white font-mono">
                                                     {score}{unit}
                                                 </span>
-                                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${percentile >= 50 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
+                                                <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full ${percentile >= 50 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
                                                     Top {percentile}%
                                                 </span>
                                             </div>
@@ -2972,12 +2972,12 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
         if (game === 'SEQUENCE' || game === 'NUMBER' || game === 'CHIMP' || game === 'VISUAL' || game === 'BRIDGE' || game === 'MATCH' || game === 'POSITION_MEMORY') unit = 'lvl';
 
         return (
-            <div className="relative overflow-hidden bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all group h-full">
-                <div className={`absolute top-0 bottom-0 left-0 w-1.5 ${colorClass}`}></div>
+            <div className="relative overflow-hidden bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all group h-full">
+                <div className={`absolute top-0 bottom-0 left-0 w-1 ${colorClass}`}></div>
                 
-                <div className="p-5 flex flex-col sm:flex-row items-center gap-5 h-full">
+                <div className="p-3.5 sm:p-4 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 h-full">
                      {/* Icon Box */}
-                    <div className={`p-4 rounded-2xl ${colorClass} bg-opacity-10 text-opacity-100 shrink-0`}>
+                    <div className={`p-3 rounded-xl ${colorClass} bg-opacity-10 text-opacity-100 shrink-0`}>
                         <div className={`${colorClass.replace('bg-', 'text-')}`}>
                            {icon}
                         </div>
@@ -2985,26 +2985,26 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
 
                     {/* Content */}
                     <div className="flex-1 text-center sm:text-left min-w-0 w-full">
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1 truncate">{title}</h3>
-                        <p className="text-slate-500 dark:text-slate-400 text-xs mb-3 line-clamp-2 min-h-[2.5em]">{desc}</p>
+                        <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mb-0.5 truncate">{title}</h3>
+                        <p className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs mb-2 line-clamp-2 min-h-[2.5em]">{desc}</p>
                         
                         {/* Percentile Bar */}
-                        <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 mb-2 overflow-hidden">
+                        <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-1.5 overflow-hidden">
                             <div className={`h-full rounded-full ${colorClass}`} style={{ width: `${percentile}%` }}></div>
                         </div>
-                        <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        <div className="flex justify-between items-center text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
                              <span>Best: {best !== null ? `${best} ${unit}` : '-'}</span>
                              <span>{percentile > 0 ? `Top ${percentile}%` : '-'}</span>
                         </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex flex-row sm:flex-col gap-2 w-full sm:w-auto shrink-0">
+                    <div className="flex flex-row sm:flex-col gap-1.5 w-full sm:w-auto shrink-0">
                         <button 
                             onClick={(e) => { e.stopPropagation(); SoundManager.play('click'); setMode(game); }}
-                            className={`flex-1 sm:flex-none px-6 py-2.5 ${btnColorClass} text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg hover:scale-105 transition flex items-center justify-center gap-2`}
+                            className={`flex-1 sm:flex-none px-4 py-2 ${btnColorClass} text-white rounded-lg font-bold text-[11px] shadow-sm hover:shadow-md hover:scale-105 transition flex items-center justify-center gap-1.5`}
                         >
-                            <Play size={16} fill="currentColor"/> MAIN
+                            <Play size={12} fill="currentColor"/> MAIN
                         </button>
                         <button 
                             onClick={(e) => { 
@@ -3013,9 +3013,9 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 setStatsModalGame(game); 
                                 setStatsModalOpen(true); 
                             }} 
-                            className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-300 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1"
+                            className="flex-1 sm:flex-none px-3 py-2 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-400 rounded-lg font-bold text-[10px] transition flex items-center justify-center gap-1"
                         >
-                            <BarChart2 size={14}/> Stats
+                            <BarChart2 size={12}/> STATS
                         </button>
                     </div>
                 </div>

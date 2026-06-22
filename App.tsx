@@ -3140,12 +3140,19 @@ function App() {
         });
         finalScore = twk + tiu + tkp;
         maxScore = 550;
+        const hasTwk = questions.some((q) => q.metadata?.subtest?.includes("TWK"));
+        const hasTiu = questions.some((q) => q.metadata?.subtest?.includes("TIU"));
+        const hasTkp = questions.some((q) => q.metadata?.subtest?.includes("TKP"));
+
         details = {
           twk,
           tiu,
           tkp,
           total: finalScore,
-          passed: twk >= 65 && tiu >= 80 && tkp >= 166,
+          passed:
+            (!hasTwk || twk >= 65) &&
+            (!hasTiu || tiu >= 80) &&
+            (!hasTkp || tkp >= 166),
         };
       } else if (
         selectedCategory === "UTBK" &&

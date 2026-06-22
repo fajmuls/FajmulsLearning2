@@ -336,22 +336,39 @@ export const ResultsAnalysis: React.FC<ResultsProps> = ({ answers, questions, on
                                                 </a>
                                             </div>
                                         </div>
-                                        <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-h-24 overflow-hidden relative mb-1.5">
+                                        <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-h-24 overflow-hidden relative mb-2">
                                             <SimpleMarkdown text={q.content} />
                                             <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-slate-50 dark:from-slate-750 to-transparent pointer-events-none"></div>
                                         </div>
-                                        {!isCorrect && (
-                                            <div className="text-[10px] sm:text-xs text-rose-500 bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/40 p-2 rounded-lg break-words">
-                                                <div className="flex gap-1 items-start">
-                                                    <span className="font-bold shrink-0">Jwbn Anda:</span> 
-                                                    <div className="flex-1 overflow-x-auto"><SimpleMarkdown text={ans?.selectedAnswer || '-'} /></div>
+
+                                        <div className="space-y-2">
+                                            {!isCorrect && (
+                                                <div className="text-[10px] sm:text-xs text-rose-500 bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/40 p-2 rounded-lg break-words">
+                                                    <div className="flex gap-1 items-start">
+                                                        <span className="font-bold shrink-0">Jwbn Anda:</span> 
+                                                        <div className="flex-1 overflow-x-auto"><SimpleMarkdown text={ans?.selectedAnswer || '-'} /></div>
+                                                    </div>
+                                                    <div className="flex gap-1 items-start mt-1">
+                                                        <span className="font-bold text-emerald-600 dark:text-emerald-400 shrink-0">Kunci:</span> 
+                                                        <div className="flex-1 text-emerald-500 overflow-x-auto"><SimpleMarkdown text={q.correctAnswer} /></div>
+                                                    </div>
                                                 </div>
-                                                <div className="flex gap-1 items-start mt-1">
-                                                    <span className="font-bold text-emerald-600 dark:text-emerald-400 shrink-0">Kunci:</span> 
-                                                    <div className="flex-1 text-emerald-500 overflow-x-auto"><SimpleMarkdown text={q.correctAnswer} /></div>
-                                                </div>
-                                            </div>
-                                        )}
+                                            )}
+
+                                            {q.explanation && (
+                                                <details className="group/exp">
+                                                    <summary className="flex items-center gap-1.5 cursor-pointer list-none text-[10px] font-bold text-slate-400 hover:text-indigo-500 transition">
+                                                        <Activity size={10}/> 
+                                                        <span>Pembahasan</span>
+                                                        <span className="group-open/exp:hidden"> (Lihat)</span>
+                                                        <span className="hidden group-open/exp:inline"> (Tutup)</span>
+                                                    </summary>
+                                                    <div className="mt-2 text-[10px] sm:text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 animate-fade-in">
+                                                        <SimpleMarkdown text={q.explanation} />
+                                                    </div>
+                                                </details>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             )
