@@ -94,28 +94,28 @@ const getGameColor = (game: BenchmarkMode) => {
 
 const getGameIcon = (game: BenchmarkMode) => {
     switch(game) {
-        case 'REACTION': return <Zap size={20}/>;
-        case 'SEQUENCE': return <Grid size={20}/>;
-        case 'AIM': return <Target size={20}/>;
-        case 'CHIMP': return <Brain size={20}/>;
-        case 'VISUAL': return <Grid size={20}/>;
-        case 'NUMBER': return <Hash size={20}/>;
-        case 'VERBAL': return <Type size={20}/>;
-        case 'TYPING': return <FileText size={20}/>;
-        case 'BRIDGE': return <Map size={20}/>;
-        case 'MATCH': return <Copy size={20}/>;
-        case 'HANGMAN': return <Users size={20}/>;
-        case 'HOTCOLD': return <TrendingUp size={20}/>;
-        case 'NUMBER_RANGE': return <Search size={20}/>;
-        case 'POSITION_MEMORY': return <MapPin size={20}/>;
-        case 'PATTERN_BREAKER': return <Brain size={20}/>;
-        case 'DECISION_LAB': return <Briefcase size={20}/>;
-        case 'REVERSE_THINKING': return <RefreshCw size={20}/>;
-        case 'LOGIC_MAZE': return <Route size={20}/>;
-        case 'TIME_PRESSURE': return <Clock size={20}/>;
-        case 'MULTI_LAYER': return <Layers size={20}/>;
-        case 'SYNONYM_ANTONYM': return <Type size={20}/>;
-        default: return <Activity size={20}/>;
+        case 'REACTION': return <Zap size={16}/>;
+        case 'SEQUENCE': return <Grid size={16}/>;
+        case 'AIM': return <Target size={16}/>;
+        case 'CHIMP': return <Brain size={16}/>;
+        case 'VISUAL': return <Grid size={16}/>;
+        case 'NUMBER': return <Hash size={16}/>;
+        case 'VERBAL': return <Type size={16}/>;
+        case 'TYPING': return <FileText size={16}/>;
+        case 'BRIDGE': return <Map size={16}/>;
+        case 'MATCH': return <Copy size={16}/>;
+        case 'HANGMAN': return <Users size={16}/>;
+        case 'HOTCOLD': return <TrendingUp size={16}/>;
+        case 'NUMBER_RANGE': return <Search size={16}/>;
+        case 'POSITION_MEMORY': return <MapPin size={16}/>;
+        case 'PATTERN_BREAKER': return <Brain size={16}/>;
+        case 'DECISION_LAB': return <Briefcase size={16}/>;
+        case 'REVERSE_THINKING': return <RefreshCw size={16}/>;
+        case 'LOGIC_MAZE': return <Route size={16}/>;
+        case 'TIME_PRESSURE': return <Clock size={16}/>;
+        case 'MULTI_LAYER': return <Layers size={16}/>;
+        case 'SYNONYM_ANTONYM': return <Type size={16}/>;
+        default: return <Activity size={16}/>;
     }
 }
 

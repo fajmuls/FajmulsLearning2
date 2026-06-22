@@ -1338,11 +1338,18 @@ export const ReviewView: React.FC<{ item: TestHistoryItem, onBack: () => void }>
                                         </div>
 
                                         <div className="mt-3 pt-3 border-t border-black/10 dark:border-white/10">
-                                            <div className="text-xs text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-black/20 p-3 rounded-lg border border-black/5 dark:border-white/5">
-                                                <div className="font-bold mb-2 flex items-center justify-between opacity-75">
-                                                    <span className="flex items-center gap-1"><Activity size={12}/> Penjelasan:</span>
+                                            <details className="group/exp">
+                                                <summary className="flex items-center justify-between cursor-pointer list-none">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="text-xs font-bold text-slate-500 flex items-center gap-1 opacity-75">
+                                                            <Activity size={12}/> Penjelasan:
+                                                        </div>
+                                                        <span className="text-[10px] text-indigo-500 font-bold group-open/exp:hidden">Lihat Pembahasan</span>
+                                                        <span className="text-[10px] text-slate-400 font-bold hidden group-open/exp:inline">Tutup</span>
+                                                    </div>
                                                     <button 
                                                         onClick={(e) => {
+                                                            e.preventDefault();
                                                             e.stopPropagation();
                                                             window.dispatchEvent(new CustomEvent('openAiTutor', { 
                                                                 detail: { 
@@ -1350,13 +1357,15 @@ export const ReviewView: React.FC<{ item: TestHistoryItem, onBack: () => void }>
                                                                 } 
                                                             }));
                                                         }}
-                                                        className="text-[10px] bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded font-bold flex items-center gap-1 hover:bg-indigo-200 dark:hover:bg-indigo-900 transition"
+                                                        className="text-[9px] sm:text-[10px] bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 sm:py-1 rounded font-bold flex items-center gap-1 hover:bg-indigo-200 dark:hover:bg-indigo-900 transition"
                                                     >
                                                         <Bot size={10} /> Tanya AI
                                                     </button>
+                                                </summary>
+                                                <div className="mt-2 text-xs text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-black/20 p-2 sm:p-3 rounded-lg border border-black/5 dark:border-white/5 animate-fade-in">
+                                                    <SimpleMarkdown text={q.explanation} />
                                                 </div>
-                                                <SimpleMarkdown text={q.explanation} />
-                                            </div>
+                                            </details>
                                         </div>
                                     </div>
                                 );

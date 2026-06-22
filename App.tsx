@@ -94,6 +94,7 @@ import {
   Download,
   Upload as UploadIcon,
   Search,
+  Sparkles,
   History,
   Lightbulb,
   Moon,
@@ -1093,24 +1094,24 @@ const Dashboard: React.FC<{
       sub.toLowerCase().includes(searchTerm.toLowerCase()),
     );
     return (
-      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm mb-4 sm:mb-6 animate-fade-in-up">
-        <h3 className="font-bold text-sm sm:text-base text-slate-800 dark:text-white mb-2.5">
+      <div className="bg-white dark:bg-slate-800 p-3 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm mb-4 sm:mb-6 animate-fade-in-up">
+        <h3 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-white mb-2">
           Pilih Topik / Subtes:
         </h3>
-        <div className="mb-3.5 relative">
+        <div className="mb-3 relative">
           <Search
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
-            size={16}
+            className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-slate-400"
+            size={14}
           />
           <input
             type="text"
             placeholder="Cari topik..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            className="w-full pl-8 p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-medium dark:text-white focus:ring-1 focus:ring-indigo-500 focus:outline-none"
           />
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1">
           {filteredList.length > 0 ? (
             filteredList.map((sub) => (
               <button
@@ -1201,40 +1202,40 @@ const Dashboard: React.FC<{
   return (
     <div className="min-h-screen bg-transparent">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-4">
           <button
             onClick={() => {
               SoundManager.play("back");
               onBack();
             }}
-            className="flex items-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 font-medium"
+            className="flex items-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 text-xs sm:text-sm font-medium"
           >
-            <ArrowLeft size={18} className="mr-2" /> Kembali
+            <ArrowLeft size={16} className="mr-1.5" /> Kembali
           </button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {onToggleDarkMode && (
               <button
                 onClick={() => {
                   onToggleDarkMode();
                 }}
-                className="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition"
+                className="p-1.5 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition"
               >
-                {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+                {isDarkMode ? <Sun size={14} /> : <Moon size={14} />}
               </button>
             )}
-            <span className="text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full flex items-center gap-1">
-              <UserIcon size={12} /> {username}
+            <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+              <UserIcon size={10} /> {username}
             </span>
           </div>
         </div>
-        <div className="flex justify-between items-end mb-8">
+        <div className="flex justify-between items-end mb-6">
           <div>
-            <span className="text-sm font-bold tracking-wider text-indigo-600 uppercase mb-1 block">
+            <span className="text-[10px] font-bold tracking-wider text-indigo-600 uppercase mb-0.5 block">
               {category === "TPA"
                 ? "Seleksi Lanjutan"
                 : category + " Dashboard"}
             </span>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white leading-tight">
               Pusat Kendali Belajar
             </h1>
           </div>
@@ -1257,27 +1258,22 @@ const Dashboard: React.FC<{
         <div className="transition-all duration-300">
           <>
             {weakTopics.length > 0 && category !== "KECERMATAN" && category !== "SKRIPSI" && category !== "GENERAL" && category !== "BENCHMARK" && (
-              <div className="mb-8 animate-fade-in-up bg-gradient-to-br from-rose-50 to-orange-50 dark:from-rose-900/20 dark:to-orange-900/20 rounded-2xl p-5 sm:p-6 border border-rose-200 dark:border-rose-800">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Target size={20} className="text-rose-600 dark:text-rose-400" />
-                      <h3 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white">Fokus Perbaikan: Topik Lemah</h3>
+              <div className="mb-6 animate-fade-in-up bg-gradient-to-br from-rose-50 to-orange-50 dark:from-rose-900/10 dark:to-orange-900/10 rounded-xl p-3.5 sm:p-5 border border-rose-100 dark:border-rose-900/50">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Target size={16} className="text-rose-600 dark:text-rose-400" />
+                      <h3 className="text-sm sm:text-base font-bold text-slate-800 dark:text-white">Fokus Perbaikan</h3>
                     </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xl">
-                      Sistem mendeteksi ada {weakTopics.length} topik dimana akurasi Anda masih di bawah target. Mari berlatih kembali dengan soal latihan HOTS khusus untuk menyempurnakan kelemahan.
+                    <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 max-w-xl">
+                      Akurasi Anda rendah di {weakTopics.length} topik. Mari perbaiki dengan latihan khusus.
                     </p>
-                    <div className="flex flex-wrap gap-2 mt-3">
+                    <div className="flex flex-wrap gap-1.5 mt-2">
                       {weakTopics.slice(0, 3).map((topic, i) => (
-                        <span key={i} className="text-[10px] sm:text-xs font-semibold bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 px-2.5 py-1.5 rounded-lg border border-rose-100 dark:border-rose-900 shadow-sm">
+                        <span key={i} className="text-[10px] font-semibold bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 px-2 py-1 rounded-md border border-rose-50 dark:border-rose-950 shadow-sm">
                           {topic}
                         </span>
                       ))}
-                      {weakTopics.length > 3 && (
-                        <span className="text-[10px] sm:text-xs font-semibold bg-transparent border border-rose-200/50 dark:border-rose-800 text-rose-500 px-2.5 py-1.5 rounded-lg">
-                          +{weakTopics.length - 3} lainnya
-                        </span>
-                      )}
                     </div>
                   </div>
                   <button
@@ -1285,9 +1281,9 @@ const Dashboard: React.FC<{
                       SoundManager.play("click");
                       onStartSession(StudyMode.WEAKNESS);
                     }}
-                    className="w-full sm:w-auto mt-2 sm:mt-0 px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-lg shadow-rose-200 dark:shadow-none transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap"
+                    className="w-full sm:w-auto px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold shadow-md shadow-rose-100 dark:shadow-none transition-all active:scale-95 flex items-center justify-center gap-1.5 text-xs"
                   >
-                    <Brain size={18} /> Latih Topik Ini
+                    <Brain size={14} /> Latih Sekarang
                   </button>
                 </div>
               </div>
@@ -1295,25 +1291,24 @@ const Dashboard: React.FC<{
             
             {category === "KECERMATAN" && (
               <div className="animate-fade-in-up">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   <button
                     onClick={() => {
                       SoundManager.play("click");
                       onStartTesKecermatan("ANGKA");
                     }}
-                    className="p-4 sm:p-6 bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-500 rounded-2xl text-left transition group shadow-sm"
+                    className="p-3 sm:p-4 bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border border-slate-200 dark:border-slate-700 hover:border-indigo-500 rounded-xl text-left transition group shadow-sm"
                   >
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="p-2 bg-indigo-100 dark:bg-indigo-900/40 rounded-lg text-indigo-600 dark:text-indigo-400">
-                        <Activity size={24} />
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="p-1.5 bg-indigo-100 dark:bg-indigo-900/40 rounded-lg text-indigo-600 dark:text-indigo-400">
+                        <Activity size={18} />
                       </span>
-                      <span className="font-bold text-base sm:text-lg text-slate-800 dark:text-white">
+                      <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-white">
                         Angka Hilang
                       </span>
                     </div>
-                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                      Standar tes kedinasan/Polri. Temukan angka yang hilang
-                      dari kolom.
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2">
+                      Temukan angka yang hilang dari kolom.
                     </p>
                   </button>
                   <button
@@ -1321,19 +1316,18 @@ const Dashboard: React.FC<{
                       SoundManager.play("click");
                       onStartTesKecermatan("HURUF");
                     }}
-                    className="p-4 sm:p-6 bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 rounded-2xl text-left transition group shadow-sm"
+                    className="p-3 sm:p-4 bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 rounded-xl text-left transition group shadow-sm"
                   >
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="p-2 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg text-emerald-600 dark:text-emerald-400">
-                        <FileText size={24} />
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="p-1.5 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg text-emerald-600 dark:text-emerald-400">
+                        <FileText size={18} />
                       </span>
-                      <span className="font-bold text-base sm:text-lg text-slate-800 dark:text-white">
+                      <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-white">
                         Huruf Hilang
                       </span>
                     </div>
-                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                      Variasi huruf. Melatih ketelitian visual terhadap karakter
-                      mirip.
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2">
+                      Variasi huruf. Melatih ketelitian visual.
                     </p>
                   </button>
                   <button
@@ -1341,19 +1335,18 @@ const Dashboard: React.FC<{
                       SoundManager.play("click");
                       onStartTesKecermatan("SIMBOL_HILANG");
                     }}
-                    className="p-6 bg-white dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-purple-900/20 border-2 border-slate-200 dark:border-slate-700 hover:border-purple-500 rounded-2xl text-left transition group shadow-sm"
+                    className="p-3 sm:p-4 bg-white dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-purple-900/20 border border-slate-200 dark:border-slate-700 hover:border-purple-500 rounded-xl text-left transition group shadow-sm"
                   >
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="p-2 bg-purple-100 dark:bg-purple-900/40 rounded-lg text-purple-600 dark:text-purple-400">
-                        <Shapes size={24} />
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="p-1.5 bg-purple-100 dark:bg-purple-900/40 rounded-lg text-purple-600 dark:text-purple-400">
+                        <Shapes size={18} />
                       </span>
-                      <span className="font-bold text-lg text-slate-800 dark:text-white">
+                      <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-white">
                         Simbol Hilang
                       </span>
                     </div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      Temukan simbol yang hilang. Melatih ketelitian visual
-                      bentuk abstrak.
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2">
+                      Temukan simbol yang hilang dari grid.
                     </p>
                   </button>
                   <button
@@ -1361,19 +1354,18 @@ const Dashboard: React.FC<{
                       SoundManager.play("click");
                       onStartTesKecermatan("SAMA_BEDA");
                     }}
-                    className="p-6 bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-900/20 border-2 border-slate-200 dark:border-slate-700 hover:border-amber-500 rounded-2xl text-left transition group shadow-sm"
+                    className="p-3 sm:p-4 bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-900/20 border border-slate-200 dark:border-slate-700 hover:border-amber-500 rounded-xl text-left transition group shadow-sm"
                   >
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-lg text-amber-600 dark:text-amber-400">
-                        <GitMerge size={24} />
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="p-1.5 bg-amber-100 dark:bg-amber-900/40 rounded-lg text-amber-600 dark:text-amber-400">
+                        <GitMerge size={18} />
                       </span>
-                      <span className="font-bold text-lg text-slate-800 dark:text-white">
-                        Sama Beda Simbol
+                      <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-white">
+                        Sama Beda
                       </span>
                     </div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      Bandingkan dua baris simbol. Tentukan SAMA atau BEDA
-                      secepat mungkin.
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2">
+                      Bandingkan dua baris simbol secepatnya.
                     </p>
                   </button>
                   <button
@@ -1381,19 +1373,18 @@ const Dashboard: React.FC<{
                       SoundManager.play("click");
                       onStartTesKecermatan("MATCHING");
                     }}
-                    className="p-6 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-900/20 border-2 border-slate-200 dark:border-slate-700 hover:border-rose-500 rounded-2xl text-left transition group shadow-sm"
+                    className="p-3 sm:p-4 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-900/20 border border-slate-200 dark:border-slate-700 hover:border-rose-500 rounded-xl text-left transition group shadow-sm"
                   >
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="p-2 bg-rose-100 dark:bg-rose-900/40 rounded-lg text-rose-600 dark:text-rose-400">
-                        <Target size={24} />
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="p-1.5 bg-rose-100 dark:bg-rose-900/40 rounded-lg text-rose-600 dark:text-rose-400">
+                        <Target size={18} />
                       </span>
-                      <span className="font-bold text-lg text-slate-800 dark:text-white">
-                        Matching (Pencocokan)
+                      <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-white">
+                        Matching
                       </span>
                     </div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      Cocokkan simbol dengan kode kuncinya. Melatih memori kerja
-                      jangka pendek.
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2">
+                      Cocokkan simbol dengan kode kuncinya.
                     </p>
                   </button>
                   <button
@@ -1401,105 +1392,91 @@ const Dashboard: React.FC<{
                       SoundManager.play("click");
                       onStartTesKecermatan("GROUPING");
                     }}
-                    className="p-6 bg-white dark:bg-slate-800 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 border-2 border-slate-200 dark:border-slate-700 hover:border-cyan-500 rounded-2xl text-left transition group shadow-sm"
+                    className="p-3 sm:p-4 bg-white dark:bg-slate-800 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 border border-slate-200 dark:border-slate-700 hover:border-cyan-500 rounded-xl text-left transition group shadow-sm"
                   >
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="p-2 bg-cyan-100 dark:bg-cyan-900/40 rounded-lg text-cyan-600 dark:text-cyan-400">
-                        <LayoutGrid size={24} />
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="p-1.5 bg-cyan-100 dark:bg-cyan-900/40 rounded-lg text-cyan-600 dark:text-cyan-400">
+                        <LayoutGrid size={18} />
                       </span>
-                      <span className="font-bold text-lg text-slate-800 dark:text-white">
-                        Grouping (Pengelompokan)
+                      <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-white">
+                        Grouping
                       </span>
                     </div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      Pilih semua simbol yang diminta dari grid acak. Melatih
-                      fokus selektif.
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2">
+                      Pilih semua simbol yang diminta dari grid.
                     </p>
                   </button>
                 </div>
               </div>
             )}
             {category === "SKRIPSI" && (
-              <div className="animate-fade-in-up max-w-2xl mx-auto">
-                <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm mb-6">
-                  <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-                    <Book size={24} className="text-indigo-600" /> Skripsi
-                    Assistant
+              <div className="animate-fade-in-up max-w-xl mx-auto">
+                <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm mb-6">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+                    <Book size={20} className="text-indigo-600" /> Skripsi Assistant
                   </h3>
-                  <p className="text-slate-500 dark:text-slate-400 mb-6">
-                    Masukkan topik atau judul skripsi Anda untuk mendapatkan
-                    bantuan AI.
-                  </p>
                   <textarea
-                    className="w-full p-4 border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white rounded-xl mb-6 focus:ring-2 focus:ring-indigo-500 h-32"
-                    placeholder="Contoh: Pengaruh Kecerdasan Buatan terhadap Minat Belajar Mahasiswa Teknik Informatika..."
+                    className="w-full p-3 border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white rounded-lg mb-4 focus:ring-1 focus:ring-indigo-500 h-24 text-sm"
+                    placeholder="Masukkan topik atau judul skripsi Anda..."
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                   />
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => {
                         SoundManager.play("click");
-                        onStartSkripsiSession &&
-                          onStartSkripsiSession("TITLE_IDEAS", inputText);
+                        onStartSkripsiSession && onStartSkripsiSession("TITLE_IDEAS", inputText);
                       }}
-                      className="p-4 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-xl font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/40 flex flex-col items-center gap-2 border border-indigo-100 dark:border-indigo-800"
+                      className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-lg font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/40 flex flex-col items-center gap-1 border border-indigo-100 dark:border-indigo-800 text-xs"
                     >
-                      <Brain size={24} /> Ide Judul
+                      <Brain size={18} /> Ide Judul
                     </button>
                     <button
                       onClick={() => {
                         SoundManager.play("click");
-                        onStartSkripsiSession &&
-                          onStartSkripsiSession("OUTLINE", inputText);
+                        onStartSkripsiSession && onStartSkripsiSession("OUTLINE", inputText);
                       }}
-                      className="p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-xl font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/40 flex flex-col items-center gap-2 border border-emerald-100 dark:border-emerald-800"
+                      className="p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-lg font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/40 flex flex-col items-center gap-1 border border-emerald-100 dark:border-emerald-800 text-xs"
                     >
-                      <FileText size={24} /> Buat Outline
+                      <FileText size={18} /> Buat Outline
                     </button>
                     <button
                       onClick={() => {
                         SoundManager.play("click");
-                        onStartSkripsiSession &&
-                          onStartSkripsiSession("METHODOLOGY", inputText);
+                        onStartSkripsiSession && onStartSkripsiSession("METHODOLOGY", inputText);
                       }}
-                      className="p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-xl font-bold hover:bg-amber-100 dark:hover:bg-amber-900/40 flex flex-col items-center gap-2 border border-amber-100 dark:border-amber-800"
+                      className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-lg font-bold hover:bg-amber-100 dark:hover:bg-amber-900/40 flex flex-col items-center gap-1 border border-amber-100 dark:border-amber-800 text-xs"
                     >
-                      <Search size={24} /> Cek Metodologi
+                      <Search size={18} /> Cek Metode
                     </button>
                     <button
                       onClick={() => {
                         SoundManager.play("click");
-                        onStartSkripsiSession &&
-                          onStartSkripsiSession("PARAPHRASE", inputText);
+                        onStartSkripsiSession && onStartSkripsiSession("PARAPHRASE", inputText);
                       }}
-                      className="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 rounded-xl font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40 flex flex-col items-center gap-2 border border-rose-100 dark:border-rose-800"
+                      className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 rounded-lg font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40 flex flex-col items-center gap-1 border border-rose-100 dark:border-rose-800 text-xs"
                     >
-                      <FileSearch size={24} /> Parafrase Teks
+                      <FileSearch size={18} /> Parafrase
                     </button>
                   </div>
                 </div>
               </div>
             )}
             {category === "GENERAL" && (
-              <div className="space-y-8 animate-fade-in-up">
+              <div className="space-y-4 animate-fade-in-up">
                 {!isReadingMaterial ? (
-                  <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
-                    <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-                      <Upload size={20} /> Input Materi
+                  <div className="bg-white dark:bg-slate-800 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-1.5">
+                      <Upload size={16} /> Input Materi
                     </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                      Masukkan topik, teks materi, atau upload PDF yang ingin
-                      dipelajari.
-                    </p>
-                    <div className="flex gap-2 mb-4">
+                    <div className="flex gap-2 mb-3">
                       <input
                         type="text"
-                        className="flex-1 p-3 border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white rounded-xl"
+                        className="flex-1 p-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white rounded-lg text-xs"
                         placeholder={
                           pdfName
-                            ? `PDF Terpilih: ${pdfName}`
-                            : "Contoh: Perang Dunia II, Hukum Newton, atau paste teks..."
+                            ? `PDF: ${pdfName}`
+                            : "Topik, teks materi, atau paste..."
                         }
                         value={inputText}
                         disabled={!!pdfName}
@@ -1515,23 +1492,20 @@ const Dashboard: React.FC<{
                         onChange={handleFileChange}
                       />
                       <button
-                        className={`p-3 rounded-xl transition flex items-center gap-2 ${pdfName ? "bg-indigo-600 text-white" : "bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200"}`}
-                        title="Upload PDF"
+                        className={`p-2 rounded-lg transition flex items-center gap-1.5 ${pdfName ? "bg-indigo-600 text-white" : "bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200"}`}
                         onClick={() => fileInputRef.current?.click()}
                       >
-                        <FileText size={20} />
-                        <span className="hidden sm:inline font-bold text-sm">
-                          Upload PDF
+                        <FileText size={16} />
+                        <span className="hidden sm:inline font-bold text-xs">
+                          PDF
                         </span>
                       </button>
                     </div>
                     {pdfName && (
-                      <div className="mb-4 text-sm bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 px-4 py-2 rounded-lg flex items-center justify-between animate-fade-in-up border border-emerald-100 dark:border-emerald-800">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle size={16} />{" "}
-                          <span>
-                            File siap: <b>{pdfName}</b>
-                          </span>
+                      <div className="mb-3 text-[10px] bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 px-3 py-1.5 rounded-md flex items-center justify-between border border-emerald-100 dark:border-emerald-800">
+                        <div className="flex items-center gap-1.5">
+                          <CheckCircle size={12} />{" "}
+                          <span>{pdfName}</span>
                         </div>
                         <button
                           onClick={() => {
@@ -1541,108 +1515,73 @@ const Dashboard: React.FC<{
                               fileInputRef.current.value = "";
                           }}
                           className="text-slate-400 hover:text-rose-500"
-                          title="Hapus PDF"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={12} />
                         </button>
                       </div>
                     )}
-                    {pdfLoading ? (
-                      <div className="mb-6 space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
-                          <Loader2 size={14} className="animate-spin" /> Memuat
-                          Preview PDF...
-                        </div>
-                        <SkeletonLoader
-                          height="h-[300px]"
-                          className="rounded-xl"
-                        />
-                      </div>
-                    ) : (
-                      generalInput?.type === "pdf" &&
-                      generalInput.content && (
-                        <div className="mb-6 animate-fade-in-up">
-                          <label className="text-xs font-bold text-slate-500 mb-2 block">
-                            Preview PDF:
-                          </label>
-                          <embed
-                            src={`data:application/pdf;base64,${generalInput.content}`}
-                            className="w-full h-[300px] rounded-xl border border-slate-200 dark:border-slate-700"
-                            type="application/pdf"
-                          />
-                        </div>
-                      )
-                    )}
-                    <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="grid grid-cols-2 gap-3 mb-3">
                       <div>
-                        <label className="text-xs font-bold text-slate-500 mb-1 block">
-                          Panjang Materi (Ringkasan)
+                        <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">
+                          Panjang Ringkasan
                         </label>
                         <select
                           value={materialLength}
                           onChange={(e) =>
                             setMaterialLength(e.target.value as MaterialLength)
                           }
-                          className="w-full p-3 bg-slate-50 dark:bg-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium"
+                          className="w-full p-2 bg-slate-50 dark:bg-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 rounded-lg text-xs"
                         >
-                          <option value="SHORT">Ringkas / Poin Penting</option>
-                          <option value="MEDIUM">Standar (Rekomedasi)</option>
-                          <option value="LONG">Mendalam / Detail</option>
+                          <option value="SHORT">Ringkas</option>
+                          <option value="MEDIUM">Standar</option>
+                          <option value="LONG">Mendalam</option>
                         </select>
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-slate-500 mb-1 block">
-                          Tingkat Kesulitan Soal
+                        <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">
+                          Kesulitan
                         </label>
                         <select
                           value={questionDiff}
                           onChange={(e) =>
-                            setQuestionDiff(
-                              e.target.value as QuestionDifficulty,
-                            )
+                            setQuestionDiff(e.target.value as QuestionDifficulty)
                           }
-                          className="w-full p-3 bg-slate-50 dark:bg-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium"
+                          className="w-full p-2 bg-slate-50 dark:bg-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 rounded-lg text-xs"
                         >
-                          <option value="EASY">Mudah (Recall)</option>
-                          <option value="MEDIUM">Sedang (Konseptual)</option>
-                          <option value="HARD">Sulit / HOTS</option>
+                          <option value="EASY">Mudah</option>
+                          <option value="MEDIUM">Sedang</option>
+                          <option value="HARD">Sulit</option>
                         </select>
                       </div>
                     </div>
                     <button
-                      onClick={() => {
-                        SoundManager.play("click");
-                        handleInputSubmit();
-                      }}
-                      className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition"
+                      onClick={handleInputSubmit}
+                      disabled={(!inputText && !pdfName) || pdfLoading}
+                      className="w-full py-2.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 shadow-md shadow-indigo-100 dark:shadow-none transition flex items-center justify-center gap-2 text-sm"
                     >
-                      Proses & Baca Materi
+                      {pdfLoading ? (
+                        <Loader2 className="animate-spin" size={16} />
+                      ) : (
+                        <Sparkles size={16} />
+                      )}
+                      Analisis Materi
                     </button>
                   </div>
                 ) : (
                   <div className="animate-fade-in-up">
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 mb-6">
-                      <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-100 dark:border-slate-700">
-                        <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                          <BookOpen size={20} /> Materi Belajar
+                    <div className="bg-white dark:bg-slate-800 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-700 mb-4">
+                      <div className="flex justify-between items-center mb-3 pb-3 border-b border-slate-100 dark:border-slate-700">
+                        <h3 className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-1.5">
+                          <BookOpen size={16} /> Materi Belajar
                         </h3>
                         <button
                           onClick={onResetMaterial}
-                          className="text-sm text-rose-500 hover:underline"
+                          className="text-[10px] text-rose-500 font-bold hover:underline"
                         >
                           Ganti Materi
                         </button>
                       </div>
-                      {generalInput?.type === "pdf" && generalInput.content && (
-                        <div className="mb-6">
-                          <embed
-                            src={`data:application/pdf;base64,${generalInput.content}`}
-                            className="w-full h-[500px] rounded-xl border border-slate-200 dark:border-slate-700"
-                            type="application/pdf"
-                          />
-                        </div>
-                      )}
-                      <div className="prose prose-sm max-w-none text-slate-700 dark:text-slate-300 leading-relaxed max-h-[400px] overflow-y-auto p-2 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-700">
+                      <div className="prose prose-xs max-w-none text-slate-700 dark:text-slate-300 leading-relaxed max-h-[300px] overflow-y-auto p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-700">
                         <SimpleMarkdown
                           text={
                             generalInput?.extractedText ||
@@ -1653,10 +1592,10 @@ const Dashboard: React.FC<{
                       </div>
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-800 dark:text-white mb-4">
-                        Sudah selesai membaca? Pilih Metode Belajar:
+                      <h3 className="font-bold text-xs text-slate-800 dark:text-white mb-3">
+                        Pilih Metode Belajar:
                       </h3>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                         {GENERAL_METHODS.map((m) => {
                           const iconMap: Record<string, any> = {
                             Brain,

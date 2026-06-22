@@ -3,6 +3,8 @@ import { Send, Bot, User, X, Loader2, Save, Trash2, Expand, Minimize2 } from 'lu
 import { GoogleGenAI } from "@google/genai";
 import * as FirebaseService from '../services/firebase';
 
+import { SimpleMarkdown } from './QuestionRenderer';
+
 interface AiChatTutorProps {
     initialContext?: string;
     onClose?: () => void;
@@ -142,7 +144,9 @@ export const AiChatTutor: React.FC<AiChatTutorProps> = ({ initialContext, onClos
                     <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mr-2 shrink-0"><Bot size={16} className="text-indigo-600"/></div>}
                         <div className={`max-w-[85%] p-3 rounded-2xl ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-tl-sm shadow-sm'}`}>
-                            <div className="whitespace-pre-wrap text-sm leading-relaxed" dangerouslySetInnerHTML={{__html: msg.text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br/>')}}></div>
+                            <div className="text-xs sm:text-sm leading-relaxed overflow-hidden">
+                                <SimpleMarkdown text={msg.text} />
+                            </div>
                         </div>
                     </div>
                 ))}

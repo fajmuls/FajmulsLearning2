@@ -44,8 +44,10 @@ const questionSchema: Schema = {
     id: { type: Type.STRING },
     type: { type: Type.STRING, enum: ["multiple_choice", "short_answer", "long_text", "multiple_choice_complex", "matching"] },
     content: { type: Type.STRING },
+    explanation: { type: Type.STRING, description: "MANDATORY: Step-by-step logic and calculation to solve the problem. MUST be generated BEFORE options and correctAnswer." },
+    shortcut: { type: Type.STRING },
     options: { type: Type.ARRAY, items: { type: Type.STRING } },
-    correctAnswer: { type: Type.STRING },
+    correctAnswer: { type: Type.STRING, description: "The correct option. Must exactly match one of the items in the options array. Determine this AFTER writing the explanation." },
     tkpPoints: {
       type: Type.ARRAY,
       items: {
@@ -56,8 +58,6 @@ const questionSchema: Schema = {
         }
       }
     },
-    explanation: { type: Type.STRING },
-    shortcut: { type: Type.STRING },
     metadata: {
       type: Type.OBJECT,
       properties: {
@@ -100,7 +100,7 @@ const questionSchema: Schema = {
       }
     }
   },
-  required: ["id", "type", "content", "correctAnswer", "explanation", "metadata"]
+  required: ["id", "type", "content", "explanation", "options", "correctAnswer", "metadata"]
 };
 
 const questionsListSchema: Schema = {
@@ -132,7 +132,9 @@ function extractValidObjects(text: string): any[] {
       continue;
     }
     if (char === '"') {
-      insideString = !insideString;
+      if (text[i-1] !== '\\') {
+        insideString = !insideString;
+      }
       continue;
     }
     if (!insideString) {
@@ -165,6 +167,53 @@ function extractValidObjects(text: string): any[] {
       }
     }
   }
+
+  // RECOVERY FOR TRUNCATED JSON:
+  // If we still have active starts, they might be valid objects if we close them.
+  // This is especially true for the last object in a truncated stream.
+  if (activeStarts.length > 0) {
+    for (const start of activeStarts) {
+      let candidate = text.substring(start.startIdx).trim();
+      
+      // Try balancing it
+      let attempt = candidate;
+      
+      // If we're stuck in a string, close it first
+      if (insideString) {
+          // Check if we need to escape a trailing backslash
+          if (attempt.endsWith('\\')) attempt += '\\';
+          attempt += '"';
+      }
+      
+      // Close all open braces and brackets
+      // Note: start.depth might be slightly off if truncated inside nested structures
+      // so we try a few variations
+      let openBraces = start.depth;
+      let suffix = "";
+      for (let k = 0; k < openBraces; k++) {
+        suffix += '}';
+      }
+
+      const tryParsing = (s: string) => {
+        try {
+            return JSON.parse(s);
+        } catch (e) {
+            return null;
+        }
+      };
+
+      let p = tryParsing(attempt + suffix);
+      if (!p) p = tryParsing(attempt + ']' + suffix);
+      if (!p) p = tryParsing(attempt + ']}' + suffix);
+      if (!p) p = tryParsing(attempt + '"]}' + suffix);
+      if (!p) p = tryParsing(attempt + '"}]}' + suffix);
+      
+      if (p && typeof p === 'object') {
+        foundObjects.push(p);
+      }
+    }
+  }
+
   return foundObjects;
 }
 
@@ -573,25 +622,21 @@ export const buildQuestionPrompt = (
   let base64Pdf: string | undefined = undefined;
 
   
-  // V15.0 UPGRADE: MASTER-LEVEL TIU & FIGURAL REASONING
+  // V16.0 UPGRADE: MASTER-LEVEL TIU & ANALYTICAL REASONING
   const shapeInstructions = `
-  CRITICAL VISUAL & LOGIC RULES (V15.0 - MASTER):
+  CRITICAL VISUAL & LOGIC RULES (V16.0 - MASTER):
+  - **EXPLANATION-FIRST PRINCIPLE (MANDATORY)**: You MUST solve the logical problem step-by-step in the "explanation" field BEFORE defining "options" or "correctAnswer". Mentally draw timelines, tables, or seating charts before writing.
+  - **LOGIC INTEGRITY**: For Analytical Reasoning (Ordering, Queuing, Seating):
+    - NO ROUNDING Hallucination: Quantities and orders must be absolute.
+    - DISAMBIGUATION: If premises allow multiple valid configurations, it is a FAIL. Add a premise to ensure exactly one unique solution.
+    - QUEUE/ORDER: Use clear sequential logic. (e.g., "A di antara B dan C", "D mendahului E").
+
   - **MANDATORY SVG COMPLETION**:
     - SERIAL (Pola) & ANALOGY: The 'content' field MUST start with an SVG string showing the complete sequence. NEVER leave it as text only.
     - MATRIX (3x3): 'metadata.matrix' MUST be a 3x3 array [row][col] of SVG strings. Cell (2,2) MUST be '?'.
-    - KETIDAKSAMAAN (Odd One Out): 'options' MUST be 5 distinct SVG strings. Use generic question text like "Pilihlah gambar yang berbeda dari yang lain." Do NOT explain the difference in the question text.
-    - NEVER produce figural items without SVGs in the 'content' or 'matrix' fields.
-  
-  - **ELITE FIGURAL LOGIC (HIGH DIFFICULTY)**:
-    - **XOR Logic**: Overlapping lines between Cell A and B disappear in Cell C.
-    - **Composite Transformation**: Combine rotation, scale, and element count change in one step.
-    - **Spatial Folding**: Isometric nets that must be mentally folded into a cube.
-    - **Perspective**: 3D rotation of objects.
-
+    - KETIDAKSAMAAN (Odd One Out): 'options' MUST be 5 distinct SVG strings. Use generic question text like "Pilihlah gambar yang berbeda dari yang lain."
   - **RENDER FIDELITY**:
-    - SVGs MUST use viewBox="0 0 100 100".
-    - Use high-contrast colors (#6366f1, #f43f5e).
-    - Ensure all lines have stroke-width="2" or greater for visibility on mobile.
+    - SVGs MUST use viewBox="0 0 100 100" with high-contrast colors (#6366f1, #f43f5e).
   `;
 
   // Removed old shape instructions
@@ -599,6 +644,9 @@ export const buildQuestionPrompt = (
   // FORMATTING INSTRUCTIONS
   const formattingInstructions = `
   CRITICAL FORMATTING RULES:
+  - **CHAIN OF THOUGHT GENERATION (CRITICAL)**: To prevent math/logic hallucination, you MUST solve the problem step-by-step in the \`explanation\` field FIRST. Only AFTER determining the correct solution mathematically/logically in the \`explanation\`, you should construct the \`options\` array and specify the exact matching \`correctAnswer\`.
+  - **EXACT MATH (NO PREMATURE ROUNDING)**: Mathematical calculations must resolve to exact numbers. NEVER round numbers prematurely or present options that are "approximations" unless explicitly stated. The correct answer in the options MUST match the computed result EXACTLY.
+  - **FLAWLESS LOGIC**: For Analytical Logic (ordering, seating, schedules) and Syllogisms, double-check your logical constraints. Ensure there is ONE and ONLY ONE valid sequence/configuration that matches all premises without contradiction.
   - **EQUAL OPTION LENGTHS (ANTI-GUESSING)**: You MUST ensure that all 5 options (A, B, C, D, E) are roughly the EXACT SAME LENGTH (character and word count). The correct answer MUST NEVER be noticeably longer or more detailed than the distractor options. If you need to add detail to the correct answer, you MUST also add equally complex and long details to the incorrect answers to camouflage it.
   - **DISTRACTOR QUALITY (Near-Miss Logic for HOTS)**: For incorrect options (distractors), do NOT use random or easily guessable wrong answers. Construct them logically based on common calculation errors, misread signs, logical traps, or near-misses of the exact correct answer. In TWK and TKP, distractors must sound incredibly plausible, academic, and highly professional.
   - **PREMISES**:
@@ -1052,8 +1100,9 @@ export const buildQuestionPrompt = (
            - ${hardPercent} of questions MUST be Difficult to Very Difficult.
            - ABSOLUTELY NO Easy or simple recall questions.
            - For TIU/Figural: Use COMPLEX visual patterns with the symbols defined in shapeInstructions. Avoid simple 1-step patterns.
-           - For TIU/Verbal (Analogi): DO NOT use simple, ambiguous, or debatable analogies (e.g., "Televisi : Gambar : Suara"). Use highly specific, academic, or technical relationships where only ONE answer is definitively correct.
-           - For TIU/Logika (Posisi/Silogisme): Create complex scenarios with at least 5-6 variables/people and multiple intersecting rules. Avoid simple "A is next to B" puzzles.
+           - For TIU/Verbal (Analogi/Silogisme): DO NOT use simple, ambiguous, or debatable analogies (e.g., "Televisi : Gambar : Suara"). Provide a huge variety of relationships (cause-effect, function, part-whole, synonym/antonym, sequence). Ensure the logical bridge is flawless and securely connected to the answer.
+           - For TIU/Logika/Analitis (Posisi/Urutan/Jadwal): Construct airtight, non-contradictory logic puzzles. ALWAYS solve the arrangement internally FIRST in the explanation. Ensure exactly ONE valid arrangement exists without logical flaws or impossible scenarios (like circular round-robins that conflict, or queues that overlap).
+           - For TIU/Numerik: Ensure calculations lead to EXACT mathematically correct answers. Do NOT use rounding approximations in the options unless explicitly stated. Build complex but solvable math, avoid impossible logical pitfalls.
            - The explanation MUST be mathematically and logically rigorous, leaving no room for ambiguity.`;
       }
 
@@ -1362,8 +1411,8 @@ export const generateSkdSimulation = async (stream: SkdStreamType, variant: 'FUL
         let numericCount = getRandomInt(10, 12);
         let verbalCount = 35 - figuralCount - numericCount;
 
-        const pTiuVerbal = generateQuestions(StudyMode.SIMULATION, 'SKD', 'SKD - VERBAL (Analogi, Silogisme, Analitis). HARD DIFFICULTY. Complex syllogisms (3+ premises).', verbalCount, [], stream, undefined, 'HOTS');
-        const pTiuNumerik = generateQuestions(StudyMode.SIMULATION, 'SKD', 'SKD - NUMERIK (Berhitung, Deret, Perbandingan, Ketidaksamaan/Inequalities, Soal Cerita). VERY HARD. Must include inequalities (Perbandingan Kuantitatif, A > B, P < Q, dst), multi-step arithmetic, and complex word problems/sequences.', numericCount, [], stream, undefined, 'HOTS');
+        const pTiuVerbal = generateQuestions(StudyMode.SIMULATION, 'SKD', 'SKD - VERBAL (Analogi, Silogisme, Analitis). HARD DIFFICULTY. MUST HAVE PERFECT LOGIC. For Analitis (posisi/urutan), create one unique valid arrangement and ensure questions are logically impossible to misinterpret.', verbalCount, [], stream, undefined, 'HOTS');
+        const pTiuNumerik = generateQuestions(StudyMode.SIMULATION, 'SKD', 'SKD - NUMERIK (Berhitung Cepat, Deret Kompleks, Perbandingan/Inequalities A vs B, Soal Cerita). VERY HARD. Must include variables, percentages, and fractions without premature rounding. Ensure the calculations have EXACT valid results matching the exact correct answer chosen.', numericCount, [], stream, undefined, 'HOTS');
         const pTiuFigural = generateQuestions(StudyMode.SIMULATION, 'SKD', 'SKD - FIGURAL (Analogi, Ketidaksamaan, Serial, Matriks, Spasial, Jaring-jaring 3D). EXTREME DIFFICULTY. MUST OUTPUT <svg> FOR ALL QUESTIONS, INCLUDING IN EACH OF THE 5 OPTIONS. Abstract geometric patterns ONLY. Include 3x3 matrices, paper folding (spasial), and 3D rotations. MAKE KETIDAKSAMAAN EXTREMELY DIFFICULT. For 3D shapes/cubes (bangun ruang/jaring-jaring), MUST use isometric projection with proper <polygon> faces, distinct fill colors (e.g. #e2e8f0, #cbd5e1, #94a3b8) to simulate lighting and depth (shadow effects). Avoid ambiguous or overly simplistic 2D nets.', figuralCount, [], stream, undefined, 'HOTS');
 
         const [tiuVerbal, tiuNumerik, tiuFigural] = await Promise.all([pTiuVerbal, pTiuNumerik, pTiuFigural]);
