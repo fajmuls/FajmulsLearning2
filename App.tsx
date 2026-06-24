@@ -32,6 +32,8 @@ import {
   TkaLevelType,
   BackgroundGenTask,
 } from "./types";
+import { TkaSelection } from "./components/TkaSelection";
+import { SubjectSelection } from "./components/SubjectSelection";
 import {
   CATEGORIES,
   UTBK_SUBTESTS,
@@ -86,6 +88,8 @@ import {
   Calendar,
   TrendingUp,
   Award,
+  Library,
+  School,
   Trash2,
   LogOut,
   Book,
@@ -783,6 +787,33 @@ const getCircularReplacer = () => {
     return value;
   };
 };
+
+const safeLocalStorageSet = (key: string, value: any, isHistory: boolean = false) => {
+  try {
+    const stringified = isHistory ? JSON.stringify(value, getCircularReplacer()) : JSON.stringify(value);
+    localStorage.setItem(key, stringified);
+  } catch (e) {
+    console.warn(`Storage quota issues for ${key}, attempting cleanup...`, e);
+    if (isHistory && Array.isArray(value)) {
+      try {
+        // Pruning strategy: Keep first 10 items fully, then strip questions/answers from older ones
+        const pruned = value.map((item, idx) => {
+          if (idx < 10) return item;
+          const { questions, answers, ...rest } = item;
+          return rest;
+        });
+        localStorage.setItem(key, JSON.stringify(pruned, getCircularReplacer()));
+      } catch (e2) {
+        // Last effort: Only most recent 5 items
+        try {
+          localStorage.setItem(key, JSON.stringify(value.slice(0, 5), getCircularReplacer()));
+        } catch (e3) {
+          console.error("Critical: Could not even save minimal history to cache", e3);
+        }
+      }
+    }
+  }
+};
 const ResumeSessionList: React.FC<{
   sessions: SavedSessionState[];
   onBack: () => void;
@@ -792,9 +823,23 @@ const ResumeSessionList: React.FC<{
 }> = ({ sessions, onBack, onResume, onDelete, loading }) => {
   const getVisuals = (category: CategoryType) => {
     switch (category) {
+      case "TKA":
+        return {
+          icon: Award,
+          color: "text-emerald-600",
+          bg: "bg-emerald-100 dark:bg-emerald-900/30",
+          border: "border-emerald-200 dark:border-emerald-800",
+        };
+      case "PELAJARAN":
+        return {
+          icon: Library,
+          color: "text-teal-600",
+          bg: "bg-teal-100 dark:bg-teal-900/30",
+          border: "border-teal-200 dark:border-teal-800",
+        };
       case "UTBK":
         return {
-          icon: GraduationCap,
+          icon: School,
           color: "text-rose-600",
           bg: "bg-rose-100 dark:bg-rose-900/30",
           border: "border-rose-200 dark:border-rose-800",
@@ -802,9 +847,9 @@ const ResumeSessionList: React.FC<{
       case "SKD":
         return {
           icon: Briefcase,
-          color: "text-amber-600",
-          bg: "bg-amber-100 dark:bg-amber-900/30",
-          border: "border-amber-200 dark:border-amber-800",
+          color: "text-orange-600",
+          bg: "bg-orange-100 dark:bg-orange-900/30",
+          border: "border-orange-200 dark:border-orange-800",
         };
       case "PSIKOTEST":
         return {
@@ -980,9 +1025,9 @@ const Dashboard: React.FC<{
   tpaStream?: TpaStreamType | null;
   onTpaStreamSelect?: (s: TpaStreamType) => void;
   tkaLevel?: TkaLevelType | null;
-  onTkaLevelSelect?: (s: TkaLevelType) => void;
+  onTkaLevelSelect?: (s: TkaLevelType | null) => void;
   pelajaranSemester?: 'Ganjil' | 'Genap' | 'Full' | null;
-  onPelajaranSemesterSelect?: (s: 'Ganjil' | 'Genap' | 'Full') => void;
+  onPelajaranSemesterSelect?: (s: 'Ganjil' | 'Genap' | 'Full' | null) => void;
   onOpenAcademicHub?: () => void;
   onBattle: () => void;
 }> = (props) => {
@@ -1650,7 +1695,7 @@ const Dashboard: React.FC<{
                 >
                   <div>
                     <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-                      <Clock size={24} className="text-white/80" /> Try Out Success
+                      <Clock size={24} className="text-white/80" /> TO
                       UTBK SNBT
                     </h3>
                     <p className="text-emerald-100 text-xs sm:text-sm mt-1">
@@ -1726,7 +1771,7 @@ const Dashboard: React.FC<{
                     >
                       <div>
                         <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-                          <Clock size={24} className="text-white/80" /> Try Out Success{" "}
+                          <Clock size={24} className="text-white/80" /> TO{" "}
                           {tpaStream === "TPA_TBI" ? "TPA & TBI" : "Psikotes"}
                         </h3>
                         <p className="text-emerald-100 text-xs sm:text-sm mt-1">
@@ -1747,191 +1792,21 @@ const Dashboard: React.FC<{
               </>
             )}
             {category === "TKA" && (
-              <>
-                {!tkaLevel ? (
-                  <div className="grid md:grid-cols-3 gap-6 mb-8 animate-fade-in-up">
-                    <button
-                      onClick={() => {
-                        SoundManager.play("click");
-                        if (onTkaLevelSelect) onTkaLevelSelect("SD");
-                      }}
-                      className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition text-center group shadow-sm"
-                    >
-                      <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition" />
-                      <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">
-                        TKA SD
-                      </h3>
-                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
-                        Matematika, B. Indonesia, B. Inggris
-                      </p>
-                    </button>
-                    <button
-                      onClick={() => {
-                        SoundManager.play("click");
-                        if (onTkaLevelSelect) onTkaLevelSelect("SMP");
-                      }}
-                      className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition text-center group shadow-sm"
-                    >
-                      <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition" />
-                      <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">
-                        TKA SMP
-                      </h3>
-                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
-                        Matematika, B. Indonesia, B. Inggris
-                      </p>
-                    </button>
-                    <button
-                      onClick={() => {
-                        SoundManager.play("click");
-                        if (onTkaLevelSelect) onTkaLevelSelect("SMA");
-                      }}
-                      className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition text-center group shadow-sm"
-                    >
-                      <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition" />
-                      <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">
-                        TKA SMA
-                      </h3>
-                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
-                        Matematika, B. Indonesia, B. Inggris
-                      </p>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="animate-fade-in-up">
-                    <div className="flex items-center gap-2 mb-4 text-sm text-slate-600 dark:text-slate-300">
-                      <button
-                        onClick={() => {
-                          SoundManager.play("click");
-                          if (onTkaLevelSelect) onTkaLevelSelect(null as any);
-                        }}
-                        className="underline hover:text-indigo-600"
-                      >
-                        Ubah Jenjang
-                      </button>{" "}
-                      <ChevronRight size={14} />{" "}
-                      <b className="uppercase">TKA {tkaLevel}</b>
-                    </div>
-                    <button
-                      onClick={() => {
-                        SoundManager.play("click");
-                        onOpenTOSelection();
-                      }}
-                      className="w-full bg-emerald-600 dark:bg-emerald-600 text-white p-4 sm:p-6 rounded-2xl mb-8 flex justify-between items-center group shadow-lg hover:bg-emerald-700 transition-all"
-                    >
-                      <div>
-                        <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-                          <Clock size={24} className="text-white/80" /> Try Out Success
-                          TKA {tkaLevel}
-                        </h3>
-                        <p className="text-emerald-100 text-xs sm:text-sm mt-1">
-                          90 Soal. 80% HOTS.
-                        </p>
-                      </div>
-                      <ChevronRight className="group-hover:translate-x-2 transition-transform" />
-                    </button>
-                    {renderSubtests(
-                      tkaLevel === "SD"
-                        ? ["Matematika", "Bahasa Indonesia"]
-                        : ["Matematika", "Bahasa Indonesia", "Bahasa Inggris"],
-                    )}
-                  </div>
-                )}
-              </>
+              <TkaSelection
+                tkaLevel={tkaLevel || null}
+                onTkaLevelSelect={onTkaLevelSelect!}
+                onOpenTOSelection={onOpenTOSelection}
+                renderSubtests={renderSubtests}
+              />
             )}
             {category === "PELAJARAN" && (
-              <>
-                {!tkaLevel ? (
-                  <div className="grid md:grid-cols-3 gap-6 mb-8 animate-fade-in-up">
-                    <button
-                      onClick={() => {
-                        SoundManager.play("click");
-                        if (onTkaLevelSelect) onTkaLevelSelect("SD");
-                      }}
-                      className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition text-center group shadow-sm"
-                    >
-                      <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition" />
-                      <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">
-                        Materi SD
-                      </h3>
-                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
-                        Kelas 1 - 6
-                      </p>
-                    </button>
-                    <button
-                      onClick={() => {
-                        SoundManager.play("click");
-                        if (onTkaLevelSelect) onTkaLevelSelect("SMP");
-                      }}
-                      className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition text-center group shadow-sm"
-                    >
-                      <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition" />
-                      <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">
-                        Materi SMP
-                      </h3>
-                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
-                        Kelas 7 - 9
-                      </p>
-                    </button>
-                    <button
-                      onClick={() => {
-                        SoundManager.play("click");
-                        if (onTkaLevelSelect) onTkaLevelSelect("SMA");
-                      }}
-                      className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition text-center group shadow-sm"
-                    >
-                      <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition" />
-                      <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">
-                        Materi SMA
-                      </h3>
-                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
-                        Kelas 10 - 12
-                      </p>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="animate-fade-in-up">
-                    <div className="flex items-center gap-2 mb-4 text-sm text-slate-600 dark:text-slate-300">
-                      <button
-                        onClick={() => {
-                          SoundManager.play("click");
-                          if (onTkaLevelSelect) onTkaLevelSelect(null as any);
-                        }}
-                        className="underline hover:text-indigo-600"
-                      >
-                        Ubah Jenjang
-                      </button>{" "}
-                      <ChevronRight size={14} />{" "}
-                      <b className="uppercase">Materi {tkaLevel}</b>
-                    </div>
-                    
-                    <div className="mb-6">
-                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-2 block uppercase">Pilih Semester</label>
-                      <div className="flex gap-2">
-                        {['Ganjil', 'Genap', 'Full'].map((sem) => (
-                          <button
-                            key={sem}
-                            onClick={() => {
-                              SoundManager.play("tap");
-                              if (onPelajaranSemesterSelect) onPelajaranSemesterSelect(sem as any);
-                            }}
-                            className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all border-2 ${pelajaranSemester === sem ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 shadow-sm' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:border-indigo-300'}`}
-                          >
-                            {sem === 'Full' ? 'Satu Tahun (Full)' : `Semester ${sem}`}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {pelajaranSemester && renderSubtests(
-                      tkaLevel === "SD"
-                        ? ["Matematika SD", "Bahasa Indonesia SD", "IPA Terpadu SD", "IPS Terpadu SD", "PKN SD", "Bahasa Inggris SD"]
-                        : tkaLevel === "SMP"
-                          ? ["Matematika SMP", "Bahasa Indonesia SMP", "Bahasa Inggris SMP", "IPA Terpadu SMP", "IPS Terpadu SMP", "PKN SMP", "Prakarya"]
-                          : ["Matematika Wajib SMA", "Matematika Minat SMA", "Fisika SMA", "Kimia SMA", "Biologi SMA", "Ekonomi SMA", "Geografi SMA", "Sosiologi SMA", "Sejarah SMA", "Bahasa Inggris SMA", "Bahasa Indonesia SMA"]
-                    )}
-                  </div>
-                )}
-              </>
+              <SubjectSelection
+                tkaLevel={tkaLevel || null}
+                onTkaLevelSelect={onTkaLevelSelect!}
+                pelajaranSemester={pelajaranSemester!}
+                onPelajaranSemesterSelect={onPelajaranSemesterSelect!}
+                onOpenTOSelection={onOpenTOSelection}
+              />
             )}
             {category === "PSIKOTEST" && (
               <>
@@ -2037,7 +1912,7 @@ const Dashboard: React.FC<{
                   >
                     <div>
                       <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-                        <Clock size={24} className="text-white/80" /> Try Out Success
+                        <Clock size={24} className="text-white/80" /> TO
                         SKD CAT (110 Soal)
                       </h3>
                       <p className="text-emerald-100 text-xs sm:text-sm mt-1">
@@ -2558,10 +2433,7 @@ function App() {
                   firebaseUser.uid,
                 );
                 if (cloudHistory && cloudHistory.length > 0) {
-                  localStorage.setItem(
-                    `history_cache_${firebaseUser.uid}`,
-                    JSON.stringify(cloudHistory),
-                  );
+                  safeLocalStorageSet(`history_cache_${firebaseUser.uid}`, cloudHistory, true);
                 }
               } catch (historyErr) {
                 console.error(
@@ -2809,10 +2681,7 @@ function App() {
     const updated = [item, ...testHistory];
     setTestHistory(updated);
     if (userProfile?.isGuest) {
-      localStorage.setItem(
-        "fajmuls_guest_history",
-        JSON.stringify(updated, getCircularReplacer()),
-      );
+      safeLocalStorageSet("fajmuls_guest_history", updated, true);
     } else if (userProfile?.uid) {
       await FirebaseService.saveHistoryToCloud(userProfile.uid, item);
     }
@@ -2821,7 +2690,7 @@ function App() {
     const updated = testHistory.filter((item) => item.id !== id);
     setTestHistory(updated);
     if (userProfile?.isGuest) {
-      localStorage.setItem("fajmuls_guest_history", JSON.stringify(updated));
+      safeLocalStorageSet("fajmuls_guest_history", updated, true);
     } else if (userProfile?.uid) {
       await FirebaseService.deleteHistoryFromCloud(userProfile.uid, id);
     }
@@ -2834,7 +2703,7 @@ function App() {
     );
     setTestHistory(updated);
     if (userProfile?.isGuest) {
-      localStorage.setItem("fajmuls_guest_history", JSON.stringify(updated));
+      safeLocalStorageSet("fajmuls_guest_history", updated, true);
     } else if (userProfile?.uid) {
       const item = updated.find((i) => i.id === id);
       if (item) {
@@ -3034,14 +2903,14 @@ function App() {
         selectedCategory === "PELAJARAN" &&
         tkaLevel
       ) {
-        const qs = await Gemini.generateTkaSimulation(tkaLevel, true);
+        const qs = await Gemini.generateTkaSimulation(tkaLevel);
         setQuestions(qs || []);
       } else if (
         mode === StudyMode.SIMULATION &&
         selectedCategory === "TKA" &&
         tkaLevel
       ) {
-        const qs = await Gemini.generateTkaSimulation(tkaLevel, false);
+        const qs = await Gemini.generateTkaSimulation(tkaLevel);
         setQuestions(qs || []);
       } else {
         let count = countOverride || 5;
@@ -3613,7 +3482,7 @@ function App() {
     const updated = testHistory.filter((item) => !ids.includes(item.id));
     setTestHistory(updated);
     if (userProfile?.isGuest) {
-      localStorage.setItem("fajmuls_guest_history", JSON.stringify(updated));
+      safeLocalStorageSet("fajmuls_guest_history", updated, true);
     } else if (userProfile?.uid) {
       // Delete from cloud
       const deletePromises = ids.map((id) =>
@@ -3716,7 +3585,7 @@ function App() {
         );
         setTestHistory(merged);
         if (userProfile?.isGuest) {
-          localStorage.setItem("fajmuls_guest_history", JSON.stringify(merged));
+          safeLocalStorageSet("fajmuls_guest_history", merged, true);
         } else if (userProfile?.uid) {
           newItems.forEach((item) => {
             FirebaseService.saveHistoryToCloud(userProfile.uid, item);
@@ -3796,44 +3665,41 @@ function App() {
     let title = "";
     let idPrefix = "gen";
 
-    const skdSuffix = skdVariant === "FULL" ? "" : ` - Spesial ${skdVariant}`;
-
     if (selectedCategory === "SKD") {
+      const isSubtest = skdVariant !== "FULL";
+      const streamLabel = skdStream === "CPNS" ? "CPNS" : (skdStream === "KEDINASAN" ? "Kedinasan" : "");
+      if (isSubtest) {
+        title = `TO SKD ${streamLabel} - Spesial ${skdVariant} ${nextNum}`;
+      } else {
+        title = `TO SKD ${streamLabel} ${nextNum}`.trim();
+      }
+      
       if (skdStream === "CPNS") {
-        title = `TO SKD CPNS${skdSuffix} ${nextNum}`;
         idPrefix += `-skd-cpns-${skdVariant.toLowerCase()}`;
       } else if (skdStream === "KEDINASAN") {
-        title = `TO SKD Kedinasan${skdSuffix} ${nextNum}`;
         idPrefix += `-skd-kedinasan-${skdVariant.toLowerCase()}`;
       } else {
-        title = `T.O.S. SKD${skdSuffix} ${nextNum}`;
         idPrefix += `-skd-general-${skdVariant.toLowerCase()}`;
       }
     } else if (selectedCategory === "UTBK") {
-      const utbkSuffix =
-        utbkVariant === "ONLY_MC"
-          ? " (Hanya Ganda)"
-          : utbkVariant === "MIXED"
-            ? " (Format Mix)"
-            : "";
-      title = `T.O.S. UTBK${utbkSuffix} ${nextNum}`;
+      title = `TO UTBK ${nextNum}`;
       idPrefix += `-utbk-${utbkVariant?.toLowerCase() || "default"}`;
     } else if (selectedCategory === "TPA") {
       if (tpaStream === "PSIKOTEST_KEDINASAN") {
-        title = `T.O.S. Psikotes Kedinasan ${nextNum}`;
+        title = `TO Psikotest Kedinasan ${nextNum}`;
         idPrefix += "-tpa-psikotest_kedinasan";
       } else {
-        title = `T.O.S. TPA TBI ${nextNum}`;
+        title = `TO TPA TBI ${nextNum}`;
         idPrefix += "-tpa-tbi";
       }
     } else if (selectedCategory === "PSIKOTEST") {
-      title = `T.O.S. Psikotest ${nextNum}`;
+      title = `TO Psikotest ${nextNum}`;
       idPrefix += "-psikotest";
-    } else if (selectedCategory === "PELAJARAN") {
-      title = `T.O.S. TKA ${tkaLevel} ${nextNum}`;
+    } else if (selectedCategory === "PELAJARAN" || selectedCategory === "TKA") {
+      title = `TO TKA ${tkaLevel} ${nextNum}`;
       idPrefix += `-tka-${tkaLevel?.toLowerCase()}`;
     } else {
-      title = `T.O.S. ${selectedCategory} ${nextNum}`;
+      title = `TO ${selectedCategory} ${nextNum}`;
       idPrefix += `-${selectedCategory.toLowerCase()}`;
     }
 
@@ -3879,8 +3745,8 @@ function App() {
             skdVariant,
           );
           if (skdVariant === "TWK") duration = 30;
-          else if (skdVariant === "TIU") duration = 30;
-          else if (skdVariant === "TKP") duration = 40;
+          else if (skdVariant === "TIU") duration = 35;
+          else if (skdVariant === "TKP") duration = 35;
           else duration = 100;
         } else if (selectedCategory === "UTBK") {
           newQuestions = await Gemini.generateUtbkSimulation(utbkVariant);
@@ -3897,10 +3763,10 @@ function App() {
           newQuestions = await Gemini.generatePsikotestSimulation();
           duration = 40;
         } else if (selectedCategory === "PELAJARAN" && tkaLevel) {
-          newQuestions = await Gemini.generateTkaSimulation(tkaLevel, true);
+          newQuestions = await Gemini.generateTkaSimulation(tkaLevel);
           duration = 90;
         } else if (selectedCategory === "TKA" && tkaLevel) {
-          newQuestions = await Gemini.generateTkaSimulation(tkaLevel, false);
+          newQuestions = await Gemini.generateTkaSimulation(tkaLevel);
           duration = 90;
         } else {
           newQuestions = await Gemini.generateQuestions(
@@ -4096,39 +3962,39 @@ function App() {
           let newTitle = pkg.title;
 
           if (pkg.category === "SKD") {
-            const streamPrefix =
-              pkg.skdStream === "CPNS"
-                ? "T.O.S. SKD CPNS"
-                : pkg.skdStream === "KEDINASAN"
-                  ? "T.O.S. SKD Kedinasan"
-                  : "T.O.S. SKD";
             const isTwk = pkg.id.includes("-twk-");
             const isTiu = pkg.id.includes("-tiu-");
             const isTkp = pkg.id.includes("-tkp-");
+            const isSubtest = isTwk || isTiu || isTkp;
 
-            let suffix = "";
-            if (isTwk) suffix = " - Spesial TWK";
-            else if (isTiu) suffix = " - Spesial TIU";
-            else if (isTkp) suffix = " - Spesial TKP";
+            const streamPrefix =
+              pkg.skdStream === "CPNS"
+                ? "TO SKD CPNS"
+                : pkg.skdStream === "KEDINASAN"
+                  ? "TO SKD Kedinasan"
+                  : "TO SKD";
 
-            newTitle = `${streamPrefix}${suffix} ${expectedNum}`;
+            if (isSubtest) {
+              let variant = "SKD";
+              if (isTwk) variant = "TWK";
+              else if (isTiu) variant = "TIU";
+              else if (isTkp) variant = "TKP";
+              newTitle = `${streamPrefix} - Spesial ${variant} ${expectedNum}`;
+            } else {
+              newTitle = `${streamPrefix} ${expectedNum}`;
+            }
           } else if (pkg.category === "UTBK") {
-            let suffix = "";
-            if (pkg.id.includes("-only_mc-")) suffix = " (Hanya Ganda)";
-            else if (pkg.id.includes("-mixed-")) suffix = " (Format Mix)";
-            newTitle = `T.O.S. UTBK${suffix} ${expectedNum}`;
+            newTitle = `TO UTBK ${expectedNum}`;
           } else if (pkg.category === "TPA") {
             const prefix =
               pkg.tpaStream === "PSIKOTEST_KEDINASAN"
-                ? "T.O.S. Psikotes Kedinasan "
-                : "T.O.S. TPA TBI ";
+                ? "TO Psikotest Kedinasan "
+                : "TO TPA TBI ";
             newTitle = `${prefix}${expectedNum}`;
-          } else if (pkg.category === "PELAJARAN") {
-            newTitle = `T.O.S. Pelajaran ${pkg.tkaLevel} ${expectedNum}`;
-          } else if (pkg.category === "TKA") {
-            newTitle = `T.O.S. TKA ${pkg.tkaLevel} ${expectedNum}`;
+          } else if (pkg.category === "PELAJARAN" || pkg.category === "TKA") {
+            newTitle = `TO TKA ${pkg.tkaLevel} ${expectedNum}`;
           } else {
-            newTitle = `T.O.S. ${pkg.category} ${expectedNum}`;
+            newTitle = `TO ${pkg.category} ${expectedNum}`;
           }
 
           if (pkg.title !== newTitle) {
@@ -4613,13 +4479,12 @@ function App() {
                       ) {
                         cardClass +=
                           " hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-orange-100 dark:hover:shadow-orange-900/20";
-                      } else if (
-                        ["UTBK", "SKD", "TPA", "PSIKOTEST", "PELAJARAN"].includes(
-                          cat.id,
-                        )
-                      ) {
+                      } else if (cat.id === "TKA") {
                         cardClass +=
                           " hover:border-emerald-500 dark:hover:border-emerald-500 hover:shadow-emerald-100 dark:hover:shadow-emerald-900/20";
+                      } else if (cat.id === "PELAJARAN") {
+                        cardClass +=
+                          " hover:border-teal-500 dark:hover:border-teal-500 hover:shadow-teal-100 dark:hover:shadow-teal-900/20";
                       } else {
                         cardClass +=
                           " hover:border-indigo-500 dark:hover:border-indigo-500 hover:shadow-indigo-100 dark:hover:shadow-indigo-900/20";
@@ -4645,7 +4510,7 @@ function App() {
                       iconColor = "text-orange-600 dark:text-orange-400";
                       decorColor = "bg-orange-50 dark:bg-orange-900/20";
                     } else if (
-                      ["UTBK", "SKD", "TPA", "PSIKOTEST", "PELAJARAN"].includes(
+                      ["UTBK", "SKD", "TPA", "PSIKOTEST", "TKA"].includes(
                         cat.id,
                       )
                     ) {
@@ -4653,6 +4518,11 @@ function App() {
                       iconBg = "bg-emerald-100 dark:bg-emerald-900/40";
                       iconColor = "text-emerald-600 dark:text-emerald-400";
                       decorColor = "bg-emerald-50 dark:bg-emerald-900/20";
+                    } else if (cat.id === "PELAJARAN") {
+                      // TEAL
+                      iconBg = "bg-teal-100 dark:bg-teal-900/40";
+                      iconColor = "text-teal-600 dark:text-teal-400";
+                      decorColor = "bg-teal-50 dark:bg-teal-900/20";
                     }
 
                     return (

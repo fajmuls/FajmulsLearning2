@@ -225,8 +225,8 @@ export const TYPING_TEXTS = [
 export const CATEGORIES: {id: CategoryType, name: string, desc: string}[] = [
   { id: 'UTBK', name: 'UTBK SNBT', desc: 'Tes Potensi Skolastik & Literasi (2025)' },
   { id: 'SKD', name: 'SKD CPNS/Kedinasan', desc: 'TWK, TIU, TKP' },
-  { id: 'TKA', name: 'TKA (SD/SMP/SMA)', desc: 'Tes Kemampuan Akademik' },
-  { id: 'PELAJARAN', name: 'Belajar Mata Pelajaran', desc: 'Materi SD, SMP, dan SMA' },
+  { id: 'TKA', name: 'TKA', desc: 'Tes Kemampuan Akademik' },
+  { id: 'PELAJARAN', name: 'Mata Pelajaran', desc: 'Materi SD, SMP, dan SMA' },
   { id: 'TPA', name: 'Seleksi Lanjutan', desc: 'TPA, TBI, & Psikotes Kedinasan' }, 
   { id: 'PSIKOTEST', name: 'Tes Koran & IQ', desc: 'IQ, Koran/Pauli, & Kognitif' },
   { id: 'KECERMATAN', name: 'Tes Kecermatan', desc: 'Angka/Huruf Hilang (Khas Polri/Kedinasan)' },

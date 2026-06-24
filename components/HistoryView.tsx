@@ -3,8 +3,8 @@ import {
     ArrowLeft, User as UserIcon, Download, Upload as UploadIcon, Filter, 
     TrendingUp, Award, History, Calendar, CheckCircle, XCircle, 
     ChevronRight, Zap, Activity, Clock, BarChart2, Trash2, Eye, 
-    Briefcase, GraduationCap, Brain, FileText, MessageSquare, Palette, Book, Package,
-    Square, CheckSquare, Grid, ShieldCheck, AlertTriangle, Flag, Bot
+    Briefcase, GraduationCap, Brain, FileText, MessageSquare, Palette, Book, BookOpen, Library, School, Package,
+    Square, CheckSquare, Grid, ShieldCheck, AlertTriangle, Flag, Bot, AlertCircle, Info
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { TestHistoryItem, CategoryType, SkdResultDetails, TesKoranResultDetails, TesKecermatanResultDetails, UtbkResultDetails, BenchmarkResultDetails, Question, UserAnswer, UserProfile, StudyMode } from '../types';
@@ -47,6 +47,10 @@ const isColorBlindTest = (item: TestHistoryItem): boolean => {
 // --- HELPER UNTUK VISUAL ---
 const getCategoryVisuals = (category: CategoryType) => {
     switch (category) {
+        case 'TKA':
+            return { icon: GraduationCap, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30', border: 'border-emerald-100 dark:border-emerald-800' };
+        case 'PELAJARAN':
+            return { icon: BookOpen, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30', border: 'border-emerald-100 dark:border-emerald-800' };
         case 'UTBK':
             return { icon: GraduationCap, color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-900/30', border: 'border-rose-100 dark:border-rose-800' };
         case 'SKD':
@@ -667,9 +671,23 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                                                         <span className="flex items-center gap-1"><Calendar size={12}/> {displayDateStr}</span>
                                                         
                                                         {item.mode === StudyMode.PRACTICE ? (
-                                                            <span className="bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase">Latihan Subtes</span>
+                                                            <span className="bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase">Subtes</span>
                                                         ) : item.mode === StudyMode.SIMULATION ? (
-                                                            <span className="bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0.5 rounded text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">Try Out</span>
+                                                            (() => {
+                                                                if (item.category === 'SKD') {
+                                                                    const details = item.details as any;
+                                                                    const hasTwk = details && typeof details === 'object' && ('twk' in details || (item.questions && item.questions.some(q => q.metadata?.subtest?.includes('TWK'))));
+                                                                    const hasTiu = details && typeof details === 'object' && ('tiu' in details || (item.questions && item.questions.some(q => q.metadata?.subtest?.includes('TIU'))));
+                                                                    const hasTkp = details && typeof details === 'object' && ('tkp' in details || (item.questions && item.questions.some(q => q.metadata?.subtest?.includes('TKP'))));
+                                                                    
+                                                                    if (hasTwk && hasTiu && hasTkp) {
+                                                                        return <span className="bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0.5 rounded text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">Full TO</span>;
+                                                                    } else {
+                                                                        return <span className="bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase">Sub TO</span>;
+                                                                    }
+                                                                }
+                                                                return <span className="bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0.5 rounded text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">Full TO</span>;
+                                                            })()
                                                         ) : null}
                                                         
                                                         {/* MODE BADGES */}
@@ -1288,62 +1306,71 @@ export const ReviewView: React.FC<{ item: TestHistoryItem, onBack: () => void, o
                         </div>
 
                         <div className="space-y-4">
-                            {(item.questions || []).map((q, i) => {
-                                const ans = (item.answers || []).find(a => a.questionId === q.id);
-                                const containerClass = getReviewColorClass(q, ans);
-                                
-                                return (
-                                    <div id={`question-${i}`} key={i} className={`p-3 sm:p-4 border rounded-xl transition-all ${containerClass}`}>
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">Soal {i+1}</span>
-                                                {ans?.isDoubtful && (
-                                                    <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 px-2 py-0.5 rounded-full">
-                                                        <Flag size={8} className="sm:w-[10px] sm:h-[10px]" /> Ditandai Ragu
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {(() => {
-                                                const isTkp = (q.tkpPoints && q.tkpPoints.length > 0) || (q.metadata?.subtest && q.metadata.subtest.includes('TKP'));
-                                                if (isTkp) {
-                                                    const s = ans?.scoreEarned || 0;
-                                                    if (s >= 4) return <CheckCircle size={14} className="sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400"/>;
-                                                    if (s >= 2) return <CheckCircle size={14} className="sm:w-4 sm:h-4 text-yellow-600 dark:text-yellow-400"/>;
-                                                    return <XCircle size={14} className="sm:w-4 sm:h-4 text-rose-600 dark:text-rose-400"/>;
-                                                }
-                                                return ans?.isCorrect ? <CheckCircle size={14} className="sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400"/> : <XCircle size={14} className="sm:w-4 sm:h-4 text-rose-600 dark:text-rose-400"/>;
-                                            })()}
-                                        </div>
-                                        
-                                        <div className="mb-2 sm:mb-3 text-[11px] sm:text-sm text-slate-800 dark:text-slate-200 text-justify">
-                                            {(q.content && q.content.includes(':::MATRIX:::')) || (q.metadata && q.metadata.matrix && q.metadata.matrix.length > 0) ? (
-                                                <MatrixQuestionRenderer content={q.content} metadataMatrix={q.metadata?.matrix} />
-                                            ) : (
-                                                <SimpleMarkdown 
-                                                    text={q.content} 
-                                                    allowIndent={
-                                                        !!q.metadata?.subtest?.includes('Bahasa') || 
-                                                        !!q.metadata?.subtest?.includes('Verbal') ||
-                                                        !!q.metadata?.topic?.includes('Bacaan') ||
-                                                        (!!q.content && q.content.length > 350)
-                                                    }
-                                                />
-                                            )}
-                                        </div>
-                                        
-                                        <div className="text-[10px] sm:text-sm space-y-1 mb-2 sm:mb-3">
-                                            <div className={`flex gap-2 ${
-                                                (() => {
+                            {(!item.questions || item.questions.length === 0) && !isTesKoran(item) && !isTesKecermatan(item) ? (
+                                <div className="text-center py-10 px-6 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">
+                                    <div className="text-slate-400 mb-3 flex justify-center"><AlertCircle size={40} /></div>
+                                    <div className="text-sm font-bold text-slate-700 dark:text-slate-300">Detail Soal Tidak Tersedia</div>
+                                    <p className="text-[11px] text-slate-500 mt-2 max-w-[240px] mx-auto leading-relaxed">
+                                        Data soal untuk riwayat lama ini telah dihapus dari cache lokal untuk menghemat ruang penyimpanan.
+                                    </p>
+                                </div>
+                            ) : (
+                                (item.questions || []).map((q, i) => {
+                                    const ans = (item.answers || []).find(a => a.questionId === q.id);
+                                    const containerClass = getReviewColorClass(q, ans);
+                                    
+                                    return (
+                                        <div id={`question-${i}`} key={i} className={`p-3 sm:p-4 border rounded-xl transition-all ${containerClass}`}>
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">Soal {i+1}</span>
+                                                    {ans?.isDoubtful && (
+                                                        <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 px-2 py-0.5 rounded-full">
+                                                            <Flag size={8} className="sm:w-[10px] sm:h-[10px]" /> Ditandai Ragu
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {(() => {
                                                     const isTkp = (q.tkpPoints && q.tkpPoints.length > 0) || (q.metadata?.subtest && q.metadata.subtest.includes('TKP'));
                                                     if (isTkp) {
                                                         const s = ans?.scoreEarned || 0;
-                                                        if (s >= 4) return 'text-emerald-700 dark:text-emerald-300';
-                                                        if (s >= 2) return 'text-yellow-700 dark:text-yellow-300';
-                                                        return 'text-rose-700 dark:text-rose-300';
+                                                        if (s >= 4) return <CheckCircle size={14} className="sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400"/>;
+                                                        if (s >= 2) return <CheckCircle size={14} className="sm:w-4 sm:h-4 text-yellow-600 dark:text-yellow-400"/>;
+                                                        return <XCircle size={14} className="sm:w-4 sm:h-4 text-rose-600 dark:text-rose-400"/>;
                                                     }
-                                                    return ans?.isCorrect ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300';
-                                                })()
-                                            }`}>
+                                                    return ans?.isCorrect ? <CheckCircle size={14} className="sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400"/> : <XCircle size={14} className="sm:w-4 sm:h-4 text-rose-600 dark:text-rose-400"/>;
+                                                })()}
+                                            </div>
+                                            
+                                            <div className="mb-2 sm:mb-3 text-[11px] sm:text-sm text-slate-800 dark:text-slate-200 text-justify">
+                                                {(q.content && q.content.includes(':::MATRIX:::')) || (q.metadata && q.metadata.matrix && q.metadata.matrix.length > 0) ? (
+                                                    <MatrixQuestionRenderer content={q.content} metadataMatrix={q.metadata?.matrix} />
+                                                ) : (
+                                                    <SimpleMarkdown 
+                                                        text={q.content} 
+                                                        allowIndent={
+                                                            !!q.metadata?.subtest?.includes('Bahasa') || 
+                                                            !!q.metadata?.subtest?.includes('Verbal') ||
+                                                            !!q.metadata?.topic?.includes('Bacaan') ||
+                                                            (!!q.content && q.content.length > 350)
+                                                        }
+                                                    />
+                                                )}
+                                            </div>
+                                            
+                                            <div className="text-[10px] sm:text-sm space-y-1 mb-2 sm:mb-3">
+                                                <div className={`flex gap-2 ${
+                                                    (() => {
+                                                        const isTkp = (q.tkpPoints && q.tkpPoints.length > 0) || (q.metadata?.subtest && q.metadata.subtest.includes('TKP'));
+                                                        if (isTkp) {
+                                                            const s = ans?.scoreEarned || 0;
+                                                            if (s >= 4) return 'text-emerald-700 dark:text-emerald-300';
+                                                            if (s >= 2) return 'text-yellow-700 dark:text-yellow-300';
+                                                            return 'text-rose-700 dark:text-rose-300';
+                                                        }
+                                                        return ans?.isCorrect ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300';
+                                                    })()
+                                                }`}>
                                                 <span className="font-bold w-16 sm:w-24 shrink-0">Jwbn Anda:</span>
                                                 <span className="font-medium">
                                                     {q.options && q.type === 'multiple_choice' ? (
@@ -1456,7 +1483,7 @@ export const ReviewView: React.FC<{ item: TestHistoryItem, onBack: () => void, o
                                         </div>
                                     </div>
                                 );
-                            })}
+                            }))}
                         </div>
                     </div>
 

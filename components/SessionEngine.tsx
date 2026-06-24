@@ -658,7 +658,20 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
         if (initialState?.timeLeft) return initialState.timeLeft; 
         if (sessionDuration) return sessionDuration * 60;
         if (isUtbkSimulation && UTBK_EXAM_CONFIG[0]) return UTBK_EXAM_CONFIG[0].duration * 60;
-        if (isSkdSimulation) return 100 * 60; 
+        if (isSkdSimulation) {
+            if (questions.length < 100) {
+                const firstQ = questions[0];
+                const content = firstQ?.content?.toUpperCase() || "";
+                const subtestMetadata = firstQ?.metadata?.subtest?.toUpperCase() || "";
+                
+                if (content.includes('TWK') || subtestMetadata.includes('TWK')) return 30 * 60;
+                if (content.includes('TIU') || subtestMetadata.includes('TIU')) return 35 * 60;
+                if (content.includes('TKP') || subtestMetadata.includes('TKP')) return 35 * 60;
+                
+                return 35 * 60; // Default subtest
+            }
+            return 100 * 60; // Full simulation
+        }
         if (mode === StudyMode.SIMULATION) {
             if (category === 'PSIKOTEST') return 40 * 60;
             if (category === 'TPA') return 100 * 60; 
