@@ -1527,9 +1527,10 @@ export const calculateWordSimilarity = async (target: string, guess: string) => 
   return callGemini<{score: number, feedback: string}>(prompt, schema);
 };
 
-export const generateTkaSimulation = async (level: string): Promise<Question[]> => {
-    const math = generateQuestions(StudyMode.SIMULATION, 'TKA', `TKA ${level} - Matematika. 80% HOTS. Include a mix of 'multiple_choice', 'multiple_choice_complex', and 'matching' question types.`, 30, [], undefined, undefined, 'HOTS');
-    const indonesian = generateQuestions(StudyMode.SIMULATION, 'TKA', `TKA ${level} - Bahasa Indonesia. 80% HOTS. Include a mix of 'multiple_choice', 'multiple_choice_complex', and 'matching' question types.`, 30, [], undefined, undefined, 'HOTS');
+export const generateTkaSimulation = async (level: string, isPelajaran: boolean = false): Promise<Question[]> => {
+    const category: CategoryType = isPelajaran ? 'PELAJARAN' : 'TKA';
+    const math = generateQuestions(StudyMode.SIMULATION, category, `TKA ${level} - Matematika. 80% HOTS. Include a mix of 'multiple_choice', 'multiple_choice_complex', and 'matching' question types.`, 30, [], undefined, undefined, 'HOTS');
+    const indonesian = generateQuestions(StudyMode.SIMULATION, category, `TKA ${level} - Bahasa Indonesia. 80% HOTS. Include a mix of 'multiple_choice', 'multiple_choice_complex', and 'matching' question types.`, 30, [], undefined, undefined, 'HOTS');
     
     let allQuestions: Question[] = [];
 
@@ -1539,7 +1540,7 @@ export const generateTkaSimulation = async (level: string): Promise<Question[]> 
         resIndo.forEach(q => q.metadata.subtest = 'Bahasa Indonesia');
         allQuestions = [...resMath, ...resIndo];
     } else {
-        const english = generateQuestions(StudyMode.SIMULATION, 'TKA', `TKA ${level} - Bahasa Inggris. 80% HOTS. Include a mix of 'multiple_choice', 'multiple_choice_complex', and 'matching' question types.`, 30, [], undefined, undefined, 'HOTS');
+        const english = generateQuestions(StudyMode.SIMULATION, category, `TKA ${level} - Bahasa Inggris. 80% HOTS. Include a mix of 'multiple_choice', 'multiple_choice_complex', and 'matching' question types.`, 30, [], undefined, undefined, 'HOTS');
         const [resMath, resIndo, resEng] = await Promise.all([math, indonesian, english]);
         resMath.forEach(q => q.metadata.subtest = 'Matematika');
         resIndo.forEach(q => q.metadata.subtest = 'Bahasa Indonesia');
@@ -1547,7 +1548,7 @@ export const generateTkaSimulation = async (level: string): Promise<Question[]> 
         allQuestions = [...resMath, ...resIndo, ...resEng];
     }
 
-    return reindexQuestions(allQuestions, 'TKA');
+    return reindexQuestions(allQuestions, category);
 };
 
 export const generatePsikotestSimulation = async () => {

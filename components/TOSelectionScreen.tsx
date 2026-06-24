@@ -289,6 +289,11 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                 }
             }
 
+            // Filter PELAJARAN Level
+            if (category === 'PELAJARAN' && tkaLevel) {
+                return p.tkaLevel === tkaLevel;
+            }
+
             // Filter TKA Level
             if (category === 'TKA' && tkaLevel) {
                 return p.tkaLevel === tkaLevel;
@@ -397,6 +402,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
     if (category === 'SKD' && skdStream) headerTitle = `Paket Soal SKD ${skdStream === 'CPNS' ? 'CPNS Umum' : 'Kedinasan'}`;
     if (category === 'TPA' && tpaStream === 'PSIKOTEST_KEDINASAN') headerTitle = `Paket Psikotes Kedinasan (STAN)`;
     if (category === 'TPA' && tpaStream === 'TPA_TBI') headerTitle = `Paket Soal TPA & TBI`;
+    if (category === 'PELAJARAN' && tkaLevel) headerTitle = `Paket Soal Materi ${tkaLevel}`;
     if (category === 'TKA' && tkaLevel) headerTitle = `Paket Soal TKA ${tkaLevel}`;
 
     return (
@@ -788,7 +794,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                         <Loader2 className="animate-spin mx-auto mb-2" />
                         <p>Memuat paket soal terbaru...</p>
                     </div>
-                ) : (filteredPackages.length === 0 && !(activeGenTask && activeGenTask.category === category && (category !== 'SKD' || activeGenTask.skdStream === skdStream) && (category !== 'TPA' || activeGenTask.tpaStream === tpaStream) && (category !== 'TKA' || activeGenTask.tkaLevel === tkaLevel) && activeGenTask.status === 'generating')) ? (
+                ) : (filteredPackages.length === 0 && !(activeGenTask && activeGenTask.category === category && (category !== 'SKD' || activeGenTask.skdStream === skdStream) && (category !== 'TPA' || activeGenTask.tpaStream === tpaStream) && (category !== 'PELAJARAN' || activeGenTask.tkaLevel === tkaLevel) && (category !== 'TKA' || activeGenTask.tkaLevel === tkaLevel) && activeGenTask.status === 'generating')) ? (
                     <div className="py-20 text-center text-slate-500 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
                         <FileText className="mx-auto mb-4 opacity-20" size={48}/>
                         <p>Belum ada paket soal untuk kategori ini.</p>
@@ -801,6 +807,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                          activeGenTask.category === category && 
                          (category !== 'SKD' || activeGenTask.skdStream === skdStream) &&
                          (category !== 'TPA' || activeGenTask.tpaStream === tpaStream) &&
+                         (category !== 'PELAJARAN' || activeGenTask.tkaLevel === tkaLevel) && 
                          (category !== 'TKA' || activeGenTask.tkaLevel === tkaLevel) && 
                          activeGenTask.status === 'generating' && (
                              <div className="bg-white dark:bg-slate-800 p-3.5 sm:p-6 rounded-lg sm:rounded-2xl border-2 border-indigo-500/30 dark:border-indigo-500/20 bg-indigo-50/10 dark:bg-indigo-950/10 animate-pulse relative overflow-hidden w-full h-full flex flex-col justify-between">

@@ -1,8 +1,10 @@
 
-export type CategoryType = 'UTBK' | 'SKD' | 'GENERAL' | 'TPA' | 'PSIKOTEST' | 'INTERVIEW' | 'BUTAWRNA' | 'SKRIPSI' | 'KECERMATAN' | 'BENCHMARK' | 'TKA';
+export type CategoryType = 'UTBK' | 'SKD' | 'GENERAL' | 'TPA' | 'PSIKOTEST' | 'INTERVIEW' | 'BUTAWRNA' | 'SKRIPSI' | 'KECERMATAN' | 'BENCHMARK' | 'PELAJARAN' | 'TKA';
 export type SkdStreamType = 'CPNS' | 'KEDINASAN';
 export type TpaStreamType = 'TPA_TBI' | 'PSIKOTEST_KEDINASAN';
 export type TkaLevelType = 'SD' | 'SMP' | 'SMA';
+export type PelajaranSubjectType = string;
+export type PelajaranSemesterType = 'Ganjil' | 'Genap' | 'Full';
 export type SkripsiFeature = 'OUTLINE' | 'TITLE_IDEAS' | 'METHODOLOGY' | 'PARAPHRASE' | 'CORRECT_GRAMMAR';
 export type KecermatanMode = 'ANGKA' | 'HURUF' | 'SIMBOL_HILANG' | 'SAMA_BEDA' | 'MATCHING' | 'GROUPING';
 export type BenchmarkMode = 'REACTION' | 'SEQUENCE' | 'AIM' | 'CHIMP' | 'VISUAL' | 'NUMBER' | 'VERBAL' | 'TYPING' | 'BRIDGE' | 'MATCH' | 'HANGMAN' | 'HOTCOLD' | 'NUMBER_RANGE' | 'POSITION_MEMORY' | 'PATTERN_BREAKER' | 'DECISION_LAB' | 'REVERSE_THINKING' | 'LOGIC_MAZE' | 'TIME_PRESSURE' | 'MULTI_LAYER' | 'SYNONYM_ANTONYM';
@@ -253,6 +255,8 @@ export interface TestHistoryItem {
     skdStream?: SkdStreamType;
     tpaStream?: TpaStreamType; 
     tkaLevel?: TkaLevelType;
+    pelajaranSemester?: PelajaranSemesterType;
+    mode?: StudyMode;
     score: number;
     maxScore: number;
     details?: SkdResultDetails | UtbkResultDetails | TpaResultDetails | TesKoranResultDetails | TesKecermatanResultDetails | BenchmarkResultDetails | PsikotestKedinasanResultDetails | { type: string, passed: boolean } | any;

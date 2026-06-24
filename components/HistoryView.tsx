@@ -7,7 +7,7 @@ import {
     Square, CheckSquare, Grid, ShieldCheck, AlertTriangle, Flag, Bot
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { TestHistoryItem, CategoryType, SkdResultDetails, TesKoranResultDetails, TesKecermatanResultDetails, UtbkResultDetails, BenchmarkResultDetails, Question, UserAnswer, UserProfile } from '../types';
+import { TestHistoryItem, CategoryType, SkdResultDetails, TesKoranResultDetails, TesKecermatanResultDetails, UtbkResultDetails, BenchmarkResultDetails, Question, UserAnswer, UserProfile, StudyMode } from '../types';
 import { CATEGORIES } from '../constants';
 import { SoundManager } from '../services/soundService';
 import { SimpleMarkdown, MatrixQuestionRenderer, SvgRenderer } from './QuestionRenderer';
@@ -561,7 +561,11 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                                     verdictData = getVerdictInfo(utbkDetails?.average || 0, 'UTBK');
                                 } else {
                                     // Default Percentage based score
-                                    const percentage = (item.maxScore || 0) > 0 ? ((item.score || 0) / item.maxScore) * 100 : 0;
+                                    let dynamicMaxScore = item.maxScore || 0;
+                                    if (item.category === 'SKD' && item.questions && item.questions.length > 0) {
+                                        dynamicMaxScore = item.questions.length * 5;
+                                    }
+                                    const percentage = dynamicMaxScore > 0 ? ((item.score || 0) / dynamicMaxScore) * 100 : 0;
                                     verdictData = getVerdictInfo(percentage, 'PERCENT');
                                 }
                             } catch (e) {
@@ -661,6 +665,12 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                                                     )}
                                                     <div className="flex items-center gap-1.5 sm:gap-2 text-slate-400 text-[10px] sm:text-xs mt-0.5 sm:mt-1 flex-wrap">
                                                         <span className="flex items-center gap-1"><Calendar size={12}/> {displayDateStr}</span>
+                                                        
+                                                        {item.mode === StudyMode.PRACTICE ? (
+                                                            <span className="bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase">Latihan Subtes</span>
+                                                        ) : item.mode === StudyMode.SIMULATION ? (
+                                                            <span className="bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0.5 rounded text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">Try Out</span>
+                                                        ) : null}
                                                         
                                                         {/* MODE BADGES */}
                                                         {item.skdStream && <span className="bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase">{item.skdStream}</span>}
@@ -777,9 +787,15 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                                                                 <div className="flex flex-col col-span-2 sm:col-span-1">
                                                                     <span className="text-slate-400 font-medium text-[10px] sm:text-[11px] mb-0.5">Rincian</span>
                                                                     <div className="flex gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-mono font-bold flex-wrap items-center h-full">
-                                                                        <span className="bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 px-1 rounded">TWK:{(item.details as SkdResultDetails).twk}</span>
-                                                                        <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 px-1 rounded">TIU:{(item.details as SkdResultDetails).tiu}</span>
-                                                                        <span className="bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 px-1 rounded">TKP:{(item.details as SkdResultDetails).tkp}</span>
+                                                                        {(item.details as SkdResultDetails).twk !== undefined && (
+                                                                            <span className="bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 px-1 rounded">TWK:{(item.details as SkdResultDetails).twk}</span>
+                                                                        )}
+                                                                        {(item.details as SkdResultDetails).tiu !== undefined && (
+                                                                            <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 px-1 rounded">TIU:{(item.details as SkdResultDetails).tiu}</span>
+                                                                        )}
+                                                                        {(item.details as SkdResultDetails).tkp !== undefined && (
+                                                                            <span className="bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 px-1 rounded">TKP:{(item.details as SkdResultDetails).tkp}</span>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             )}
@@ -841,7 +857,7 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
     );
 }
 
-export const ReviewView: React.FC<{ item: TestHistoryItem, onBack: () => void }> = ({ item, onBack }) => {
+export const ReviewView: React.FC<{ item: TestHistoryItem, onBack: () => void, onToggleStudied?: (id: string) => void }> = ({ item, onBack, onToggleStudied }) => {
     
     // DETAIL VIEW KHUSUS TES KORAN & KECERMATAN (Unified)
     if (isTesKoran(item) || isTesKecermatan(item)) {
@@ -890,10 +906,21 @@ export const ReviewView: React.FC<{ item: TestHistoryItem, onBack: () => void }>
         return (
             <div className="min-h-screen bg-slate-50 dark:bg-slate-900 px-4 md:px-6 py-2 md:py-4 transition-colors">
                 <div className="max-w-4xl mx-auto">
-                    <div className="flex items-center gap-4 mb-6">
-                        <button onClick={onBack} className="text-slate-500 dark:text-slate-400 flex items-center hover:text-indigo-600 transition"><ArrowLeft size={16} className="mr-1"/> Kembali ke Riwayat</button>
-                        {item.isAborted && (
-                             <span className="bg-amber-500 text-white text-xs px-2 py-1 rounded font-bold">TIDAK FULL TEST</span>
+                    <div className="flex justify-between items-center mb-6">
+                        <div className="flex items-center gap-4">
+                            <button onClick={onBack} className="text-slate-500 dark:text-slate-400 flex items-center hover:text-indigo-600 transition"><ArrowLeft size={16} className="mr-1"/> Kembali ke Riwayat</button>
+                            {item.isAborted && (
+                                 <span className="bg-amber-500 text-white text-xs px-2 py-1 rounded font-bold">TIDAK FULL TEST</span>
+                            )}
+                        </div>
+                        {onToggleStudied && (
+                            <button 
+                                onClick={() => onToggleStudied(item.id)}
+                                className={`py-1 sm:py-1.5 px-2.5 sm:px-3 rounded flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs uppercase font-bold transition-all shadow-sm ${item.isStudied ? 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30 ring-1 ring-emerald-500/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/50' : 'text-slate-500 bg-white dark:bg-slate-800 dark:text-slate-300 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                            >
+                                {item.isStudied ? 'Dipelajari' : 'Tandai Dipelajari'}
+                                {item.isStudied ? <CheckSquare size={12} strokeWidth={2.5}/> : <Square size={12} strokeWidth={2}/>}
+                            </button>
                         )}
                     </div>
                     
@@ -1083,7 +1110,18 @@ export const ReviewView: React.FC<{ item: TestHistoryItem, onBack: () => void }>
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 px-4 md:px-6 py-2 pb-6 md:py-4 transition-colors relative">
             <div className="max-w-7xl mx-auto">
-                <button onClick={onBack} className="mb-4 text-slate-500 dark:text-slate-400 flex items-center hover:text-indigo-600 transition"><ArrowLeft size={16} className="mr-1"/> Kembali ke Riwayat</button>
+                <div className="flex justify-between items-center mb-4">
+                    <button onClick={onBack} className="text-slate-500 dark:text-slate-400 flex items-center hover:text-indigo-600 transition"><ArrowLeft size={16} className="mr-1"/> Kembali ke Riwayat</button>
+                    {onToggleStudied && (
+                        <button 
+                            onClick={() => onToggleStudied(item.id)}
+                            className={`py-1 sm:py-1.5 px-2.5 sm:px-3 rounded flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs uppercase font-bold transition-all shadow-sm ${item.isStudied ? 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30 ring-1 ring-emerald-500/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/50' : 'text-slate-500 bg-white dark:bg-slate-800 dark:text-slate-300 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                        >
+                            {item.isStudied ? 'Dipelajari' : 'Tandai Dipelajari'}
+                            {item.isStudied ? <CheckSquare size={12} strokeWidth={2.5}/> : <Square size={12} strokeWidth={2}/>}
+                        </button>
+                    )}
+                </div>
                 
                 {/* Mobile Nav Sidebar Overlay */}
                 {navOpen && (
@@ -1137,20 +1175,36 @@ export const ReviewView: React.FC<{ item: TestHistoryItem, onBack: () => void }>
 
                             {/* SKD Subtest Scores */}
                             {item.category === 'SKD' && item.details && (
-                                <div className="mt-4 grid grid-cols-3 gap-2">
-                                    <div className="bg-amber-50 dark:bg-amber-900/30 p-3 rounded-xl border border-amber-100 dark:border-amber-800 text-center">
-                                        <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">TWK</div>
-                                        <div className="text-lg font-black text-slate-800 dark:text-white">{(item.details as SkdResultDetails).twk}</div>
-                                    </div>
-                                    <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-xl border border-blue-100 dark:border-blue-800 text-center">
-                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">TIU</div>
-                                        <div className="text-lg font-black text-slate-800 dark:text-white">{(item.details as SkdResultDetails).tiu}</div>
-                                    </div>
-                                    <div className="bg-purple-50 dark:bg-purple-900/30 p-3 rounded-xl border border-purple-100 dark:border-purple-800 text-center">
-                                        <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase">TKP</div>
-                                        <div className="text-lg font-black text-slate-800 dark:text-white">{(item.details as SkdResultDetails).tkp}</div>
-                                    </div>
-                                </div>
+                                (() => {
+                                    const details = item.details as SkdResultDetails;
+                                    const hasTwk = details.twk !== undefined;
+                                    const hasTiu = details.tiu !== undefined;
+                                    const hasTkp = details.tkp !== undefined;
+                                    const colCount = [hasTwk, hasTiu, hasTkp].filter(Boolean).length || 1;
+                                    
+                                    return (
+                                        <div className={`mt-4 grid grid-cols-${colCount} gap-2`}>
+                                            {hasTwk && (
+                                                <div className="bg-amber-50 dark:bg-amber-900/30 p-3 rounded-xl border border-amber-100 dark:border-amber-800 text-center">
+                                                    <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">TWK</div>
+                                                    <div className="text-lg font-black text-slate-800 dark:text-white">{details.twk}</div>
+                                                </div>
+                                            )}
+                                            {hasTiu && (
+                                                <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-xl border border-blue-100 dark:border-blue-800 text-center">
+                                                    <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">TIU</div>
+                                                    <div className="text-lg font-black text-slate-800 dark:text-white">{details.tiu}</div>
+                                                </div>
+                                            )}
+                                            {hasTkp && (
+                                                <div className="bg-purple-50 dark:bg-purple-900/30 p-3 rounded-xl border border-purple-100 dark:border-purple-800 text-center">
+                                                    <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase">TKP</div>
+                                                    <div className="text-lg font-black text-slate-800 dark:text-white">{details.tkp}</div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()
                             )}
 
                             {/* UTBK Subtest Scores */}
@@ -1197,6 +1251,39 @@ export const ReviewView: React.FC<{ item: TestHistoryItem, onBack: () => void }>
                                         </div>
                                     );
                                 })()
+                            )}
+
+                            {/* TKA / PELAJARAN Subtest Scores */}
+                            {(item.category === 'TKA' || item.category === 'PELAJARAN') && item.details && (
+                                <div className="mt-4">
+                                    <div className="text-xs font-bold text-slate-400 uppercase mb-2">Rincian Subtes (IRT)</div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                        {(item.details as any).math !== undefined && (
+                                            <div className="bg-slate-50 dark:bg-slate-700/30 p-2 rounded-lg border border-slate-100 dark:border-slate-600 text-center">
+                                                <div className="text-[9px] font-bold text-slate-500 uppercase">MATEMATIKA</div>
+                                                <div className="text-sm font-black text-slate-800 dark:text-white">{(item.details as any).math}</div>
+                                            </div>
+                                        )}
+                                        {(item.details as any).indonesian !== undefined && (
+                                            <div className="bg-slate-50 dark:bg-slate-700/30 p-2 rounded-lg border border-slate-100 dark:border-slate-600 text-center">
+                                                <div className="text-[9px] font-bold text-slate-500 uppercase">B. INDONESIA</div>
+                                                <div className="text-sm font-black text-slate-800 dark:text-white">{(item.details as any).indonesian}</div>
+                                            </div>
+                                        )}
+                                        {(item.details as any).english !== undefined && (
+                                            <div className="bg-slate-50 dark:bg-slate-700/30 p-2 rounded-lg border border-slate-100 dark:border-slate-600 text-center">
+                                                <div className="text-[9px] font-bold text-slate-500 uppercase">B. INGGRIS</div>
+                                                <div className="text-sm font-black text-slate-800 dark:text-white">{(item.details as any).english}</div>
+                                            </div>
+                                        )}
+                                        {(item.details as any).average !== undefined && (
+                                            <div className="bg-indigo-50 dark:bg-indigo-900/30 p-2 rounded-lg border border-indigo-100 dark:border-indigo-800 text-center">
+                                                <div className="text-[9px] font-bold text-indigo-600 uppercase">AVG</div>
+                                                <div className="text-sm font-black text-indigo-700 dark:text-indigo-400">{(item.details as any).average}</div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             )}
                         </div>
 

@@ -222,7 +222,7 @@ export const ResultsAnalysis: React.FC<ResultsProps> = ({ answers, questions, on
                                 {Object.values(skdPassingStatus).every(v => v.passed) ? 'LULUS' : 'BELUM LULUS'}
                             </div>
                         </div>
-                        <div className="p-3 sm:p-4 grid grid-cols-3 gap-2 sm:gap-4">
+                        <div className={`p-3 sm:p-4 grid grid-cols-${Object.keys(skdPassingStatus).length} gap-2 sm:gap-4`}>
                             {Object.entries(skdPassingStatus).map(([key, data]) => (
                                 <div key={key} className="flex flex-col p-2 sm:p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-700">
                                     <div className="flex justify-between items-center mb-1 sm:mb-2">
@@ -239,6 +239,30 @@ export const ResultsAnalysis: React.FC<ResultsProps> = ({ answers, questions, on
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* TKA / PELAJARAN SUBTEST BREAKDOWN */}
+                {(category === 'TKA' || category === 'PELAJARAN') && details && (
+                    <div className="mb-6 w-full bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+                        <h3 className="font-bold text-[10px] sm:text-xs tracking-widest text-slate-700 dark:text-slate-300 mb-3 text-left border-b border-slate-200 dark:border-slate-700 pb-2 uppercase">Rincian Subtes (IRT)</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
+                            {details.math !== undefined && (
+                                <div className="flex justify-between p-2 sm:p-0 bg-white sm:bg-transparent dark:bg-slate-900 sm:dark:bg-transparent rounded-lg sm:rounded-none border sm:border-0 border-slate-100 dark:border-slate-700">
+                                    <span>Matematika:</span> <b>{details.math}</b>
+                                </div>
+                            )}
+                            {details.indonesian !== undefined && (
+                                <div className="flex justify-between p-2 sm:p-0 bg-white sm:bg-transparent dark:bg-slate-900 sm:dark:bg-transparent rounded-lg sm:rounded-none border sm:border-0 border-slate-100 dark:border-slate-700">
+                                    <span>B. Indonesia:</span> <b>{details.indonesian}</b>
+                                </div>
+                            )}
+                            {details.english !== undefined && (
+                                <div className="flex justify-between p-2 sm:p-0 bg-white sm:bg-transparent dark:bg-slate-900 sm:dark:bg-transparent rounded-lg sm:rounded-none border sm:border-0 border-slate-100 dark:border-slate-700">
+                                    <span>B. Inggris:</span> <b>{details.english}</b>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

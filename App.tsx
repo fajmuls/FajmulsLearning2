@@ -981,6 +981,8 @@ const Dashboard: React.FC<{
   onTpaStreamSelect?: (s: TpaStreamType) => void;
   tkaLevel?: TkaLevelType | null;
   onTkaLevelSelect?: (s: TkaLevelType) => void;
+  pelajaranSemester?: 'Ganjil' | 'Genap' | 'Full' | null;
+  onPelajaranSemesterSelect?: (s: 'Ganjil' | 'Genap' | 'Full') => void;
   onOpenAcademicHub?: () => void;
   onBattle: () => void;
 }> = (props) => {
@@ -1012,6 +1014,8 @@ const Dashboard: React.FC<{
     onTpaStreamSelect,
     tkaLevel,
     onTkaLevelSelect,
+    pelajaranSemester,
+    onPelajaranSemesterSelect,
     onOpenAcademicHub,
     onBattle,
   } = props;
@@ -1646,8 +1650,8 @@ const Dashboard: React.FC<{
                 >
                   <div>
                     <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-                      <Clock size={24} className="text-white/80" /> Simulasi
-                      UTBK SNBT Full
+                      <Clock size={24} className="text-white/80" /> Try Out Success
+                      UTBK SNBT
                     </h3>
                     <p className="text-emerald-100 text-xs sm:text-sm mt-1">
                       160 Soal. Durasi 195 Menit. Format Resmi 2025.
@@ -1722,9 +1726,8 @@ const Dashboard: React.FC<{
                     >
                       <div>
                         <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-                          <Clock size={24} className="text-white/80" /> Simulasi{" "}
-                          {tpaStream === "TPA_TBI" ? "TPA & TBI" : "Psikotes"}{" "}
-                          Full
+                          <Clock size={24} className="text-white/80" /> Try Out Success{" "}
+                          {tpaStream === "TPA_TBI" ? "TPA & TBI" : "Psikotes"}
                         </h3>
                         <p className="text-emerald-100 text-xs sm:text-sm mt-1">
                           {tpaStream === "TPA_TBI"
@@ -1817,8 +1820,8 @@ const Dashboard: React.FC<{
                     >
                       <div>
                         <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-                          <Clock size={24} className="text-white/80" /> Simulasi
-                          TKA {tkaLevel} Full
+                          <Clock size={24} className="text-white/80" /> Try Out Success
+                          TKA {tkaLevel}
                         </h3>
                         <p className="text-emerald-100 text-xs sm:text-sm mt-1">
                           90 Soal. 80% HOTS.
@@ -1830,6 +1833,101 @@ const Dashboard: React.FC<{
                       tkaLevel === "SD"
                         ? ["Matematika", "Bahasa Indonesia"]
                         : ["Matematika", "Bahasa Indonesia", "Bahasa Inggris"],
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+            {category === "PELAJARAN" && (
+              <>
+                {!tkaLevel ? (
+                  <div className="grid md:grid-cols-3 gap-6 mb-8 animate-fade-in-up">
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        if (onTkaLevelSelect) onTkaLevelSelect("SD");
+                      }}
+                      className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition text-center group shadow-sm"
+                    >
+                      <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition" />
+                      <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">
+                        Materi SD
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
+                        Kelas 1 - 6
+                      </p>
+                    </button>
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        if (onTkaLevelSelect) onTkaLevelSelect("SMP");
+                      }}
+                      className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition text-center group shadow-sm"
+                    >
+                      <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition" />
+                      <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">
+                        Materi SMP
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
+                        Kelas 7 - 9
+                      </p>
+                    </button>
+                    <button
+                      onClick={() => {
+                        SoundManager.play("click");
+                        if (onTkaLevelSelect) onTkaLevelSelect("SMA");
+                      }}
+                      className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition text-center group shadow-sm"
+                    >
+                      <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition" />
+                      <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">
+                        Materi SMA
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
+                        Kelas 10 - 12
+                      </p>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="animate-fade-in-up">
+                    <div className="flex items-center gap-2 mb-4 text-sm text-slate-600 dark:text-slate-300">
+                      <button
+                        onClick={() => {
+                          SoundManager.play("click");
+                          if (onTkaLevelSelect) onTkaLevelSelect(null as any);
+                        }}
+                        className="underline hover:text-indigo-600"
+                      >
+                        Ubah Jenjang
+                      </button>{" "}
+                      <ChevronRight size={14} />{" "}
+                      <b className="uppercase">Materi {tkaLevel}</b>
+                    </div>
+                    
+                    <div className="mb-6">
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-2 block uppercase">Pilih Semester</label>
+                      <div className="flex gap-2">
+                        {['Ganjil', 'Genap', 'Full'].map((sem) => (
+                          <button
+                            key={sem}
+                            onClick={() => {
+                              SoundManager.play("tap");
+                              if (onPelajaranSemesterSelect) onPelajaranSemesterSelect(sem as any);
+                            }}
+                            className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all border-2 ${pelajaranSemester === sem ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 shadow-sm' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:border-indigo-300'}`}
+                          >
+                            {sem === 'Full' ? 'Satu Tahun (Full)' : `Semester ${sem}`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {pelajaranSemester && renderSubtests(
+                      tkaLevel === "SD"
+                        ? ["Matematika SD", "Bahasa Indonesia SD", "IPA Terpadu SD", "IPS Terpadu SD", "PKN SD", "Bahasa Inggris SD"]
+                        : tkaLevel === "SMP"
+                          ? ["Matematika SMP", "Bahasa Indonesia SMP", "Bahasa Inggris SMP", "IPA Terpadu SMP", "IPS Terpadu SMP", "PKN SMP", "Prakarya"]
+                          : ["Matematika Wajib SMA", "Matematika Minat SMA", "Fisika SMA", "Kimia SMA", "Biologi SMA", "Ekonomi SMA", "Geografi SMA", "Sosiologi SMA", "Sejarah SMA", "Bahasa Inggris SMA", "Bahasa Indonesia SMA"]
                     )}
                   </div>
                 )}
@@ -1939,7 +2037,7 @@ const Dashboard: React.FC<{
                   >
                     <div>
                       <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-                        <Clock size={24} className="text-white/80" /> Simulasi
+                        <Clock size={24} className="text-white/80" /> Try Out Success
                         SKD CAT (110 Soal)
                       </h3>
                       <p className="text-emerald-100 text-xs sm:text-sm mt-1">
@@ -2142,6 +2240,8 @@ function App() {
   const [skdStream, setSkdStream] = useState<SkdStreamType | null>(null);
   const [tpaStream, setTpaStream] = useState<TpaStreamType | null>(null);
   const [tkaLevel, setTkaLevel] = useState<TkaLevelType | null>(null);
+  const [pelajaranSubject, setPelajaranSubject] = useState<string | null>(null);
+  const [pelajaranSemester, setPelajaranSemester] = useState<'Ganjil' | 'Genap' | 'Full' | null>(null);
   const [weakTopics, setWeakTopics] = useState<Set<string>>(new Set());
   const [kecermatanMode, setKecermatanMode] = useState<KecermatanMode>("ANGKA");
   const [benchmarkMode, setBenchmarkMode] = useState<BenchmarkMode | null>(
@@ -2873,6 +2973,14 @@ function App() {
       showToast("Harap pilih jalur (CPNS / Kedinasan).", "error");
       return;
     }
+    if (selectedCategory === "PELAJARAN" && !tkaLevel) {
+      showToast("Harap pilih jenjang (SD/SMP/SMA).", "error");
+      return;
+    }
+    if (selectedCategory === "PELAJARAN" && !pelajaranSemester) {
+      showToast("Harap pilih semester.", "error");
+      return;
+    }
     if (selectedCategory === "TKA" && !tkaLevel) {
       showToast("Harap pilih level TKA (SD/SMP/SMA).", "error");
       return;
@@ -2883,7 +2991,10 @@ function App() {
     setQuestions([]);
     setDrillContent(null);
     try {
-      const context = topicOverride || selectedSubtest;
+      let context = topicOverride || selectedSubtest;
+      if (selectedCategory === "PELAJARAN" && pelajaranSemester && typeof context === 'string') {
+          context = `${context} - Semester ${pelajaranSemester}`;
+      }
       if (mode === StudyMode.DRILL) {
         const data = await Gemini.generateDrillContent(
           selectedCategory,
@@ -2920,10 +3031,17 @@ function App() {
         setQuestions(qs || []);
       } else if (
         mode === StudyMode.SIMULATION &&
+        selectedCategory === "PELAJARAN" &&
+        tkaLevel
+      ) {
+        const qs = await Gemini.generateTkaSimulation(tkaLevel, true);
+        setQuestions(qs || []);
+      } else if (
+        mode === StudyMode.SIMULATION &&
         selectedCategory === "TKA" &&
         tkaLevel
       ) {
-        const qs = await Gemini.generateTkaSimulation(tkaLevel);
+        const qs = await Gemini.generateTkaSimulation(tkaLevel, false);
         setQuestions(qs || []);
       } else {
         let count = countOverride || 5;
@@ -3126,7 +3244,7 @@ function App() {
       let finalScore = 0;
       let maxScore = 0;
       let details: any = undefined;
-      if (selectedCategory === "SKD" && sessionMode === StudyMode.SIMULATION) {
+      if (selectedCategory === "SKD") {
         let twk = 0,
           tiu = 0,
           tkp = 0;
@@ -3139,21 +3257,66 @@ function App() {
           }
         });
         finalScore = twk + tiu + tkp;
-        maxScore = 550;
         const hasTwk = questions.some((q) => q.metadata?.subtest?.includes("TWK"));
         const hasTiu = questions.some((q) => q.metadata?.subtest?.includes("TIU"));
         const hasTkp = questions.some((q) => q.metadata?.subtest?.includes("TKP"));
+        
+        // Calculate max score dynamically based on questions
+        maxScore = questions.length * 5;
 
         details = {
-          twk,
-          tiu,
-          tkp,
+          ...(hasTwk && { twk }),
+          ...(hasTiu && { tiu }),
+          ...(hasTkp && { tkp }),
           total: finalScore,
           passed:
             (!hasTwk || twk >= 65) &&
             (!hasTiu || tiu >= 80) &&
             (!hasTkp || tkp >= 166),
         };
+      } else if (
+        (selectedCategory === "PELAJARAN" || selectedCategory === "TKA") &&
+        sessionMode === StudyMode.SIMULATION
+      ) {
+        if (answers.length === 0) {
+          finalScore = 0;
+          maxScore = 1000;
+          details = { math: 0, indonesian: 0, english: 0, average: 0 };
+        } else {
+          const calculateIrt = (subKeywords: string[]) => {
+            const subQs = questions.filter((q) =>
+              subKeywords.some((k) => q.metadata?.subtest?.includes(k)),
+            );
+            if (!subQs.length) return null; // Use null to indicate subtest not present
+            const correct = answers.filter(
+              (a) =>
+                a.isCorrect &&
+                questions.find((q) => q.id === a.questionId)?.metadata
+                  ?.subtest &&
+                subKeywords.some((k) =>
+                  questions
+                    .find((q) => q.id === a.questionId)
+                    ?.metadata?.subtest?.includes(k),
+                ),
+            ).length;
+            return Math.round(200 + (correct / subQs.length) * 800);
+          };
+          const math = calculateIrt(["Matematika"]);
+          const indonesian = calculateIrt(["Bahasa Indonesia"]);
+          const english = calculateIrt(["Bahasa Inggris"]);
+          
+          const validScores = [math, indonesian, english].filter(s => s !== null) as number[];
+          const avg = validScores.length > 0 ? Math.round(validScores.reduce((a,b) => a+b, 0) / validScores.length) : 0;
+          
+          finalScore = avg;
+          maxScore = 1000;
+          details = { 
+            ...(math !== null && { math }),
+            ...(indonesian !== null && { indonesian }),
+            ...(english !== null && { english }),
+            average: avg 
+          };
+        }
       } else if (
         selectedCategory === "UTBK" &&
         sessionMode === StudyMode.SIMULATION
@@ -3223,41 +3386,6 @@ function App() {
           finalScore = avg;
           maxScore = 1000;
           details = { pu, ppu, pbm, pk, lbi, lbe, pm, average: avg };
-        }
-      } else if (
-        selectedCategory === "TKA" &&
-        sessionMode === StudyMode.SIMULATION
-      ) {
-        if (answers.length === 0) {
-          finalScore = 0;
-          maxScore = 1000;
-          details = { math: 0, indonesian: 0, english: 0, average: 0 };
-        } else {
-          const calculateIrt = (subKeywords: string[]) => {
-            const subQs = questions.filter((q) =>
-              subKeywords.some((k) => q.metadata?.subtest?.includes(k)),
-            );
-            if (!subQs.length) return 0;
-            const correct = answers.filter(
-              (a) =>
-                a.isCorrect &&
-                questions.find((q) => q.id === a.questionId)?.metadata
-                  ?.subtest &&
-                subKeywords.some((k) =>
-                  questions
-                    .find((q) => q.id === a.questionId)
-                    ?.metadata?.subtest?.includes(k),
-                ),
-            ).length;
-            return Math.round(200 + (correct / subQs.length) * 800);
-          };
-          const math = calculateIrt(["Matematika"]);
-          const indonesian = calculateIrt(["Bahasa Indonesia"]);
-          const english = calculateIrt(["Bahasa Inggris"]);
-          const avg = Math.round((math + indonesian + english) / 3);
-          finalScore = avg;
-          maxScore = 1000;
-          details = { math, indonesian, english, average: avg };
         }
       } else if (
         selectedCategory === "TPA" &&
@@ -3369,6 +3497,8 @@ function App() {
         skdStream: skdStream || undefined,
         tpaStream: tpaStream || undefined,
         tkaLevel: tkaLevel || undefined,
+        pelajaranSemester: pelajaranSemester || undefined,
+        mode: sessionMode!,
         score: finalScore,
         maxScore,
         details: details,
@@ -3456,7 +3586,7 @@ function App() {
         let subCat = "General";
         if (selectedCategory === "SKD" && skdStream) subCat = skdStream;
         if (selectedCategory === "TPA" && tpaStream) subCat = tpaStream;
-        if (selectedCategory === "TKA" && tkaLevel) subCat = tkaLevel;
+        if (selectedCategory === "PELAJARAN" && tkaLevel) subCat = tkaLevel;
         FirebaseService.saveGlobalScore(
           selectedCategory,
           subCat,
@@ -3649,7 +3779,7 @@ function App() {
         }
       }
       if (selectedCategory === "TPA") return p.tpaStream === tpaStream;
-      if (selectedCategory === "TKA") return p.tkaLevel === tkaLevel;
+      if (selectedCategory === "PELAJARAN") return p.tkaLevel === tkaLevel;
       return true;
     });
 
@@ -3676,7 +3806,7 @@ function App() {
         title = `TO SKD Kedinasan${skdSuffix} ${nextNum}`;
         idPrefix += `-skd-kedinasan-${skdVariant.toLowerCase()}`;
       } else {
-        title = `TO SKD${skdSuffix} ${nextNum}`;
+        title = `T.O.S. SKD${skdSuffix} ${nextNum}`;
         idPrefix += `-skd-general-${skdVariant.toLowerCase()}`;
       }
     } else if (selectedCategory === "UTBK") {
@@ -3686,24 +3816,24 @@ function App() {
           : utbkVariant === "MIXED"
             ? " (Format Mix)"
             : "";
-      title = `TO UTBK${utbkSuffix} ${nextNum}`;
+      title = `T.O.S. UTBK${utbkSuffix} ${nextNum}`;
       idPrefix += `-utbk-${utbkVariant?.toLowerCase() || "default"}`;
     } else if (selectedCategory === "TPA") {
       if (tpaStream === "PSIKOTEST_KEDINASAN") {
-        title = `TO Psikotes Kedinasan ${nextNum}`;
+        title = `T.O.S. Psikotes Kedinasan ${nextNum}`;
         idPrefix += "-tpa-psikotest_kedinasan";
       } else {
-        title = `TO TPA TBI ${nextNum}`;
+        title = `T.O.S. TPA TBI ${nextNum}`;
         idPrefix += "-tpa-tbi";
       }
     } else if (selectedCategory === "PSIKOTEST") {
-      title = `TO Psikotest ${nextNum}`;
+      title = `T.O.S. Psikotest ${nextNum}`;
       idPrefix += "-psikotest";
-    } else if (selectedCategory === "TKA") {
-      title = `TO TKA ${tkaLevel} ${nextNum}`;
+    } else if (selectedCategory === "PELAJARAN") {
+      title = `T.O.S. TKA ${tkaLevel} ${nextNum}`;
       idPrefix += `-tka-${tkaLevel?.toLowerCase()}`;
     } else {
-      title = `TO ${selectedCategory} ${nextNum}`;
+      title = `T.O.S. ${selectedCategory} ${nextNum}`;
       idPrefix += `-${selectedCategory.toLowerCase()}`;
     }
 
@@ -3766,8 +3896,11 @@ function App() {
         } else if (selectedCategory === "PSIKOTEST") {
           newQuestions = await Gemini.generatePsikotestSimulation();
           duration = 40;
+        } else if (selectedCategory === "PELAJARAN" && tkaLevel) {
+          newQuestions = await Gemini.generateTkaSimulation(tkaLevel, true);
+          duration = 90;
         } else if (selectedCategory === "TKA" && tkaLevel) {
-          newQuestions = await Gemini.generateTkaSimulation(tkaLevel);
+          newQuestions = await Gemini.generateTkaSimulation(tkaLevel, false);
           duration = 90;
         } else {
           newQuestions = await Gemini.generateQuestions(
@@ -3915,7 +4048,7 @@ function App() {
         if (p.category !== selectedCategory) return false;
         if (selectedCategory === "SKD") return p.skdStream === skdStream;
         if (selectedCategory === "TPA") return p.tpaStream === tpaStream;
-        if (selectedCategory === "TKA") return p.tkaLevel === tkaLevel;
+        if (selectedCategory === "PELAJARAN") return p.tkaLevel === tkaLevel;
         return true;
       });
 
@@ -3965,10 +4098,10 @@ function App() {
           if (pkg.category === "SKD") {
             const streamPrefix =
               pkg.skdStream === "CPNS"
-                ? "TO SKD CPNS"
+                ? "T.O.S. SKD CPNS"
                 : pkg.skdStream === "KEDINASAN"
-                  ? "TO SKD Kedinasan"
-                  : "TO SKD";
+                  ? "T.O.S. SKD Kedinasan"
+                  : "T.O.S. SKD";
             const isTwk = pkg.id.includes("-twk-");
             const isTiu = pkg.id.includes("-tiu-");
             const isTkp = pkg.id.includes("-tkp-");
@@ -3983,17 +4116,19 @@ function App() {
             let suffix = "";
             if (pkg.id.includes("-only_mc-")) suffix = " (Hanya Ganda)";
             else if (pkg.id.includes("-mixed-")) suffix = " (Format Mix)";
-            newTitle = `TO UTBK${suffix} ${expectedNum}`;
+            newTitle = `T.O.S. UTBK${suffix} ${expectedNum}`;
           } else if (pkg.category === "TPA") {
             const prefix =
               pkg.tpaStream === "PSIKOTEST_KEDINASAN"
-                ? "TO Psikotes Kedinasan "
-                : "TO TPA TBI ";
+                ? "T.O.S. Psikotes Kedinasan "
+                : "T.O.S. TPA TBI ";
             newTitle = `${prefix}${expectedNum}`;
+          } else if (pkg.category === "PELAJARAN") {
+            newTitle = `T.O.S. Pelajaran ${pkg.tkaLevel} ${expectedNum}`;
           } else if (pkg.category === "TKA") {
-            newTitle = `TO TKA ${pkg.tkaLevel} ${expectedNum}`;
+            newTitle = `T.O.S. TKA ${pkg.tkaLevel} ${expectedNum}`;
           } else {
-            newTitle = `TO ${pkg.category} ${expectedNum}`;
+            newTitle = `T.O.S. ${pkg.category} ${expectedNum}`;
           }
 
           if (pkg.title !== newTitle) {
@@ -4479,7 +4614,7 @@ function App() {
                         cardClass +=
                           " hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-orange-100 dark:hover:shadow-orange-900/20";
                       } else if (
-                        ["UTBK", "SKD", "TPA", "PSIKOTEST", "TKA"].includes(
+                        ["UTBK", "SKD", "TPA", "PSIKOTEST", "PELAJARAN"].includes(
                           cat.id,
                         )
                       ) {
@@ -4510,7 +4645,7 @@ function App() {
                       iconColor = "text-orange-600 dark:text-orange-400";
                       decorColor = "bg-orange-50 dark:bg-orange-900/20";
                     } else if (
-                      ["UTBK", "SKD", "TPA", "PSIKOTEST", "TKA"].includes(
+                      ["UTBK", "SKD", "TPA", "PSIKOTEST", "PELAJARAN"].includes(
                         cat.id,
                       )
                     ) {
@@ -4691,6 +4826,8 @@ function App() {
                 onTpaStreamSelect={setTpaStream}
                 tkaLevel={tkaLevel}
                 onTkaLevelSelect={setTkaLevel}
+                pelajaranSemester={pelajaranSemester}
+                onPelajaranSemesterSelect={setPelajaranSemester}
                 onOpenAcademicHub={() => {
                   SoundManager.play("click");
                   setCurrentView("ACADEMIC_HUB");
@@ -5037,7 +5174,14 @@ function App() {
                 }}
                 onRetry={() => {
                   SoundManager.play("click");
-                  startSession(sessionMode!);
+                  if (currentPackageTitle || questions.length > 0 && !sessionMode) {
+                    // Replay exact same package / current questions
+                    setUserAnswers([]);
+                    setInitialSessionState(undefined);
+                    setCurrentView("SESSION");
+                  } else {
+                    startSession(sessionMode!);
+                  }
                 }}
                 onRemedial={(topic) => {
                   SoundManager.play("click");
@@ -5045,7 +5189,12 @@ function App() {
                 }}
                 onHistory={() => {
                   SoundManager.play("click");
-                  setCurrentView("HISTORY");
+                  if (testHistory.length > 0) {
+                    setReviewItem(testHistory[0]);
+                    setCurrentView("REVIEW");
+                  } else {
+                    setCurrentView("HISTORY");
+                  }
                 }}
                 category={selectedCategory!}
                 details={testHistory[0]?.details}
@@ -5097,6 +5246,11 @@ function App() {
                 onBack={() => {
                   SoundManager.play("back");
                   setCurrentView("HISTORY");
+                }}
+                onToggleStudied={(id) => {
+                  handleToggleStudied(id);
+                  // Update the review item so UI re-renders immediately
+                  setReviewItem(prev => prev ? {...prev, isStudied: !prev.isStudied} : null);
                 }}
               />
             </motion.div>

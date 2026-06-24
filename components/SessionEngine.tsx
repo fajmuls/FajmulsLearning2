@@ -1212,7 +1212,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                     score = isCorrect ? 4 : -1;
                 }
             }
-        } else if (category === 'TKA') {
+        } else if (category === 'PELAJARAN' || category === 'TKA') {
             if (currentQ.type === 'multiple_choice_complex') {
                 const selectedSet = new Set(option.split('||').filter(Boolean));
                 const correctSet = new Set(currentQ.correctAnswer.split('||').filter(Boolean));
@@ -2119,7 +2119,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                 {renderGridForQuestions(activeQuestions.filter(q => q.metadata?.subtest?.includes('TBI') || q.metadata?.subtest?.includes('Inggris')), 'TBI - Bahasa Inggris')}
                             </>
                         )
-                    ) : category === 'TKA' && mode === StudyMode.SIMULATION ? (
+                    ) : (category === 'PELAJARAN' || category === 'TKA') && mode === StudyMode.SIMULATION ? (
                         <>
                             {renderGridForQuestions(activeQuestions.filter(q => q.metadata?.subtest?.includes('Matematika')), 'Matematika')}
                             {renderGridForQuestions(activeQuestions.filter(q => q.metadata?.subtest?.includes('Bahasa Indonesia')), 'Bahasa Indonesia')}
