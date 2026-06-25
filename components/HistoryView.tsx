@@ -1,12 +1,14 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { 
+    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
+} from 'recharts';
+import { 
     ArrowLeft, User as UserIcon, Download, Upload as UploadIcon, Filter, 
     TrendingUp, Award, History, Calendar, CheckCircle, XCircle, 
     ChevronRight, Zap, Activity, Clock, BarChart2, Trash2, Eye, 
     Briefcase, GraduationCap, Brain, FileText, MessageSquare, Palette, Book, BookOpen, Library, School, Package,
-    Square, CheckSquare, Grid, ShieldCheck, AlertTriangle, Flag, Bot, AlertCircle, Info
+    Square, CheckSquare, Grid, ShieldCheck, AlertTriangle, Flag, Bot, AlertCircle, Info, Target
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { TestHistoryItem, CategoryType, SkdResultDetails, TesKoranResultDetails, TesKecermatanResultDetails, UtbkResultDetails, BenchmarkResultDetails, Question, UserAnswer, UserProfile, StudyMode } from '../types';
 import { CATEGORIES } from '../constants';
 import { SoundManager } from '../services/soundService';
@@ -192,6 +194,7 @@ export const getUtbkDetails = (item: TestHistoryItem) => {
 
 export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview, username, onExport, onImport, onDelete, onDeleteMultiple, onToggleStudied, userProfile }) => {
     const [filterCategory, setFilterCategory] = useState<'ALL' | CategoryType>('ALL');
+    const [viewMode, setViewMode] = useState<'LIST' | 'ANALYTICS'>('LIST');
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
 
@@ -450,40 +453,87 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                     </div>
                 </div>
 
-                {filteredHistory.length > 1 && (
-                    <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 mb-4 sm:mb-6 transition-all hidden sm:block">
-                        <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-2 flex items-center gap-2">
-                            <BarChart2 className="text-indigo-500 w-4 h-4" /> Grafik Perkembangan Skor
-                        </h3>
-                        <div className="h-48 sm:h-64 w-full mt-4">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={[...filteredHistory].reverse()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
-                                    <XAxis dataKey={(d) => new Date(d.date).toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
-                                    <Tooltip 
-                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '11px' }}
-                                        itemStyle={{ color: '#818cf8', fontWeight: 'bold' }}
-                                        labelStyle={{ color: '#94a3b8', marginBottom: '2px' }}
-                                        formatter={(val: any) => [`Skor: ${val}`]}
-                                    />
-                                    <Line type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: '#6366f1', strokeWidth: 2 }} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
+                <div className="flex gap-4 border-b border-slate-200 dark:border-slate-700 mb-6">
+                    <button 
+                        onClick={() => setViewMode('LIST')} 
+                        className={`pb-3 text-sm font-bold transition-all border-b-2 ${viewMode === 'LIST' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                    >
+                        Daftar Riwayat
+                    </button>
+                    <button 
+                        onClick={() => setViewMode('ANALYTICS')} 
+                        className={`pb-3 text-sm font-bold transition-all border-b-2 ${viewMode === 'ANALYTICS' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                    >
+                        Analisis Progres
+                    </button>
+                </div>
+
+                {viewMode === 'ANALYTICS' && (
+                    <div className="space-y-6">
+                        {filteredHistory.length > 1 ? (
+                            <>
+                                <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                                    <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-2 flex items-center gap-2">
+                                        <BarChart2 className="text-indigo-500 w-4 h-4" /> Grafik Tren Skor Utama
+                                    </h3>
+                                    <p className="text-xs text-slate-500 mb-6">Lihat peningkatan atau penurunan skor Anda dari waktu ke waktu berdasarkan filter kategori yang dipilih.</p>
+                                    <div className="h-64 w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart data={[...filteredHistory].reverse()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                                <defs>
+                                                    <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
+                                                <XAxis dataKey={(d) => new Date(d.date).toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+                                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+                                                <Tooltip 
+                                                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '11px' }}
+                                                />
+                                                <Area type="monotone" dataKey="score" stroke="#6366f1" fillOpacity={1} fill="url(#colorScore)" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: '#6366f1', strokeWidth: 2 }} />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                                <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                                    <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-2 flex items-center gap-2">
+                                        <Target className="text-emerald-500 w-4 h-4" /> Grafik Akurasi Jawaban (%)
+                                    </h3>
+                                    <div className="h-64 w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <LineChart data={[...filteredHistory].reverse().map((d: any) => ({ ...d, accuracy: Math.round((d.details?.correctCount || 0) / Math.max(d.details?.totalQuestions || 1, 1) * 100) }))} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
+                                                <XAxis dataKey={(d) => new Date(d.date).toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+                                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+                                                <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '11px' }} />
+                                                <Line type="monotone" dataKey="accuracy" stroke="#10b981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2 }} />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-400">
+                                <Activity size={48} className="mx-auto mb-4 opacity-20"/>
+                                <p>Belum ada data progres. Kumpulkan lebih dari 1 riwayat tryout untuk melihat grafik analisis.</p>
+                            </div>
+                        )}
                     </div>
                 )}
 
-                {/* SHOW DETAILS TOGGLE */}
-                <div className="flex justify-end mb-4">
-                    <button 
-                        onClick={() => setShowAllDetails(!showAllDetails)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm ${showAllDetails ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'}`}
-                    >
-                        {showAllDetails ? <XCircle size={14}/> : <Eye size={14}/>}
-                        {showAllDetails ? 'Tampilan Ringkas' : 'Tampilkan Rincian'}
-                    </button>
-                </div>
+                {viewMode === 'LIST' && (
+                    <>
+                        <div className="flex justify-end mb-4">
+                            <button 
+                                onClick={() => setShowAllDetails(!showAllDetails)}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm ${showAllDetails ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'}`}
+                            >
+                                {showAllDetails ? <XCircle size={14}/> : <Eye size={14}/>}
+                                {showAllDetails ? 'Tampilan Ringkas' : 'Tampilkan Rincian'}
+                            </button>
+                        </div>
 
                 {/* List Items */}
                 <div className="space-y-4">
@@ -870,6 +920,8 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                         })
                     )}
                 </div>
+                </>
+                )}
             </div>
         </div>
     );

@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Award, Activity, Target, Loader2, Lightbulb, CheckCircle, XCircle, Youtube, Flag, Bot } from 'lucide-react';
-import { CategoryType, Question, UserAnswer, UtbkResultDetails } from '../types';
+import { CategoryType, Question, UserAnswer, UtbkResultDetails, UserProfile } from '../types';
 import * as Gemini from '../services/geminiService';
 import { SimpleMarkdown } from './QuestionRenderer';
+import { Certificate } from './Certificate';
 import confetti from 'canvas-confetti';
 
 interface ResultsProps {
@@ -15,9 +16,10 @@ interface ResultsProps {
     onRemedial?: (topic: string) => void;
     category: CategoryType;
     details?: any;
+    userProfile?: UserProfile | null;
 }
 
-export const ResultsAnalysis: React.FC<ResultsProps> = ({ answers, questions, onHome, onRetry, onHistory, onRemedial, category, details }) => {
+export const ResultsAnalysis: React.FC<ResultsProps> = ({ answers, questions, onHome, onRetry, onHistory, onRemedial, category, details, userProfile }) => {
     const correctCount = answers.filter(a => a.isCorrect).length;
     let score = details?.total || details?.average || details?.iqScore || Math.round((correctCount / questions.length) * 100);
     
@@ -210,6 +212,18 @@ export const ResultsAnalysis: React.FC<ResultsProps> = ({ answers, questions, on
                         </div>
                      </div>
                 </div>
+
+                {/* CERTIFICATE GENERATOR */}
+                {(category === 'BAHASA' || category === 'KECERMATAN' || details?.iqScore || category === 'PSIKOTEST') && (
+                    <Certificate
+                        userProfile={userProfile}
+                        testName={category === 'BAHASA' ? 'Ujian Bahasa Internasional' : category === 'KECERMATAN' ? 'Psikotes & Kecermatan' : 'Evaluasi Akademik'}
+                        score={score}
+                        date={new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
+                        verdict={score >= 80 ? 'Sangat Baik' : score >= 60 ? 'Baik' : 'Perlu Peningkatan'}
+                        iqScore={details?.iqScore || (category === 'KECERMATAN' ? Math.round(90 + (score / 2.5)) : undefined)}
+                    />
+                )}
 
                 {/* SKD PASSING GRADE STATUS */}
                 {skdPassingStatus && (

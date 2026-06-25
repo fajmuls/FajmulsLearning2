@@ -258,43 +258,29 @@ function tryParsePartialQuestions(text: string): any {
 }
 
 async function callGemini<T>(prompt: string, schema?: Schema, imageBase64?: string): Promise<T> {
-  const models = ["gemini-3.5-flash", "gemini-flash-latest"];
-  
-  const config: any = {
-    temperature: 0.9, 
-    topP: 0.95,
-    topK: 40,
+  const payload = {
+      prompt,
+      schema,
+      fileBase64: imageBase64,
+      mimeType: imageBase64 ? "application/pdf" : undefined
   };
 
-  if (schema) {
-    config.responseMimeType = "application/json";
-    config.responseSchema = schema;
-  }
-
-  const parts: any[] = [];
-  if (imageBase64) {
-    parts.push({
-      inlineData: {
-        mimeType: "application/pdf", 
-        data: imageBase64
-      }
-    });
-  }
-  parts.push({ text: prompt });
-
-  let modelIdx = 0;
   let retries = 4;
   let delay = 1500;
 
   while (retries > 0) {
-    const model = models[modelIdx % models.length];
     try {
-      const result = await getAiClient().models.generateContent({
-        model,
-        contents: { role: 'user', parts },
-        config
+      const response = await fetch('/api/gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
       });
-
+      
+      if (!response.ok) {
+          throw new Error(`API returned ${response.status}: ${await response.text()}`);
+      }
+      
+      const result = await response.json();
       const text = result.text;
       
       if (!text) {
@@ -311,7 +297,7 @@ async function callGemini<T>(prompt: string, schema?: Schema, imageBase64?: stri
             }
             return JSON.parse(cleanText);
         } catch (e) {
-            console.error(`JSON Parse Error for model ${model}, trying recovery parsing...`, e);
+            console.error(`JSON Parse Error, trying recovery parsing...`, e);
             
             // Try to parse partial questions if applicable
             const partialResult = tryParsePartialQuestions(text);
@@ -333,7 +319,7 @@ async function callGemini<T>(prompt: string, schema?: Schema, imageBase64?: stri
       }
       return text as unknown as T;
     } catch (error: any) {
-      console.error(`Gemini API Error with model ${model} (${retries} retries left):`, error);
+      console.error(`Gemini API Error (${retries} retries left):`, error);
       
       const isOverloaded = error?.status === 503 || error?.status === 429 || error?.status === 500 ||
                            error?.message?.includes('503') || error?.message?.includes('429') || error?.message?.includes('500') ||
@@ -343,8 +329,7 @@ async function callGemini<T>(prompt: string, schema?: Schema, imageBase64?: stri
       
       if (retries > 1) {
         retries--;
-        modelIdx++; // Rotate to the next model in choice
-        console.log(`Rotating/Retrying with next model in ${delay}ms...`);
+        console.log(`Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         delay *= 1.5; // Exponential backoff
         continue;
@@ -1104,6 +1089,24 @@ export const buildQuestionPrompt = (
            - For TIU/Logika/Analitis (Posisi/Urutan/Jadwal): Construct airtight, non-contradictory logic puzzles. ALWAYS solve the arrangement internally FIRST in the explanation. Ensure exactly ONE valid arrangement exists without logical flaws or impossible scenarios (like circular round-robins that conflict, or queues that overlap).
            - For TIU/Numerik: Ensure calculations lead to EXACT mathematically correct answers. Do NOT use rounding approximations in the options unless explicitly stated. Build complex but solvable math, avoid impossible logical pitfalls.
            - The explanation MUST be mathematically and logically rigorous, leaving no room for ambiguity.`;
+      } 
+      
+      if (category === 'BAHASA') {
+           difficultyContext = `CONTEXT: Simulasi Ujian Bahasa Internasional (TOEFL / IELTS).
+           
+           CRITICAL RULES FOR UJIAN BAHASA:
+           1. FORMAT: Focus heavily on Listening, Structure, and Reading. Provide extremely high-quality, long-form English texts.
+           2. TONE: The language must be strictly academic English, mimicking official ETS or Cambridge test styles.
+           3. QUESTIONS: Include specific references to passages. 1 correct answer (score 5) and 3 incorrect distractors (score 0).
+           4. EXPLANATION: Write detailed explanations in Indonesian on why the grammar rule or inference is correct.`;
+      } else if (category === 'KECERMATAN' || category === 'PSIKOTEST') {
+           difficultyContext = `CONTEXT: Psikotes Logika, Deret, Analogi, dan Tes IQ.
+           
+           CRITICAL RULES FOR PSIKOTEST/IQ:
+           1. COMPLEXITY: Questions must be extremely rigorous logic puzzles, visual analogies (described via text or SVG), complex number series, or spatial reasoning tests.
+           2. ACCURACY: The logical rule (e.g., +2, *3, -1) MUST be flawlessly calculated. Double-check all math.
+           3. STYLE: Mimic official psychometric test structures used by corporations or Mensa.
+           4. SCORING: 1 correct answer (score 5), 4 incorrect (score 0).`;
       }
 
       if (category === 'INTERVIEW') {

@@ -223,18 +223,19 @@ export const TYPING_TEXTS = [
 
 // Reordered Categories: UTBK, SKD, TPA, PSIKOTEST, then others
 export const CATEGORIES: {id: CategoryType, name: string, desc: string}[] = [
-  { id: 'UTBK', name: 'UTBK SNBT', desc: 'Tes Potensi Skolastik & Literasi (2025)' },
-  { id: 'SKD', name: 'SKD CPNS/Kedinasan', desc: 'TWK, TIU, TKP' },
-  { id: 'TKA', name: 'TKA', desc: 'Tes Kemampuan Akademik' },
-  { id: 'PELAJARAN', name: 'Mata Pelajaran', desc: 'Materi SD, SMP, dan SMA' },
-  { id: 'TPA', name: 'Seleksi Lanjutan', desc: 'TPA, TBI, & Psikotes Kedinasan' }, 
-  { id: 'PSIKOTEST', name: 'Tes Koran & IQ', desc: 'IQ, Koran/Pauli, & Kognitif' },
-  { id: 'KECERMATAN', name: 'Tes Kecermatan', desc: 'Angka/Huruf Hilang (Khas Polri/Kedinasan)' },
-  { id: 'BUTAWRNA', name: 'Tes Buta Warna', desc: 'Simulasi Ishihara & Visual' },
-  { id: 'BENCHMARK', name: 'Human Benchmark', desc: 'Tes Kognitif: Reaction Time & Sequence Memory' },
-  { id: 'INTERVIEW', name: 'Wawancara Tulis', desc: 'Simulasi Jawab Interview & Review AI' },
-  { id: 'SKRIPSI', name: 'Skripsi Helper', desc: 'Bantuan Judul, Outline, & Metodologi' },
-  { id: 'GENERAL', name: 'Materi Umum', desc: 'Belajar Apapun: PDF, Topik, Hafalan' }
+  { id: 'UTBK', name: 'UTBK SNBT', desc: 'Latihan TPS dan Literasi untuk masuk PTN.' },
+  { id: 'SKD', name: 'SKD CASN/Kedinasan', desc: 'Drill materi TWK, TIU, dan TKP.' },
+  { id: 'TKA', name: 'Tes Kemampuan Akademik', desc: 'Evaluasi materi sains dan soshum.' },
+  { id: 'PELAJARAN', name: 'Materi Sekolah', desc: 'Belajar materi SD, SMP, hingga SMA.' },
+  { id: 'BAHASA', name: 'Ujian Bahasa', desc: 'Simulasi TOEFL/IELTS interaktif.' },
+  { id: 'TPA', name: 'TPA & Lanjutan', desc: 'Latihan TPA, TBI, dan Psikotes BUMN.' }, 
+  { id: 'PSIKOTEST', name: 'Psikotes & IQ', desc: 'Tes kognitif, spasial, dan logika.' },
+  { id: 'KECERMATAN', name: 'Tes Kecermatan', desc: 'Latihan fokus, ketelitian, dan tes koran.' },
+  { id: 'BUTAWRNA', name: 'Uji Buta Warna', desc: 'Simulasi Ishihara dan tes gradasi.' },
+  { id: 'BENCHMARK', name: 'Human Benchmark', desc: 'Uji reaksi, memori, dan refleks.' },
+  { id: 'INTERVIEW', name: 'Simulasi Wawancara', desc: 'Latih public speaking dengan AI.' },
+  { id: 'SKRIPSI', name: 'Asisten Skripsi', desc: 'Bantuan judul, outline, dan riset.' },
+  { id: 'GENERAL', name: 'Study Copilot', desc: 'Upload PDF dan belajar cerdas bersama AI.' }
 ];
 
 export const GENERAL_METHODS: {id: GeneralStudyMethod, name: string, desc: string, icon: string}[] = [

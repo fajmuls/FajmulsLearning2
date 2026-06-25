@@ -2962,8 +2962,9 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
         desc: string, 
         icon: React.ReactNode, 
         colorClass: string,
+        textColorClass: string,
         btnColorClass: string
-    }> = ({ game, title, desc, icon, colorClass, btnColorClass }) => {
+    }> = ({ game, title, desc, icon, colorClass, textColorClass, btnColorClass }) => {
         const { best, percentile } = getStats(game);
         let unit = 'pts';
         if (game === 'REACTION' || game === 'AIM') unit = 'ms';
@@ -2977,8 +2978,8 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                 
                 <div className="p-3.5 sm:p-4 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 h-full">
                      {/* Icon Box */}
-                    <div className={`p-3 rounded-xl ${colorClass} bg-opacity-10 text-opacity-100 shrink-0`}>
-                        <div className={`${colorClass.replace('bg-', 'text-')}`}>
+                    <div className={`p-3 rounded-xl ${colorClass} bg-opacity-10 shrink-0`}>
+                        <div className={textColorClass}>
                            {icon}
                         </div>
                     </div>
@@ -3078,6 +3079,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Uji seberapa cepat refleks visual Anda merespons perubahan warna." 
                                 icon={<Zap size={32}/>}
                                 colorClass="bg-amber-500"
+                                textColorClass="text-amber-500"
                                 btnColorClass="bg-amber-500 hover:bg-amber-600"
                             />
                             <GameCard 
@@ -3086,6 +3088,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Ingat pola urutan kotak yang menyala semakin panjang." 
                                 icon={<Grid size={32}/>}
                                 colorClass="bg-indigo-500"
+                                textColorClass="text-indigo-500"
                                 btnColorClass="bg-indigo-600 hover:bg-indigo-700"
                             />
                             <GameCard 
@@ -3094,6 +3097,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Seberapa cepat Anda bisa mengenai semua target yang muncul?" 
                                 icon={<Target size={32}/>}
                                 colorClass="bg-orange-500"
+                                textColorClass="text-orange-500"
                                 btnColorClass="bg-orange-500 hover:bg-orange-600"
                             />
                             <GameCard 
@@ -3102,6 +3106,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Apakah Anda lebih pintar dari simpanse? Uji memori kerja spasial." 
                                 icon={<Brain size={32}/>}
                                 colorClass="bg-teal-500"
+                                textColorClass="text-teal-500"
                                 btnColorClass="bg-teal-500 hover:bg-teal-600"
                             />
                             <GameCard 
@@ -3110,6 +3115,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Ingat posisi kotak putih yang muncul. Hati-hati, setiap kesalahan mengurangi nyawa!" 
                                 icon={<Grid size={32}/>}
                                 colorClass="bg-sky-500"
+                                textColorClass="text-sky-500"
                                 btnColorClass="bg-sky-500 hover:bg-sky-600"
                             />
                             <GameCard 
@@ -3118,6 +3124,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Ingat angka terpanjang yang bisa Anda hafal." 
                                 icon={<Hash size={32}/>}
                                 colorClass="bg-blue-600"
+                                textColorClass="text-blue-600"
                                 btnColorClass="bg-blue-600 hover:bg-blue-700"
                             />
                             <GameCard 
@@ -3126,6 +3133,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Ingat kata mana yang baru muncul dan mana yang sudah pernah." 
                                 icon={<Type size={32}/>}
                                 colorClass="bg-purple-500"
+                                textColorClass="text-purple-500"
                                 btnColorClass="bg-purple-500 hover:bg-purple-600"
                             />
                             <GameCard 
@@ -3134,6 +3142,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Uji perbendaharaan katamu! Pilih sinonim atau antonim yang tepat." 
                                 icon={<Type size={32}/>}
                                 colorClass="bg-cyan-600"
+                                textColorClass="text-cyan-600"
                                 btnColorClass="bg-cyan-600 hover:bg-cyan-700"
                             />
                             <GameCard 
@@ -3142,6 +3151,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Berapa banyak kata yang bisa Anda ketik per menit?" 
                                 icon={<FileText size={32}/>}
                                 colorClass="bg-slate-500"
+                                textColorClass="text-slate-500"
                                 btnColorClass="bg-slate-600 hover:bg-slate-700"
                             />
                              <GameCard 
@@ -3150,6 +3160,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Hafalkan jalan yang aman dari bawah ke atas sebelum hilang." 
                                 icon={<Map size={32}/>}
                                 colorClass="bg-emerald-500"
+                                textColorClass="text-emerald-500"
                                 btnColorClass="bg-emerald-600 hover:bg-emerald-700"
                             />
                             <GameCard 
@@ -3158,6 +3169,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Cari pasangan simbol yang sama di balik kartu." 
                                 icon={<Copy size={32}/>}
                                 colorClass="bg-pink-500"
+                                textColorClass="text-pink-500"
                                 btnColorClass="bg-pink-600 hover:bg-pink-700"
                             />
                             <GameCard 
@@ -3166,6 +3178,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Tebak kata sebelum orangnya tergantung." 
                                 icon={<Users size={32}/>}
                                 colorClass="bg-slate-700"
+                                textColorClass="text-slate-700"
                                 btnColorClass="bg-slate-800 hover:bg-slate-900"
                             />
                             <GameCard 
@@ -3174,6 +3187,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Tebak kata rahasia berdasarkan kedekatan makna." 
                                 icon={<TrendingUp size={32}/>}
                                 colorClass="bg-rose-500"
+                                textColorClass="text-rose-500"
                                 btnColorClass="bg-rose-600 hover:bg-rose-700"
                             />
                             <GameCard 
@@ -3182,6 +3196,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Tebak angka rahasia dengan petunjuk lebih besar/kecil." 
                                 icon={<Search size={32}/>}
                                 colorClass="bg-cyan-600"
+                                textColorClass="text-cyan-600"
                                 btnColorClass="bg-cyan-700 hover:bg-cyan-800"
                             />
                             <GameCard 
@@ -3190,6 +3205,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Hafalkan posisi dan warna blok, lalu susun kembali." 
                                 icon={<MapPin size={32}/>}
                                 colorClass="bg-fuchsia-600"
+                                textColorClass="text-fuchsia-600"
                                 btnColorClass="bg-fuchsia-700 hover:bg-fuchsia-800"
                             />
                             <GameCard 
@@ -3198,6 +3214,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Temukan pola tersembunyi dari deret angka." 
                                 icon={<Brain size={32}/>}
                                 colorClass="bg-indigo-600"
+                                textColorClass="text-indigo-600"
                                 btnColorClass="bg-indigo-700 hover:bg-indigo-800"
                             />
                             <GameCard 
@@ -3206,6 +3223,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Buat keputusan strategis dalam berbagai skenario." 
                                 icon={<Briefcase size={32}/>}
                                 colorClass="bg-emerald-600"
+                                textColorClass="text-emerald-600"
                                 btnColorClass="bg-emerald-700 hover:bg-emerald-800"
                             />
                             <GameCard 
@@ -3214,6 +3232,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Diberikan jawaban, temukan logika atau persamaannya." 
                                 icon={<RefreshCw size={32}/>}
                                 colorClass="bg-violet-600"
+                                textColorClass="text-violet-600"
                                 btnColorClass="bg-violet-700 hover:bg-violet-800"
                             />
                             <GameCard 
@@ -3222,6 +3241,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Jelajahi labirin dengan aturan logika yang berubah-ubah." 
                                 icon={<Route size={32}/>}
                                 colorClass="bg-amber-600"
+                                textColorClass="text-amber-600"
                                 btnColorClass="bg-amber-700 hover:bg-amber-800"
                             />
                             <GameCard 
@@ -3230,6 +3250,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Selesaikan soal logika sederhana di bawah tekanan waktu." 
                                 icon={<Clock size={32}/>}
                                 colorClass="bg-rose-600"
+                                textColorClass="text-rose-600"
                                 btnColorClass="bg-rose-700 hover:bg-rose-800"
                             />
                             <GameCard 
@@ -3238,6 +3259,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 desc="Selesaikan teka-teki yang memiliki beberapa lapisan logika." 
                                 icon={<Layers size={32}/>}
                                 colorClass="bg-indigo-600"
+                                textColorClass="text-indigo-600"
                                 btnColorClass="bg-indigo-700 hover:bg-indigo-800"
                             />
                         </div>

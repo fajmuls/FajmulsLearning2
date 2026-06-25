@@ -60,6 +60,50 @@ const PacingBar: React.FC<{ idealTimeSeconds: number, isActive: boolean, current
     );
 };
 
+const TTSButton = ({ text }: { text: string }) => {
+    const [isPlaying, setIsPlaying] = React.useState(false);
+
+    React.useEffect(() => {
+        return () => {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+        };
+    }, []);
+
+    const play = () => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text.replace(/:::MATRIX:::[\s\S]*?:::/, '').replace(/<svg[\s\S]*?<\/svg>/, ''));
+            utterance.lang = 'en-US';
+            utterance.rate = 0.9;
+            utterance.onstart = () => setIsPlaying(true);
+            utterance.onend = () => setIsPlaying(false);
+            utterance.onerror = () => setIsPlaying(false);
+            window.speechSynthesis.speak(utterance);
+        } else {
+            alert('Browser Anda tidak mendukung Text-To-Speech');
+        }
+    };
+
+    const stop = () => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            setIsPlaying(false);
+        }
+    };
+
+    return (
+        <button 
+            onClick={isPlaying ? stop : play}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm mb-4 transition-all w-fit shadow-sm border ${isPlaying ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-700/50' : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-800/50 border-indigo-300 dark:border-indigo-700/50'}`}
+        >
+            {isPlaying ? <MicOff size={18} /> : <Mic size={18} />}
+            {isPlaying ? 'Hentikan Audio' : 'Putar Audio Listening'}
+        </button>
+    );
+};
+
 const BreakRoom: React.FC<{ 
     timeLeft: number, 
     onFinish: () => void,
@@ -1240,6 +1284,9 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
             const difficulty = currentQ.metadata?.difficulty || 'Medium';
             const weight = difficulty === 'HOTS' || difficulty === 'Hard' ? 3 : difficulty === 'Medium' ? 2 : 1;
             score = isCorrect ? weight : 0;
+        } else if (category === 'BAHASA' || category === 'KECERMATAN' || category === 'PSIKOTEST') {
+            isCorrect = option === currentQ.correctAnswer;
+            score = isCorrect ? 5 : 0;
         } else {
              isCorrect = option === currentQ.correctAnswer;
              score = isCorrect ? 10 : 0; 
@@ -1705,6 +1752,10 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                     {/* Pacing Indicator */}
                                     {mode === StudyMode.SIMULATION && currentQ.metadata?.idealTimeSeconds && (
                                         <PacingBar idealTimeSeconds={currentQ.metadata.idealTimeSeconds} isActive={!isPaused} currentQId={currentQ.id} />
+                                    )}
+
+                                    {category === 'BAHASA' && currentQ.content && (
+                                        <TTSButton text={currentQ.content} />
                                     )}
 
                                     <div className={`prose dark:prose-invert max-w-none mb-4 sm:mb-6 text-slate-800 dark:text-slate-100 fs-${fontSize} leading-relaxed word-break-safe`}>

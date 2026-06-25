@@ -1,5 +1,5 @@
 
-export type CategoryType = 'UTBK' | 'SKD' | 'GENERAL' | 'TPA' | 'PSIKOTEST' | 'INTERVIEW' | 'BUTAWRNA' | 'SKRIPSI' | 'KECERMATAN' | 'BENCHMARK' | 'PELAJARAN' | 'TKA';
+export type CategoryType = 'UTBK' | 'SKD' | 'GENERAL' | 'TPA' | 'PSIKOTEST' | 'INTERVIEW' | 'BUTAWRNA' | 'SKRIPSI' | 'KECERMATAN' | 'BENCHMARK' | 'PELAJARAN' | 'TKA' | 'BAHASA';
 export type SkdStreamType = 'CPNS' | 'KEDINASAN';
 export type TpaStreamType = 'TPA_TBI' | 'PSIKOTEST_KEDINASAN';
 export type TkaLevelType = 'SD' | 'SMP' | 'SMA';

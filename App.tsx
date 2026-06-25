@@ -125,6 +125,7 @@ import {
   Swords,
   Flag,
   Bot,
+  Headphones
 } from "lucide-react";
 import { PomodoroTimer } from "./components/PomodoroTimer";
 import { Flashcard } from "./components/Flashcard";
@@ -1338,9 +1339,52 @@ const Dashboard: React.FC<{
               </div>
             )}
             
+            {category === "BAHASA" && (
+              <div className="animate-fade-in-up">
+                <div className="grid md:grid-cols-2 gap-6 mb-8">
+                  <button
+                    onClick={() => {
+                      SoundManager.play("click");
+                      onOpenTOSelection();
+                    }}
+                    className="bg-white dark:bg-slate-800 p-6 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 transition text-center group shadow-sm"
+                  >
+                    <Headphones
+                      size={48}
+                      className="mx-auto mb-4 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition"
+                    />
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+                      TOEFL / IELTS (Listening)
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                      Simulasi lengkap dengan audio Text-to-Speech AI yang terintegrasi.
+                    </p>
+                  </button>
+                </div>
+              </div>
+            )}
             {category === "KECERMATAN" && (
               <div className="animate-fade-in-up">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 mb-8">
+                  <button
+                    onClick={() => {
+                      SoundManager.play("click");
+                      onStartTesKoran();
+                    }}
+                    className="p-3 sm:p-4 bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 rounded-xl text-left transition group shadow-sm"
+                  >
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="p-1.5 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg text-emerald-600 dark:text-emerald-400">
+                        <Calculator size={18} />
+                      </span>
+                      <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-white">
+                        Tes Koran
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2">
+                      Uji ketelitian Pauli/Kraepelin.
+                    </p>
+                  </button>
                   <button
                     onClick={() => {
                       SoundManager.play("click");
@@ -1455,6 +1499,13 @@ const Dashboard: React.FC<{
                       Pilih semua simbol yang diminta dari grid.
                     </p>
                   </button>
+                </div>
+
+                <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
+                  <h3 className="font-bold text-slate-800 dark:text-white mb-4">
+                    Latihan Per Subtes (Psikotes)
+                  </h3>
+                  {renderSubtests(PSIKOTEST_SUBTESTS)}
                 </div>
               </div>
             )}
@@ -1807,55 +1858,6 @@ const Dashboard: React.FC<{
                 onPelajaranSemesterSelect={onPelajaranSemesterSelect!}
                 onOpenTOSelection={onOpenTOSelection}
               />
-            )}
-            {category === "PSIKOTEST" && (
-              <>
-                <div className="grid md:grid-cols-2 gap-6 mb-8">
-                  <button
-                    onClick={() => {
-                      SoundManager.play("click");
-                      onStartTesKoran();
-                    }}
-                    className="bg-white dark:bg-slate-800 p-6 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition text-center group shadow-sm"
-                  >
-                    <Calculator
-                      size={48}
-                      className="mx-auto mb-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition"
-                    />
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">
-                      Tes Koran (Pauli/Kraepelin)
-                    </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                      Uji kecepatan, ketelitian, dan stabilitas emosi dengan
-                      menjumlahkan angka.
-                    </p>
-                  </button>
-                  <button
-                    onClick={() => {
-                      SoundManager.play("click");
-                      onOpenTOSelection();
-                    }}
-                    className="bg-white dark:bg-slate-800 p-6 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition text-center group shadow-sm"
-                  >
-                    <Brain
-                      size={48}
-                      className="mx-auto mb-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition"
-                    />
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">
-                      Psikotes Logika & IQ
-                    </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                      Analogi, Deret Angka, dan Penalaran Logis (HOTS).
-                    </p>
-                  </button>
-                </div>
-                <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
-                  <h3 className="font-bold text-slate-800 dark:text-white mb-4">
-                    Latihan Per Subtes
-                  </h3>
-                  {renderSubtests(PSIKOTEST_SUBTESTS)}
-                </div>
-              </>
             )}
             {category === "INTERVIEW" && renderSubtests(INTERVIEW_TOPICS)}
             {category === "SKD" &&
@@ -3537,6 +3539,8 @@ function App() {
       setBenchmarkMode(null);
       setBenchmarkTab("DASHBOARD");
       setCurrentView("BENCHMARK");
+    } else if (cat === "PSIKOTEST") {
+      setCurrentView("TO_SELECTION");
     } else {
       setCurrentView("DASHBOARD");
       setGeneralInput(null);
@@ -3759,9 +3763,21 @@ function App() {
             newQuestions = await Gemini.generateTpaTbiSimulation();
             duration = 100;
           }
-        } else if (selectedCategory === "PSIKOTEST") {
+        } else if (selectedCategory === "PSIKOTEST" || selectedCategory === "KECERMATAN") {
           newQuestions = await Gemini.generatePsikotestSimulation();
           duration = 40;
+        } else if (selectedCategory === "BAHASA") {
+          newQuestions = await Gemini.generateQuestions(
+            StudyMode.SIMULATION,
+            "BAHASA",
+            "TOEFL IELTS English Test",
+            20,
+            [],
+            undefined,
+            undefined,
+            "HOTS"
+          );
+          duration = 60;
         } else if (selectedCategory === "PELAJARAN" && tkaLevel) {
           newQuestions = await Gemini.generateTkaSimulation(tkaLevel);
           duration = 90;
@@ -4433,10 +4449,10 @@ function App() {
           {currentView === "HOME" && (
             <motion.div
               key="HOME"
-              initial={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.15 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               className="w-full"
             >
               <div
@@ -4479,12 +4495,9 @@ function App() {
                       ) {
                         cardClass +=
                           " hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-orange-100 dark:hover:shadow-orange-900/20";
-                      } else if (cat.id === "TKA") {
+                      } else if (["UTBK", "SKD", "TPA", "PSIKOTEST", "TKA", "PELAJARAN", "BAHASA"].includes(cat.id)) {
                         cardClass +=
                           " hover:border-emerald-500 dark:hover:border-emerald-500 hover:shadow-emerald-100 dark:hover:shadow-emerald-900/20";
-                      } else if (cat.id === "PELAJARAN") {
-                        cardClass +=
-                          " hover:border-teal-500 dark:hover:border-teal-500 hover:shadow-teal-100 dark:hover:shadow-teal-900/20";
                       } else {
                         cardClass +=
                           " hover:border-indigo-500 dark:hover:border-indigo-500 hover:shadow-indigo-100 dark:hover:shadow-indigo-900/20";
@@ -4510,7 +4523,7 @@ function App() {
                       iconColor = "text-orange-600 dark:text-orange-400";
                       decorColor = "bg-orange-50 dark:bg-orange-900/20";
                     } else if (
-                      ["UTBK", "SKD", "TPA", "PSIKOTEST", "TKA"].includes(
+                      ["UTBK", "SKD", "TPA", "PSIKOTEST", "TKA", "PELAJARAN", "BAHASA"].includes(
                         cat.id,
                       )
                     ) {
@@ -4518,11 +4531,6 @@ function App() {
                       iconBg = "bg-emerald-100 dark:bg-emerald-900/40";
                       iconColor = "text-emerald-600 dark:text-emerald-400";
                       decorColor = "bg-emerald-50 dark:bg-emerald-900/20";
-                    } else if (cat.id === "PELAJARAN") {
-                      // TEAL
-                      iconBg = "bg-teal-100 dark:bg-teal-900/40";
-                      iconColor = "text-teal-600 dark:text-teal-400";
-                      decorColor = "bg-teal-50 dark:bg-teal-900/20";
                     }
 
                     return (
@@ -4543,9 +4551,11 @@ function App() {
                           ) : cat.id === "SKD" ? (
                             <Briefcase className="w-3.5 h-3.5 sm:w-5.5 sm:h-5.5" />
                           ) : cat.id === "INTERVIEW" ? (
-                            <MessageSquare className="w-3.5 h-3.5 sm:w-5.5 sm:h-5.5" />
+                            <Users className="w-3.5 h-3.5 sm:w-5.5 sm:h-5.5" />
                           ) : cat.id === "BUTAWRNA" ? (
                             <Palette className="w-3.5 h-3.5 sm:w-5.5 sm:h-5.5" />
+                          ) : cat.id === "BAHASA" ? (
+                            <Headphones className="w-3.5 h-3.5 sm:w-5.5 sm:h-5.5" />
                           ) : cat.id === "PSIKOTEST" ? (
                             <Brain className="w-3.5 h-3.5 sm:w-5.5 sm:h-5.5" />
                           ) : cat.id === "SKRIPSI" ? (
@@ -4556,6 +4566,10 @@ function App() {
                             <Activity className="w-3.5 h-3.5 sm:w-5.5 sm:h-5.5" />
                           ) : cat.id === "TPA" ? (
                             <Zap className="w-3.5 h-3.5 sm:w-5.5 sm:h-5.5" />
+                          ) : cat.id === "PELAJARAN" ? (
+                            <Library className="w-3.5 h-3.5 sm:w-5.5 sm:h-5.5" />
+                          ) : cat.id === "UTBK" ? (
+                            <Landmark className="w-3.5 h-3.5 sm:w-5.5 sm:h-5.5" />
                           ) : (
                             <GraduationCap className="w-3.5 h-3.5 sm:w-5.5 sm:h-5.5" />
                           )}
@@ -4641,9 +4655,9 @@ function App() {
           {currentView === "DASHBOARD" && (
             <motion.div
               key="DASHBOARD"
-              initial={{ opacity: 0, x: 15 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -15 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15 }}
               className="w-full"
             >
@@ -4716,9 +4730,9 @@ function App() {
           {currentView === "TO_SELECTION" && (
             <motion.div
               key="TO_SELECTION"
-              initial={{ opacity: 0, x: 15 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -15 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15 }}
               className="w-full"
             >
@@ -4752,9 +4766,9 @@ function App() {
           {currentView === "RESUME_LIST" && (
             <motion.div
               key="RESUME_LIST"
-              initial={{ opacity: 0, x: 15 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -15 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15 }}
               className="w-full"
             >
@@ -4773,9 +4787,9 @@ function App() {
           {currentView === "ACADEMIC_HUB" && (
             <motion.div
               key="ACADEMIC_HUB"
-              initial={{ opacity: 0, x: 15 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -15 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15 }}
               className="w-full"
             >
@@ -4793,9 +4807,9 @@ function App() {
           {currentView === "SOCIAL_HUB" && userProfile && (
             <motion.div
               key="SOCIAL_HUB"
-              initial={{ opacity: 0, x: 15 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -15 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15 }}
               className="w-full"
             >
@@ -4813,9 +4827,9 @@ function App() {
           {currentView === "BATTLE" && userProfile && (
             <motion.div
               key="BATTLE"
-              initial={{ opacity: 0, x: 15 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -15 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15 }}
               className="w-full"
             >
@@ -4832,9 +4846,9 @@ function App() {
           {currentView === "MARKED_QUESTIONS" && (
             <motion.div
               key="MARKED_QUESTIONS"
-              initial={{ opacity: 0, x: 15 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -15 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15 }}
               className="w-full"
             >
@@ -4850,10 +4864,10 @@ function App() {
           {currentView === "SESSION" && (
             <motion.div
               key="SESSION"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               className="w-full"
             >
               {selectedCategory === "SKRIPSI" ? (
@@ -4953,10 +4967,10 @@ function App() {
           {currentView === "TES_KORAN" && (
             <motion.div
               key="TES_KORAN"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.15 }}
               className="w-full"
             >
               <TesKoran
@@ -4968,10 +4982,10 @@ function App() {
           {currentView === "TES_KECERMATAN" && (
             <motion.div
               key="TES_KECERMATAN"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.15 }}
               className="w-full"
             >
               <TesKecermatan
@@ -4984,9 +4998,9 @@ function App() {
           {currentView === "BENCHMARK" && (
             <motion.div
               key="BENCHMARK"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15 }}
               className="w-full"
             >
@@ -5004,9 +5018,9 @@ function App() {
           {currentView === "GLOBAL_LEADERBOARD" && (
             <motion.div
               key="GLOBAL_LEADERBOARD"
-              initial={{ opacity: 0, x: 15 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -15 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15 }}
               className="w-full"
             >
@@ -5029,15 +5043,16 @@ function App() {
           {currentView === "RESULTS" && (
             <motion.div
               key="RESULTS"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               className="w-full"
             >
               <ResultsAnalysis
                 answers={userAnswers}
                 questions={questions}
+                userProfile={userProfile}
                 onHome={() => {
                   SoundManager.play("back");
                   setCurrentView("HOME");
@@ -5074,9 +5089,9 @@ function App() {
           {currentView === "HISTORY" && (
             <motion.div
               key="HISTORY"
-              initial={{ opacity: 0, x: 15 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -15 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15 }}
               className="w-full"
             >
@@ -5105,9 +5120,9 @@ function App() {
           {currentView === "REVIEW" && (
             <motion.div
               key="REVIEW"
-              initial={{ opacity: 0, x: 15 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -15 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15 }}
               className="w-full"
             >
@@ -5128,10 +5143,10 @@ function App() {
           {currentView === "COLORBLIND" && (
             <motion.div
               key="COLORBLIND"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.15 }}
               className="w-full"
             >
               <ColorBlindTest
