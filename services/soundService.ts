@@ -4,6 +4,7 @@ import { SOUND_EFFECTS } from '../constants';
 class SoundManagerClass {
     private audioCache: Partial<Record<keyof typeof SOUND_EFFECTS, HTMLAudioElement>> = {};
     private soundEnabled: boolean = true;
+    private buttonSoundsEnabled: boolean = true;
 
     constructor() {
         // PRELOAD CRITICAL SOUNDS FOR ZERO DELAY
@@ -30,6 +31,7 @@ class SoundManagerClass {
 
     public syncSettings(settings: any) {
         this.soundEnabled = settings.soundEnabled;
+        this.buttonSoundsEnabled = settings.buttonSoundsEnabled !== false;
         
         // Update volume for all cached audios
         const vol = settings.volume !== undefined ? settings.volume : 0.5;
@@ -43,6 +45,10 @@ class SoundManagerClass {
 
     public play(type: keyof typeof SOUND_EFFECTS) {
         if (!this.soundEnabled) return;
+        
+        // Check for button sounds
+        const isButtonSound = type === 'click' || type === 'tap' || type === 'back';
+        if (isButtonSound && !this.buttonSoundsEnabled) return;
 
         try {
             // Optimized Path for Cached Sounds (Zero Delay)

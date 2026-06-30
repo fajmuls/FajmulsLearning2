@@ -469,6 +469,7 @@ interface SessionEngineProps {
   onFetchMoreActive?: (lastBatchAnswers: UserAnswer[]) => Promise<void>;
   enableAITutor?: boolean;
   autoNext?: boolean;
+  onOpenSettings?: () => void;
 }
 
 const getTkpScore = (option: string, currentQ: Question): number => {
@@ -515,7 +516,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
     mode, questions, drillContent, onComplete, 
     isSkdSimulation, isUtbkSimulation, category, showToast: parentShowToast,
     initialState, userId, skdStream, tpaStream, packageTitle, sessionDuration, onSaveAndExit, initialFontSize = 'md',
-    isLoadingMore, isAdaptiveCat, onFetchMoreActive, enableAITutor = true, autoNext = true
+    isLoadingMore, isAdaptiveCat, onFetchMoreActive, enableAITutor = true, autoNext = true, onOpenSettings
 }) => {
     
     // Font Size State
@@ -1259,7 +1260,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
         }
 
         SoundManager.play('click');
-
+        
         // Scoring Logic
         let score = 0;
         let isCorrect = false;
@@ -1345,12 +1346,14 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
         setAnswerMap(prev => ({ ...prev, [currentQ.id]: newAnswer }));
         startTimeRef.current = Date.now(); 
 
-        // Auto Next Logic
+        // Auto Next Logic (Fixed: Consolidated and added safety checks)
         if (autoNext && currentIndex < activeQuestions.length - 1) {
-            // Small delay for visual feedback of the selection before switching
             setTimeout(() => {
-                setCurrentIndex(prev => prev + 1);
-            }, 300);
+                // Ensure we don't advance if the user changed question manually or session ended
+                if (!isFinishedRef.current && !isPaused) {
+                    setCurrentIndex(prev => prev + 1);
+                }
+            }, 500);
         }
     };
 
@@ -1700,7 +1703,8 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                 </button>
                             </>
                          )}
-                        <button onClick={() => setIsMobileGridOpen(!isMobileGridOpen)} className="p-1.5 bg-indigo-50 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 rounded"><Grid size={18} /></button>
+                        <button onClick={() => setIsMobileGridOpen(!isMobileGridOpen)} className="p-1.5 bg-indigo-50 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 rounded transition-transform hover:scale-110 active:scale-95"><Grid size={18} /></button>
+                        <button onClick={() => onOpenSettings?.()} className="p-1.5 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 rounded transition-transform hover:scale-110 active:scale-95"><Settings size={18} /></button>
                     </div>
                 </div>
 

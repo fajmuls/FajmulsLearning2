@@ -1,7 +1,11 @@
-
-import React from 'react';
-import { Settings, Volume2, VolumeX, Bell, BellOff, CheckCircle, XCircle, Music, Moon, Sun, Sparkles, Layout, Monitor, Type, Palette, Bot, Timer } from 'lucide-react';
-import { AppSettings, UserProfile, AppFontSize, AppPattern } from '../types';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+    Settings, Volume2, VolumeX, Bell, BellOff, CheckCircle, 
+    XCircle, Music, Moon, Sun, Sparkles, Layout, Monitor, 
+    Type, Palette, Bot, Timer, Check
+} from 'lucide-react';
+import { AppSettings, UserProfile, AppFontSize, AppPattern, AppUiPreset } from '../types';
 import { SoundManager } from '../services/soundService';
 
 interface SettingsModalProps {
@@ -13,7 +17,9 @@ interface SettingsModalProps {
     onUpdateProfile: (data: { username?: string, photoURL?: string }) => Promise<void>;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onUpdate, userProfile }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onUpdate, userProfile, onUpdateProfile }) => {
+    const [activeTab, setActiveTab] = useState<'display' | 'system'>('display');
+
     if (!isOpen) return null;
 
     const toggle = (key: keyof AppSettings) => {
@@ -23,7 +29,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
 
     const handleThemeChange = (theme: 'light' | 'dark' | 'fajmuls') => {
         SoundManager.play('click');
-        // If selecting Fajmuls theme, suggest a nice gradient background if not set
         let newPattern = settings.appPattern;
         if (theme === 'fajmuls' && newPattern === 'none') {
             newPattern = 'fajmuls';
@@ -43,7 +48,48 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
 
     const handleFontSizeChange = (size: AppFontSize) => {
         SoundManager.play('tap');
-        onUpdate({ ...settings, fontSize: size });
+        onUpdate({ ...settings, fontSize: size, uiPreset: 'default' });
+    };
+
+    const handlePresetChange = (preset: AppUiPreset) => {
+        SoundManager.play('click');
+        let newSettings = { ...settings, uiPreset: preset };
+        
+        switch(preset) {
+            case 'focus':
+                newSettings = { 
+                    ...newSettings, 
+                    fontSize: 'sm', 
+                    theme: 'dark', 
+                    darkMode: true,
+                    appPattern: 'none',
+                    appBaseColor: '#0f172a'
+                };
+                break;
+            case 'high_contrast':
+                newSettings = { 
+                    ...newSettings, 
+                    fontSize: 'md', 
+                    theme: 'light', 
+                    darkMode: false,
+                    appPattern: 'grid',
+                    appBaseColor: '#ffffff'
+                };
+                break;
+            case 'relaxed':
+                newSettings = { 
+                    ...newSettings, 
+                    fontSize: 'lg', 
+                    theme: 'light', 
+                    darkMode: false,
+                    appPattern: 'aurora',
+                    appBaseColor: '#fdf4ff'
+                };
+                break;
+            default:
+                break;
+        }
+        onUpdate(newSettings);
     };
 
     const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,10 +98,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
 
     const PRESET_COLORS = [
         { id: 'white', label: 'Putih', color: '#ffffff' },
-        { id: 'gray', label: 'Abu-abu', color: '#cbd5e1' }, // Fixed darker gray
-        { id: 'mint', label: 'Mint', color: '#6ee7b7' }, // Fixed mint
-        { id: 'cream', label: 'Cream', color: '#fcd34d' }, // Stronger cream/amber
-        { id: 'blue', label: 'Biru', color: '#93c5fd' }, // Stronger blue
+        { id: 'gray', label: 'Abu', color: '#cbd5e1' },
+        { id: 'mint', label: 'Mint', color: '#6ee7b7' },
+        { id: 'cream', label: 'Cream', color: '#fcd34d' },
+        { id: 'blue', label: 'Biru', color: '#93c5fd' },
         { id: 'dark', label: 'Dark', color: '#0f172a' },
     ];
 
@@ -69,243 +115,260 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     ];
 
     return (
-        <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
-            <div className="bg-white dark:bg-slate-800 w-full sm:max-w-sm max-sm:rounded-t-[2rem] sm:rounded-2xl p-4 sm:p-5 shadow-2xl border border-slate-200 dark:border-slate-700 max-h-[85vh] sm:max-h-[90vh] overflow-y-auto scrollbar-hide relative transition-all duration-300 transform">
-                
-                {/* Drag indicator for bottom drawer on mobile */}
-                <div className="w-10 h-1 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-3 sm:hidden"></div>
-                
-                {/* Header */}
-                <div className="flex justify-between items-center mb-3 sm:mb-4 sticky top-0 bg-white dark:bg-slate-800 z-10 py-1 border-b border-slate-100 dark:border-slate-700">
-                    <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <Settings size={18} className="text-slate-400"/> Pengaturan
-                    </h2>
-                    <button onClick={() => { SoundManager.play('back'); onClose(); }}><XCircle size={20} className="text-slate-400 hover:text-rose-500"/></button>
-                </div>
+        <AnimatePresence>
+            <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden p-4">
+                {/* Backdrop */}
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => { SoundManager.play('back'); onClose(); }}
+                    className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+                />
 
-                <div className="space-y-3 sm:space-y-4">
-                    {/* User Info (Read Only) */}
-                    {userProfile && (
-                        <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 sm:p-4 rounded-xl mb-3 sm:mb-4 border border-indigo-100 dark:border-indigo-800 flex items-center gap-3 sm:gap-4">
-                             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-indigo-200 dark:bg-indigo-800 flex items-center justify-center text-indigo-700 dark:text-indigo-200 font-bold text-base sm:text-lg overflow-hidden">
-                                {userProfile.photoURL ? (
-                                    <img src={userProfile.photoURL} alt="Prof" className="w-full h-full object-cover" referrerPolicy="no-referrer"/>
-                                ) : (
-                                    userProfile.username?.[0]?.toUpperCase()
-                                )}
+                {/* Modal Container */}
+                <motion.div 
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.9, opacity: 0 }}
+                    transition={{ type: "spring", damping: 25, stiffness: 400 }}
+                    className="settings-modal relative bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl w-full sm:max-w-[340px] max-h-[82vh] rounded-[2.5rem] shadow-2xl flex flex-col border border-slate-200/50 dark:border-slate-800/50 overflow-hidden"
+                >
+                    {/* Header */}
+                    <div className="px-5 pt-5 pb-1 flex justify-between items-center mb-3">
+                        <h2 className="text-base font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                            <div className="p-1.5 bg-indigo-500/10 rounded-lg">
+                                <Settings className="text-indigo-500" size={16} />
                             </div>
-                            <div>
-                                <div className="font-bold text-sm sm:text-base text-slate-800 dark:text-white">{userProfile.username}</div>
-                                <div className="text-xxs sm:text-xs text-slate-500">
-                                    {userProfile.isGuest ? 'Mode Tamu' : 'Akun Terhubung'}
-                                </div>
-                            </div>
+                            Pengaturan
+                        </h2>
+                        <button 
+                            onClick={() => { SoundManager.play('back'); onClose(); }}
+                            className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-400 hover:text-rose-500 transition-colors"
+                        >
+                            <XCircle size={18} />
+                        </button>
+                    </div>
+
+                    {/* Tabs */}
+                    <div className="px-5 mb-3">
+                        <div className="flex bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-xl">
+                            <button 
+                                onClick={() => { SoundManager.play('tap'); setActiveTab('display'); }}
+                                className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'display' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500'}`}
+                            >
+                                <Layout size={11} /> Tampilan
+                            </button>
+                            <button 
+                                onClick={() => { SoundManager.play('tap'); setActiveTab('system'); }}
+                                className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'system' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500'}`}
+                            >
+                                <Monitor size={11} /> Sistem
+                            </button>
                         </div>
-                    )}
+                    </div>
 
-                    {/* TAMPILAN SECTION */}
-                    <div className="space-y-3 sm:space-y-4">
-                        <h3 className="text-xxs font-bold text-slate-400 uppercase tracking-wider mb-1 sm:mb-2">Tampilan</h3>
-                        
-                        {/* Theme Selector */}
-                        <div className="p-3 sm:p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                            <div className="flex items-center gap-2 mb-2 sm:mb-3 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm">
-                                <Layout size={14} /> Tema Aplikasi
-                            </div>
-                            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-                                <button onClick={() => handleThemeChange('light')} className={`flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl border-2 transition-all ${settings.theme === 'light' ? 'bg-white border-indigo-500 text-indigo-600 shadow-md' : 'bg-slate-100 border-transparent text-slate-500 hover:bg-white'}`}><Sun size={18} className="mb-0.5"/><span className="text-xxs sm:text-xs font-bold">Light</span></button>
-                                <button onClick={() => handleThemeChange('dark')} className={`flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl border-2 transition-all ${settings.theme === 'dark' ? 'bg-slate-900 border-indigo-500 text-indigo-400 shadow-md' : 'bg-slate-100 dark:bg-slate-600 border-transparent text-slate-500 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-500'}`}><Moon size={18} className="mb-0.5"/><span className="text-xxs sm:text-xs font-bold">Dark</span></button>
-                                <button onClick={() => handleThemeChange('fajmuls')} className={`flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl border-2 transition-all relative overflow-hidden ${settings.theme === 'fajmuls' ? 'bg-gradient-to-br from-cyan-50 to-blue-50 border-indigo-500 text-indigo-600 shadow-md' : 'bg-slate-100 border-transparent text-slate-500 hover:bg-white'}`}><div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-0"></div><Sparkles size={18} className="mb-0.5 relative z-10"/><span className="text-xxs sm:text-xs font-bold relative z-10">Fajmuls</span></button>
-                            </div>
-                        </div>
+                    {/* Scrollable Content */}
+                    <div className="flex-1 overflow-y-auto px-5 py-1 scrollbar-hide space-y-4">
+                        {activeTab === 'display' ? (
+                            <motion.div 
+                                key="display"
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="space-y-4 pb-4"
+                            >
+                                {/* Preset Themes */}
+                                <section>
+                                    <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-2 block px-1">Preset Cepat</label>
+                                    <div className="grid grid-cols-3 gap-1.5">
+                                        {[
+                                            { id: 'focus', label: 'Focus', icon: <Monitor size={10}/>, color: 'bg-slate-900 text-white' },
+                                            { id: 'high_contrast', label: 'Contrast', icon: <Type size={10}/>, color: 'bg-white text-slate-900 border border-slate-200' },
+                                            { id: 'relaxed', label: 'Relaxed', icon: <Sparkles size={10}/>, color: 'bg-rose-50 text-rose-600' }
+                                        ].map((p) => (
+                                            <button 
+                                                key={p.id}
+                                                onClick={() => handlePresetChange(p.id as any)}
+                                                className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all ${settings.uiPreset === p.id ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-500/10' : 'border-slate-100 dark:border-slate-800/50 bg-slate-50/30 dark:bg-slate-800/30'}`}
+                                            >
+                                                <div className={`w-5 h-5 rounded-lg flex items-center justify-center ${p.color}`}>
+                                                    {p.icon}
+                                                </div>
+                                                <span className={`text-[7px] font-bold ${settings.uiPreset === p.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}>{p.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </section>
 
-                        {/* Background Customization (Split: Color + Pattern) */}
-                        <div className="p-3 sm:p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                            <div className="flex items-center gap-2 mb-2 sm:mb-3 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm">
-                                <Monitor size={14} /> Background
-                            </div>
-                            
-                            {/* 1. Warna Dasar (Solid Colors) */}
-                            <div className="mb-3">
-                                <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Warna Dasar (Solid)</span>
-                                <div className="flex flex-wrap gap-2.5 sm:gap-3">
-                                    {PRESET_COLORS.map((c) => (
-                                        <button 
-                                            key={c.id}
-                                            onClick={() => handleColorChange(c.color)}
-                                            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 transition-transform hover:scale-110 shadow-sm ${settings.appBaseColor === c.color ? 'border-indigo-600 scale-110 ring-2 ring-indigo-200' : 'border-slate-300 dark:border-slate-600'}`}
-                                            style={{ backgroundColor: c.color }}
-                                            title={c.label}
-                                        />
-                                    ))}
-                                    {/* Custom Color Picker */}
-                                    <div className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border-2 border-slate-300 dark:border-slate-600 hover:scale-110 transition-transform shadow-sm group">
-                                        <input 
-                                            type="color" 
-                                            value={settings.appBaseColor}
-                                            onChange={(e) => handleColorChange(e.target.value)}
-                                            className="absolute inset-0 w-[150%] h-[150%] -top-[25%] -left-[25%] cursor-pointer p-0 border-0"
-                                        />
-                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                            <Palette size={12} className="text-slate-500 bg-white/50 rounded-full p-0.5"/>
+                                {/* Theme Selector */}
+                                <section>
+                                    <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-2 block px-1">Tema Dasar</label>
+                                    <div className="grid grid-cols-3 gap-1.5">
+                                        {[
+                                            { id: 'light', icon: Sun, label: 'Light', color: 'text-amber-500' },
+                                            { id: 'dark', icon: Moon, label: 'Dark', color: 'text-indigo-400' },
+                                            { id: 'fajmuls', icon: Sparkles, label: 'Fajmuls', color: 'text-cyan-500' }
+                                        ].map((t) => (
+                                            <button 
+                                                key={t.id}
+                                                onClick={() => handleThemeChange(t.id as any)}
+                                                className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all ${settings.theme === t.id ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-500/10' : 'border-slate-100 dark:border-slate-800/50 bg-slate-50/30 dark:bg-slate-800/30'}`}
+                                            >
+                                                <t.icon size={14} className={t.color} />
+                                                <span className={`text-[8px] font-bold ${settings.theme === t.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}>{t.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </section>
+
+                                {/* Background Colors */}
+                                <section>
+                                    <div className="flex justify-between items-center mb-1.5 px-1">
+                                        <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Warna Aksen</label>
+                                        <div className="relative w-4 h-4 rounded-full overflow-hidden border border-slate-200 shadow-xs">
+                                            <input 
+                                                type="color" 
+                                                value={settings.appBaseColor}
+                                                onChange={(e) => handleColorChange(e.target.value)}
+                                                className="absolute inset-0 w-[200%] h-[200%] -top-1/2 -left-1/2 cursor-pointer"
+                                            />
+                                            <Palette size={6} className="absolute inset-0 m-auto text-slate-400 pointer-events-none" />
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {PRESET_COLORS.map((c) => (
+                                            <button 
+                                                key={c.id}
+                                                onClick={() => handleColorChange(c.color)}
+                                                className={`w-6 h-6 rounded-full border transition-all flex items-center justify-center ${settings.appBaseColor === c.color ? 'border-indigo-500 ring-2 ring-indigo-500/20 scale-105' : 'border-slate-100 dark:border-slate-800 shadow-xs'}`}
+                                                style={{ backgroundColor: c.color }}
+                                            >
+                                                {settings.appBaseColor === c.color && <Check size={10} className={c.id === 'white' || c.id === 'mint' || c.id === 'cream' ? 'text-slate-800' : 'text-white'} />}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </section>
+
+                                {/* Pattern Grid */}
+                                <section>
+                                    <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block px-1">Pola Latar</label>
+                                    <div className="grid grid-cols-3 gap-1.5">
+                                        {PATTERN_OPTIONS.map((pat) => (
+                                            <button 
+                                                key={pat.id}
+                                                onClick={() => handlePatternChange(pat.id as any)}
+                                                className={`h-8 rounded-lg border overflow-hidden relative transition-all ${settings.appPattern === pat.id ? 'border-indigo-500 shadow-xs' : 'border-slate-100 dark:border-slate-800/50'}`}
+                                                style={{ backgroundColor: settings.appBaseColor }}
+                                            >
+                                                <div className={`absolute inset-0 ${pat.css} opacity-20`} />
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <span className="text-[6px] font-black uppercase px-1 py-0.5 rounded bg-white/70 dark:bg-slate-900/70 shadow-xs">{pat.label}</span>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </section>
+
+                                {/* Font Size */}
+                                <section>
+                                    <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block px-1">Ukuran Teks</label>
+                                    <div className="flex bg-slate-100 dark:bg-slate-800/50 p-0.5 rounded-lg">
+                                        {['xs', 'sm', 'md', 'lg', 'xl'].map((size) => (
+                                            <button 
+                                                key={size}
+                                                onClick={() => handleFontSizeChange(size as any)}
+                                                className={`flex-1 py-1 rounded-md text-[8px] font-black transition-all ${settings.fontSize === size ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs' : 'text-slate-400'}`}
+                                            >
+                                                {size.toUpperCase()}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </section>
+                            </motion.div>
+                        ) : (
+                            <motion.div 
+                                key="system"
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="space-y-4 pb-4"
+                            >
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1 block px-1">Audio & Haptik</label>
+                                    <div className="bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl overflow-hidden border border-slate-100/50 dark:border-slate-800/50">
+                                        <ToggleItem icon={<Volume2 size={12}/>} label="Suara Umum" checked={settings.soundEnabled} onChange={() => toggle('soundEnabled')} color="emerald" />
+                                        <ToggleItem icon={<Sparkles size={12}/>} label="Suara Tombol" checked={settings.buttonSoundsEnabled !== false} onChange={() => toggle('buttonSoundsEnabled')} color="indigo" />
+                                        <ToggleItem icon={<Music size={12}/>} label="Musik Latar" checked={settings.musicEnabled} onChange={() => toggle('musicEnabled')} color="pink" />
+                                        <div className="p-3 bg-white/40 dark:bg-slate-800/40 border-t border-slate-100/50 dark:border-slate-800/50">
+                                            <div className="flex justify-between items-center mb-2 px-1">
+                                                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tight">Volume</span>
+                                                <span className="text-[8px] font-black text-indigo-500">{Math.round(settings.volume * 100)}%</span>
+                                            </div>
+                                            <input type="range" min="0" max="1" step="0.1" value={settings.volume} onChange={handleVolumeChange} className="w-full h-1 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none accent-indigo-500 cursor-pointer" />
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* 2. Pola / Pattern (Overlay) */}
-                            <div>
-                                <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Pola / Pattern Overlay</span>
-                                <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
-                                    {PATTERN_OPTIONS.map((pat) => (
-                                        <button 
-                                            key={pat.id} 
-                                            onClick={() => handlePatternChange(pat.id as AppPattern)}
-                                            className={`relative overflow-hidden rounded-lg border-2 transition-all h-9 sm:h-12 flex items-center justify-center group ${settings.appPattern === pat.id ? 'border-indigo-600' : 'border-slate-200 dark:border-slate-600 hover:border-slate-400'}`}
-                                            style={{ backgroundColor: settings.appBaseColor }}
-                                        >
-                                            {/* Preview Container */}
-                                            <div className={`absolute inset-0 w-full h-full ${pat.css} opacity-70 group-hover:opacity-100 transition-opacity`}></div>
-                                            
-                                            {/* Label Backdrop */}
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/80 dark:bg-black/60 backdrop-blur-sm shadow-sm ${settings.appPattern === pat.id ? 'text-indigo-600' : 'text-slate-700 dark:text-slate-200'}`}>
-                                                    {pat.label}
-                                                </span>
-                                            </div>
-                                        </button>
-                                    ))}
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1 block px-1">Gameplay</label>
+                                    <div className="bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl overflow-hidden border border-slate-100/50 dark:border-slate-800/50">
+                                        <ToggleItem icon={<CheckCircle size={12}/>} label="Auto-Lanjut" checked={settings.autoNextQuestion !== false} onChange={() => toggle('autoNextQuestion')} color="blue" />
+                                        <ToggleItem icon={<Bot size={12}/>} label="AI Tutor" checked={settings.enableAITutor !== false} onChange={() => toggle('enableAITutor')} color="indigo" />
+                                        <ToggleItem icon={<Timer size={12}/>} label="Timer Fokus" checked={settings.enableTimer !== false} onChange={() => toggle('enableTimer')} color="rose" />
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        {/* Font Size Selector */}
-                        <div className="p-3 sm:p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                            <div className="flex items-center gap-2 mb-2 sm:mb-3 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm">
-                                <Type size={14} /> Ukuran Font Soal
-                            </div>
-                            <div className="flex bg-slate-200 dark:bg-slate-600 rounded-lg p-0.5">
-                                {[
-                                    { id: 'xs', label: 'XS' },
-                                    { id: 'sm', label: 'S' },
-                                    { id: 'md', label: 'M' },
-                                    { id: 'lg', label: 'L' },
-                                    { id: 'xl', label: 'XL' }
-                                ].map((size) => (
-                                    <button 
-                                        key={size.id}
-                                        onClick={() => handleFontSizeChange(size.id as AppFontSize)}
-                                        className={`flex-1 py-1 rounded-md text-[10px] sm:text-xs font-bold transition-all ${settings.fontSize === size.id ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-white'}`}
-                                    >
-                                        {size.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                            </motion.div>
+                        )}
                     </div>
 
-                    {/* SUARA & LAINNYA */}
-                    <div className="space-y-4 pt-2">
-                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Suara & Sistem</h3>
-
-                        {/* SFX Toggle */}
-                        <div className="flex justify-between items-center p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                            <div className="flex items-center gap-2 sm:gap-3">
-                                <div className={`p-1.5 sm:p-2 rounded-lg ${settings.soundEnabled ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'}`}>
-                                    {settings.soundEnabled ? <Volume2 size={16}/> : <VolumeX size={16}/>}
-                                </div>
-                                <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-white">Efek Suara</span>
-                            </div>
-                            <input type="checkbox" className="w-4 h-4 sm:w-5 sm:h-5 accent-indigo-600" checked={settings.soundEnabled} onChange={() => toggle('soundEnabled')}/>
-                        </div>
-
-                        {/* Music Toggle */}
-                        <div className="flex justify-between items-center p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                            <div className="flex items-center gap-2 sm:gap-3">
-                                <div className={`p-1.5 sm:p-2 rounded-lg ${settings.musicEnabled ? 'bg-pink-100 text-pink-600' : 'bg-slate-200 text-slate-500'}`}>
-                                    {settings.musicEnabled ? <Music size={16}/> : <Music size={16} className="opacity-50"/>}
-                                </div>
-                                <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-white">Musik Latar</span>
-                            </div>
-                            <input type="checkbox" className="w-4 h-4 sm:w-5 sm:h-5 accent-indigo-600" checked={settings.musicEnabled} onChange={() => toggle('musicEnabled')}/>
-                        </div>
-
-                        {/* Vibration Toggle */}
-                        <div className="flex justify-between items-center p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                            <div className="flex items-center gap-2 sm:gap-3">
-                                <div className={`p-1.5 sm:p-2 rounded-lg ${settings.vibrationEnabled !== false ? 'bg-orange-100 text-orange-600' : 'bg-slate-200 text-slate-500'}`}>
-                                    <Bell size={16}/>
-                                </div>
-                                <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-white">Getaran (Haptic)</span>
-                            </div>
-                            <input type="checkbox" className="w-4 h-4 sm:w-5 sm:h-5 accent-indigo-600" checked={settings.vibrationEnabled !== false} onChange={() => toggle('vibrationEnabled')}/>
-                        </div>
-
-                        {/* Volume Slider */}
-                        <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                            <div className="flex justify-between mb-2">
-                                <span className="text-xxs sm:text-xs font-bold text-slate-500 uppercase">Volume</span>
-                                <span className="text-xxs sm:text-xs font-bold text-indigo-600">{Math.round(settings.volume * 100)}%</span>
-                            </div>
-                            <input type="range" min="0" max="1" step="0.1" value={settings.volume} onChange={handleVolumeChange} className="w-full h-1.5 sm:h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer dark:bg-slate-600 accent-indigo-600" />
-                        </div>
-
-                        {/* Notifications */}
-                        <div className="flex justify-between items-center p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                            <div className="flex items-center gap-2 sm:gap-3">
-                                <div className={`p-1.5 sm:p-2 rounded-lg ${settings.funnyNotifications ? 'bg-amber-100 text-amber-600' : 'bg-slate-200 text-slate-500'}`}>
-                                    {settings.funnyNotifications ? <Bell size={16}/> : <BellOff size={16}/>}
-                                </div>
-                                <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-white">Notifikasi Lucu</span>
-                            </div>
-                            <input type="checkbox" className="w-4 h-4 sm:w-5 sm:h-5 accent-indigo-600" checked={settings.funnyNotifications} onChange={() => toggle('funnyNotifications')}/>
-                        </div>
-
-                        {/* Auto-Next Feature */}
-                        <div className="flex justify-between items-center p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                            <div className="flex items-center gap-2 sm:gap-3">
-                                <div className={`p-1.5 sm:p-2 rounded-lg ${settings.autoNextQuestion !== false ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 text-slate-500'}`}>
-                                    <CheckCircle size={16}/>
-                                </div>
-                                <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-white">Otomatis Lanjut Soal</span>
-                            </div>
-                            <input type="checkbox" className="w-4 h-4 sm:w-5 sm:h-5 accent-indigo-600" checked={settings.autoNextQuestion !== false} onChange={() => toggle('autoNextQuestion')}/>
-                        </div>
-
-                        {/* AI Tutor Toggle */}
-                        <div className="flex justify-between items-center p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                            <div className="flex items-center gap-2 sm:gap-3">
-                                <div className={`p-1.5 sm:p-2 rounded-lg ${settings.enableAITutor !== false ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}>
-                                    <Bot size={16}/>
-                                </div>
-                                <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-white">AI Tutor Badge</span>
-                            </div>
-                            <input type="checkbox" className="w-4 h-4 sm:w-5 sm:h-5 accent-indigo-600" checked={settings.enableAITutor !== false} onChange={() => toggle('enableAITutor')}/>
-                        </div>
-
-                        {/* Pomodoro Timer Toggle */}
-                        <div className="flex justify-between items-center p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                            <div className="flex items-center gap-2 sm:gap-3">
-                                <div className={`p-1.5 sm:p-2 rounded-lg ${settings.enableTimer !== false ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'}`}>
-                                    <Timer size={16}/>
-                                </div>
-                                <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-white">Mode Timer (Fokus)</span>
-                            </div>
-                            <input type="checkbox" className="w-4 h-4 sm:w-5 sm:h-5 accent-indigo-600" checked={settings.enableTimer !== false} onChange={() => toggle('enableTimer')}/>
-                        </div>
-
-                        {/* Confirm Actions */}
-                        <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                            <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-lg ${settings.confirmActions ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'}`}>
-                                    <CheckCircle size={18}/>
-                                </div>
-                                <span className="font-bold text-sm text-slate-800 dark:text-white">Konfirmasi Aksi</span>
-                            </div>
-                            <input type="checkbox" className="w-5 h-5 accent-indigo-600" checked={settings.confirmActions} onChange={() => toggle('confirmActions')}/>
-                        </div>
+                    {/* Footer */}
+                    <div className="p-5 pt-2">
+                        <button 
+                            onClick={() => { SoundManager.play('back'); onClose(); }}
+                            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-[10px] shadow-lg shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                        >
+                            Tutup
+                        </button>
                     </div>
+                </motion.div>
+            </div>
+        </AnimatePresence>
+    );
+};
+
+const ToggleItem: React.FC<{ 
+    icon: React.ReactNode; 
+    label: string; 
+    checked: boolean; 
+    onChange: () => void;
+    color: string;
+}> = ({ icon, label, checked, onChange, color }) => {
+    const colorClasses: any = {
+        emerald: checked ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400',
+        indigo: checked ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400',
+        pink: checked ? 'bg-pink-100 text-pink-600' : 'bg-slate-100 text-slate-400',
+        orange: checked ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-400',
+        blue: checked ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400',
+        rose: checked ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-slate-400',
+        amber: checked ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400',
+    };
+
+    return (
+        <div 
+            onClick={onChange}
+            className="flex items-center justify-between p-3 px-4 hover:bg-white dark:hover:bg-slate-700/50 transition-colors cursor-pointer group"
+        >
+            <div className="flex items-center gap-3">
+                <div className={`p-1.5 rounded-lg transition-all group-active:scale-90 ${colorClasses[color]}`}>
+                    {icon}
                 </div>
+                <span className="text-[9px] font-bold text-slate-700 dark:text-slate-200">{label}</span>
+            </div>
+            <div className={`w-8 h-4.5 rounded-full relative transition-all duration-300 ${checked ? 'bg-indigo-500' : 'bg-slate-200 dark:bg-slate-700'}`}>
+                <motion.div 
+                    animate={{ x: checked ? 14 : 2 }}
+                    className="absolute top-0.5 left-0 w-3.5 h-3.5 bg-white rounded-full shadow-sm"
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
             </div>
         </div>
     );

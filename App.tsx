@@ -4958,8 +4958,9 @@ function App() {
                   onSaveAndExit={() => setCurrentView("HOME")}
                   initialFontSize={settings.fontSize}
                   isLoadingMore={isLoadingMore}
-                  enableAITutor={settings.enableAITutor !== false}
                   autoNext={settings.autoNextQuestion !== false}
+                  onOpenSettings={() => setSettingsOpen(true)}
+                  enableAITutor={settings.enableAITutor !== false}
                 />
               )}
             </motion.div>

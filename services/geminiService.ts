@@ -800,10 +800,11 @@ export const buildQuestionPrompt = (
 
            CRITICAL TWK RULES (ELITE DIFFICULTY & SANGAT MENGECOH):
            1. **NO IMAGES/SVG**: DILARANG KERAS menghasilkan gambar, SVG, atau visual apa pun. Soal TWK HARUS 100% TEKS.
-           2. FORMAT: Gunakan narasi/studi kasus yang kompleks, namun **BATASI TEKS BACAAN UTAMA TIDAK LEBIH DARI 3 PARAGRAF DAN 100-150 KATA**. Fokus pertanyaannya harus mengecoh dan HOTS Tingkat Tinggi.
-           3. JAWABAN: Harus ada 1 Benar (nilai 5) dan 4 Salah (nilai 0). Opsi jawaban harus menguji pemahaman KONSEPTUAL dan ANALITIS, bukan sekadar hafalan. **PANJANG JAWABAN HARUS RELATIF SAMA PANJANGNYA UNTUK SEMUA OPSI (A, B, C, D, E)** agar tidak bisa ditebak dari opsi terpanjang.
-           4. DISTRACTORS / PENGECOH: Pengecoh HARUS SANGAT SULIT (SUPER JEBAKAN). Gunakan penjelasan yang secara historis atau konstitusional "terdengar benar" dan "normatif" tapi terbalik konteksnya. Jawaban salah HARUS SAMA PANJANG detailnya dengan jawaban benar.
-           5. Language: Gunakan Bahasa Indonesia formal/akademik yang sangat rapi. Bentuk soal harus membutuhkan nalar analitis (misalnya analisis sikap, pemecahan masalah), bukan sekadar menyebut pasal.`;
+           2. FORMAT: Gunakan narasi/studi kasus yang kompleks, namun **SANGAT SINGKAT (MAKSIMAL 60-80 KATA)**. Fokus pada kualitas dilema atau analisis, bukan panjang teks.
+           3. JAWABAN: Harus ada 1 Benar dan 4 Salah. Opsi jawaban harus menguji pemahaman KONSEPTUAL dan ANALITIS yang mendalam.
+           4. EXPLANATION: Berikan penjelasan yang **SINGKAT, PADAT, DAN JELAS**. Langsung ke inti mengapa jawaban tersebut benar dan mengapa yang lain salah. Maksimal 2-3 kalimat pendek.
+           5. DISTRACTORS: Pengecoh HARUS SANGAT SULIT. Gunakan penjelasan yang secara normatif "terdengar benar" tapi tidak tepat secara konstitusional atau sejarah.
+           6. Language: Gunakan Bahasa Indonesia formal akademik yang rapi (EYD).`;
       } else if (isTiu) {
            difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - EXTREME HOTS (ELITE LEVEL).
            
@@ -813,14 +814,14 @@ export const buildQuestionPrompt = (
            - Kemampuan Figural: Analogi gambar, ketidaksamaan gambar, dan serial gambar (Gunakan SVG yang kompleks).
 
            CRITICAL TIU RULES (ELITE DIFFICULTY & PENGECOH EKSTREM):
-           0. LENGTH LIMIT: Batasi teks bacaan utama tidak lebih dari 3 paragraf dan maksimal 150 kata per soal untuk menjaga performa.
-           1. VERBAL ANALOGY: Gunakan analogi bertingkat dengan kosa kata KBBI level tinggi yang membingungkan. Wrap all concepts in LaTeX if they involve numbers or symbols.
-           2. NUMERICAL SERIES: Gunakan pola bertingkat yang tidak masuk akal tanpa penalaran tajam. EVERY NUMBER MUST BE IN LaTeX ($ ... $).
-           3. LOGICAL REASONING: Gunakan silogisme dengan 3+ premis dan kuantor ganda dengan complex structure. Pengecoh/Distractor harus menggunakan penalaran fallacy yang terasa "logis" jika dibaca sekilas.
-           4. FIGURAL: (Already defined in Master Figural instructions). Only TIU is allowed to have visual SVG logic.
-           5. MATH: Probability, Statistics, and Geometry must require multiple steps. EVERY CALCULATION IN LaTeX. Opsi yang salah harus berisi jebakan perhitungan parsial.
-           6. ODD ONE OUT (Ketidaksamaan): Just ask "Pilihlah gambar yang tidak sesuai." Do NOT explain the pattern.
-           7. ANTI-GUESSING BY LENGTH: PANJANG OPSI (A-E) HARUS SAMA UNTUK VERBAL/LOGIKA. Jangan biarkan jawaban yang benar tampak paling panjang.`;
+           0. LENGTH LIMIT: Soal harus **PENDEK DAN JELAS (MAKSIMAL 100 KATA)**. Kualitas kesulitan bukan dari panjang teks, tapi dari kedalaman logika/hitungannya.
+           1. VERBAL ANALOGY: Gunakan analogi bertingkat atau 3-variabel dengan kosa kata KBBI level tinggi.
+           2. NUMERICAL SERIES: Pola harus sulit (bertingkat atau interleaved) tapi logis.
+           3. LOGICAL REASONING: Gunakan silogisme dengan 2-3 premis yang SULIT (menggunakan negasi atau kuantor yang menjebak).
+           4. EXPLANATION: Berikan penjelasan **TO THE POINT**. Untuk hitungan, tunjukkan langkah tercepat. Untuk logika, berikan rumus atau skema logikanya secara singkat.
+           5. FIGURAL: (Already defined). Ensure SVGs are precise.
+           6. ODD ONE OUT: Just ask "Pilihlah gambar yang tidak sesuai."
+           7. ANTI-GUESSING BY LENGTH: PANJANG OPSI (A-E) HARUS SAMA UNTUK VERBAL/LOGIKA.`;
       } else if (isTkp) {
            difficultyContext = `CONTEXT: SKD TKP (Tes Karakteristik Pribadi) - EXTREME AMBIGUITY (SANGAT MENGECOH).
            
@@ -833,16 +834,11 @@ export const buildQuestionPrompt = (
            - Anti Radikalisme: Pemahaman dan sikap tegas terhadap ideologi yang bertentangan dengan Pancasila.
 
            CRITICAL TKP RULES (ANTI MENGIRA-NGIRA DENGAN PANJANG TEKS & KEEP IT CONCISE):
-           1. SISTEM SCORING WAJIB:
-              - Poin 5: Jawaban paling solutif, tepat, dan konteksnya sangat sesuai.
-              - Poin 4: Jawaban benar tapi konteksnya sedikit berbeda atau tindakannya kurang komprehensif.
-              - Poin 3: Jawaban netral, tidak menyelesaikan masalah secara tuntas tapi tidak merugikan.
-              - Poin 2: Jawaban salah atau tindakan yang kurang pantas.
-              - Poin 1: Jawaban salah ekstrim dan beda konteks sepenuhnya.
-           2. STRICT NO LENGTH BIAS (SANGAT PENTING): PANJANG TEKS KELIMA OPSI (A, B, C, D, E) HARUS IDENTIK / HAMPIR SAMA PERSIS. DILARANG KERAS membuat jawaban poin 5 menjadi jawaban yang paling panjang. Ratakan deskripsi jawaban opsi 1, 2, 3, 4, dan 5 agar mengecoh dan sangat sulit dibedakan melalui bentuk visualnya!
-           3. KEEP TEXT CONCISE: The question text (content) MUST BE SHORT AND CLEAR. Max 2-3 sentences. Do not write unnecessarily long paragraphs that cause timeouts. Make the dilemma obvious quickly.
-           4. VISUALS: DO NOT use images, icons, or SVG. Use professional text only.
-           5. CLEAR TOPICS: Ensure the explanation clearly states which of the 6 themes the question targets, and why the 5-point answer is best according to that theme.`;
+           1. SISTEM SCORING WAJIB: 5-4-3-2-1.
+           2. NO LENGTH BIAS: Semua opsi (A-E) harus memiliki panjang teks yang IDENTIK.
+           3. CONCISE & CLEAR: Soal harus **SANGAT SINGKAT (MAKSIMAL 50-70 KATA)**. Masalah harus langsung terlihat namun solusinya ambigu/debatable antara poin 5 dan 4.
+           4. EXPLANATION: Jelaskan secara **SINGKAT** mengapa poin 5 adalah yang terbaik berdasarkan prinsip profesionalisme/pelayanan/integritas terkait.
+           5. VISUALS: NO SVG.`;
       }
 
       if (category === 'SKD' && typeof context === 'string' && (context.toUpperCase().includes('TIU') || context.toUpperCase().includes('INTELEGENSIA'))) {

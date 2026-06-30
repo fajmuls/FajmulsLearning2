@@ -11,6 +11,7 @@ export type BenchmarkMode = 'REACTION' | 'SEQUENCE' | 'AIM' | 'CHIMP' | 'VISUAL'
 export type AppTheme = 'light' | 'dark' | 'fajmuls';
 export type AppFontSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 export type AppPattern = 'none' | 'grid' | 'dots' | 'waves' | 'aurora' | 'fajmuls';
+export type AppUiPreset = 'default' | 'focus' | 'high_contrast' | 'relaxed';
 
 export enum StudyMode {
   DRILL = 'Learn & Drill',
@@ -296,7 +297,9 @@ export interface AppSettings {
     appBaseColor: string; // NEW: Hex code or CSS color
     appPattern: AppPattern; // NEW: Pattern ID
     fontSize: AppFontSize;
+    uiPreset?: AppUiPreset;
     enableAITutor?: boolean;
+    buttonSoundsEnabled?: boolean;
 }
 
 export interface SavedSessionState {
