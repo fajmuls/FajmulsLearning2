@@ -514,7 +514,18 @@ function sanitizeQuestion(q: Question): Question {
   if (q.metadata && q.metadata.matrix && Array.isArray(q.metadata.matrix)) {
       q.metadata.matrix = q.metadata.matrix.map((rowItem: any) => {
           if (Array.isArray(rowItem)) {
-              return { row: rowItem.map(item => String(item)) };
+              return { row: rowItem.map(item => {
+                  if (typeof item === 'object' && item !== null) {
+                      if ('content' in item) {
+                           // Keep it as an object so the frontend can parse it, or convert to string if the frontend expects a string.
+                           // Actually, the frontend handles cell.content if it's an object!
+                           // Let's just return the item as is, we don't need to stringify it.
+                           return item;
+                      }
+                      return item; // just return it, let the frontend handle the object
+                  }
+                  return String(item);
+              }) };
           }
           return rowItem;
       });
@@ -633,10 +644,18 @@ export const buildQuestionPrompt = (
 
   - **MANDATORY SVG COMPLETION**:
     - SERIAL (Pola) & ANALOGY: The 'content' field MUST start with an SVG string showing the complete sequence. NEVER leave it as text only.
-    - MATRIX (3x3): 'metadata.matrix' MUST be a 3x3 array [row][col] of SVG strings. Cell (2,2) MUST be '?'.
+    - MATRIX (3x3): You MUST use the 'metadata.matrix' JSON schema field. Do NOT put the matrix in the 'content' string. 'metadata.matrix' must be an array of rows, where each cell is an object with 'content' (SVG string or '?'), 'id', and 'logic'. Cell (2,2) MUST be '?'.
     - KETIDAKSAMAAN (Odd One Out): 'options' MUST be 5 distinct SVG strings. Use generic question text like "Pilihlah gambar yang berbeda dari yang lain."
+  
+  - **FIGURAL DIFFICULTY MUST BE EXTREME (IQ TEST LEVEL)**:
+    - NO SIMPLE PATTERNS: Do not use simple logic like "add 1 line" or "change color to black".
+    - MULTIPLE VARIABLES: Always use at least 2 simultaneous transformations (e.g., rotation AND translation AND fill change).
+    - If Matrix: The row logic AND column logic MUST intersect correctly at the answer cell (e.g., XOR overlapping lines, or arithmetic addition of shapes).
+    - If Serial: Ensure the sequence has a non-linear but logical progression (e.g., oscillating movement + consistent rotation).
+    - Ensure SVGs are richly detailed (e.g., multiple layered shapes: circle inside square with diagonal lines).
+
   - **RENDER FIDELITY**:
-    - SVGs MUST use viewBox="0 0 100 100" with high-contrast colors (#6366f1, #f43f5e).
+    - SVGs MUST use viewBox="0 0 100 100" with high-contrast colors (e.g. stroke="currentColor").
   `;
 
   // Removed old shape instructions
@@ -673,10 +692,11 @@ export const buildQuestionPrompt = (
   const mathInstructions = `
   CRITICAL MATH LOGIC & RENDER RULES:
   - **LaTeX Perfection**: You MUST use LaTeX syntax for ALL numbers, mathematical symbols, variables, and calculations ($ ... $).
-  - **TOTAL ENCAPSULATION**: Every single number (e.g., $10$, $25\%$, $1/2$) and math expression MUST be wrapped in LaTeX delimiters.
-  - **INLINE LATEX PREFERENCE**: Use inline LaTeX (\\\\( ... \\\\)) blended seamlessly into sentences.
+  - **TOTAL ENCAPSULATION**: Every single number (e.g., $10$, $25\\%$, $1/2$) and math expression MUST be wrapped in LaTeX delimiters.
+  - **INLINE LATEX PREFERENCE**: Use inline LaTeX (\\\\( ... \\\\)) or ($ ... $) blended seamlessly into sentences.
+  - **JSON ESCAPING (CRITICAL)**: Since the output is JSON, you MUST double-escape all backslashes in LaTeX strings. For example, output "\\\\sqrt{2}" instead of "\\sqrt{2}". If you fail to double-escape, the JSON will be malformed.
   - **NEATNESS**: Using LaTeX for all numbers ensures a consistent, professional, and "natural" academic look.
-  - **SYMBOLS**: Replace all unicode math with LaTeX representations (e.g., use \\\\sqrt{2} instead of √2, \\\\neq instead of ≠).
+  - **SYMBOLS**: Replace all unicode math with LaTeX representations.
   - **NO PLAIN NUMBERS**: Even simple numbers in text must be LaTeX (e.g., "Membeli $5$ buah apel" instead of "Membeli 5 buah apel").
   `;
 
@@ -743,7 +763,12 @@ export const buildQuestionPrompt = (
           TYPE: TES LOGIKA GAMBAR (Abstract Reasoning/Spatial) V6.
           Requirement: MUST USE <svg>. 
           Create visual analogies, matrix completion (If 3x3, you MUST use the JSON 'matrix' field populated EXCLUSIVELY with valid SVG shapes in every cell, no text), or Ketidaksamaan Gambar.
-          COMPLEXITY: Extreme. Use multiple rules per pattern (e.g., shape change + rotation + shading).
+          COMPLEXITY LEVEL: EXTREMELY HIGH (IQ Test Level). 
+          STRICT RULES FOR PATTERNS: 
+          1. DO NOT create simple patterns like just adding one line or changing one color.
+          2. Every pattern MUST involve MULTIPLE simultaneous transformations (e.g., Object A rotates 90 degrees clockwise WHILE changing fill pattern, AND Object B translates diagonally WHILE scaling down).
+          3. Use complex nested SVG shapes (e.g., a polygon inside a rotating circle with intersecting lines).
+          4. For Matrix, ensure columns and rows follow distinct logical arithmetic (e.g., Row 1 + Row 2 = Row 3 with overlapping lines cancelling out XOR logic).
           Example command: "Lengkapi pola matriks 3x3 berikut..."
           `;
       } else {
@@ -758,9 +783,9 @@ export const buildQuestionPrompt = (
   } else {
       let difficultyContext = "";
       
-      const isTwk = (typeof context === 'string' && context.toUpperCase().includes('TWK')) || (category === 'SKD' && difficultyOverride === 'TWK');
-      const isTiu = (typeof context === 'string' && context.toUpperCase().includes('TIU')) || (category === 'SKD' && difficultyOverride === 'TIU');
-      const isTkp = (typeof context === 'string' && context.toUpperCase().includes('TKP')) || (category === 'SKD' && difficultyOverride === 'TKP');
+      const isTwk = (typeof context === 'string' && (context.toUpperCase().includes('TWK') || context.toUpperCase().includes('WAWASAN KEBANGSAAN'))) || (category === 'SKD' && difficultyOverride === 'TWK');
+      const isTiu = (typeof context === 'string' && (context.toUpperCase().includes('TIU') || context.toUpperCase().includes('INTELEGENSIA') || context.toUpperCase().includes('FIGURAL') || context.toUpperCase().includes('NUMERIK') || context.toUpperCase().includes('VERBAL'))) || (category === 'SKD' && difficultyOverride === 'TIU');
+      const isTkp = (typeof context === 'string' && (context.toUpperCase().includes('TKP') || context.toUpperCase().includes('KARAKTERISTIK PRIBADI'))) || (category === 'SKD' && difficultyOverride === 'TKP');
 
       if (isTwk) {
            difficultyContext = `CONTEXT: SKD TWK (Tes Wawasan Kebangsaan) - EXTREME HOTS DIFFICULTY (MASTER LEVEL).
@@ -775,7 +800,7 @@ export const buildQuestionPrompt = (
 
            CRITICAL TWK RULES (ELITE DIFFICULTY & SANGAT MENGECOH):
            1. **NO IMAGES/SVG**: DILARANG KERAS menghasilkan gambar, SVG, atau visual apa pun. Soal TWK HARUS 100% TEKS.
-           2. FORMAT: Gunakan narasi/studi kasus yang kompleks panjang lebar, tetapi fokus pertanyaannya mengecoh. Analisis contoh soal SKD tahun-tahun sebelumnya (Field Report) dan buat variasi yang LEBIH SULIT (HOTS Tingkat Tinggi).
+           2. FORMAT: Gunakan narasi/studi kasus yang kompleks, namun **BATASI TEKS BACAAN UTAMA TIDAK LEBIH DARI 3 PARAGRAF DAN 100-150 KATA**. Fokus pertanyaannya harus mengecoh dan HOTS Tingkat Tinggi.
            3. JAWABAN: Harus ada 1 Benar (nilai 5) dan 4 Salah (nilai 0). Opsi jawaban harus menguji pemahaman KONSEPTUAL dan ANALITIS, bukan sekadar hafalan. **PANJANG JAWABAN HARUS RELATIF SAMA PANJANGNYA UNTUK SEMUA OPSI (A, B, C, D, E)** agar tidak bisa ditebak dari opsi terpanjang.
            4. DISTRACTORS / PENGECOH: Pengecoh HARUS SANGAT SULIT (SUPER JEBAKAN). Gunakan penjelasan yang secara historis atau konstitusional "terdengar benar" dan "normatif" tapi terbalik konteksnya. Jawaban salah HARUS SAMA PANJANG detailnya dengan jawaban benar.
            5. Language: Gunakan Bahasa Indonesia formal/akademik yang sangat rapi. Bentuk soal harus membutuhkan nalar analitis (misalnya analisis sikap, pemecahan masalah), bukan sekadar menyebut pasal.`;
@@ -788,6 +813,7 @@ export const buildQuestionPrompt = (
            - Kemampuan Figural: Analogi gambar, ketidaksamaan gambar, dan serial gambar (Gunakan SVG yang kompleks).
 
            CRITICAL TIU RULES (ELITE DIFFICULTY & PENGECOH EKSTREM):
+           0. LENGTH LIMIT: Batasi teks bacaan utama tidak lebih dari 3 paragraf dan maksimal 150 kata per soal untuk menjaga performa.
            1. VERBAL ANALOGY: Gunakan analogi bertingkat dengan kosa kata KBBI level tinggi yang membingungkan. Wrap all concepts in LaTeX if they involve numbers or symbols.
            2. NUMERICAL SERIES: Gunakan pola bertingkat yang tidak masuk akal tanpa penalaran tajam. EVERY NUMBER MUST BE IN LaTeX ($ ... $).
            3. LOGICAL REASONING: Gunakan silogisme dengan 3+ premis dan kuantor ganda dengan complex structure. Pengecoh/Distractor harus menggunakan penalaran fallacy yang terasa "logis" jika dibaca sekilas.
@@ -806,7 +832,7 @@ export const buildQuestionPrompt = (
            - Profesionalisme: Disiplin, tanggung jawab, integritas, dan performa kerja di bawah tekanan.
            - Anti Radikalisme: Pemahaman dan sikap tegas terhadap ideologi yang bertentangan dengan Pancasila.
 
-           CRITICAL TKP RULES (ANTI MENGIRA-NGIRA DENGAN PANJANG TEKS):
+           CRITICAL TKP RULES (ANTI MENGIRA-NGIRA DENGAN PANJANG TEKS & KEEP IT CONCISE):
            1. SISTEM SCORING WAJIB:
               - Poin 5: Jawaban paling solutif, tepat, dan konteksnya sangat sesuai.
               - Poin 4: Jawaban benar tapi konteksnya sedikit berbeda atau tindakannya kurang komprehensif.
@@ -814,9 +840,9 @@ export const buildQuestionPrompt = (
               - Poin 2: Jawaban salah atau tindakan yang kurang pantas.
               - Poin 1: Jawaban salah ekstrim dan beda konteks sepenuhnya.
            2. STRICT NO LENGTH BIAS (SANGAT PENTING): PANJANG TEKS KELIMA OPSI (A, B, C, D, E) HARUS IDENTIK / HAMPIR SAMA PERSIS. DILARANG KERAS membuat jawaban poin 5 menjadi jawaban yang paling panjang. Ratakan deskripsi jawaban opsi 1, 2, 3, 4, dan 5 agar mengecoh dan sangat sulit dibedakan melalui bentuk visualnya!
-           3. DIFFICULTY & DISTRACTORS: Jawaban bernilai 5 dan 4 harus LUAR BIASA sulit dibedakan, keduanya memuat solusi ideal, hanya terpisah oleh inisiatif/SOP. Jawaban 1, 2, atau 3 TIDAK BOLEH terlihat seperti penjahat/jahat, namun terlihat "normatif wajar". Susun jawaban agar level mengecohnya tinggi!
+           3. KEEP TEXT CONCISE: The question text (content) MUST BE SHORT AND CLEAR. Max 2-3 sentences. Do not write unnecessarily long paragraphs that cause timeouts. Make the dilemma obvious quickly.
            4. VISUALS: DO NOT use images, icons, or SVG. Use professional text only.
-           6. TOPICS: Focus strictly on the themes above. Focuskan ke dilema kerja berat yang membingungkan.`;
+           5. CLEAR TOPICS: Ensure the explanation clearly states which of the 6 themes the question targets, and why the 5-point answer is best according to that theme.`;
       }
 
       if (category === 'SKD' && typeof context === 'string' && (context.toUpperCase().includes('TIU') || context.toUpperCase().includes('INTELEGENSIA'))) {
@@ -868,6 +894,7 @@ export const buildQuestionPrompt = (
            difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - VERBAL.
            
            CRITICAL RULES FOR VERBAL (EXTREME DIFFICULTY SANGAT SULIT & SANGAT MENGECOH):
+           0. LENGTH LIMIT: Batasi teks bacaan utama tidak lebih dari 3 paragraf dan maksimal 150 kata per soal untuk menjaga performa.
            1. COMPLEXITY: Questions must be EXTREMELY HARD, tricky, and mimic the official test style. Distractors must be highly deceptive.
            2. ANALOGY: Use double-gap format (A : ... = ... : D) or 3-variable format (A : B : C = P : Q : R). You MUST base analogies on absolute, non-debatable logical frameworks (Relationship Type Constraint) but use advanced KBBI vocabulary to obscure the logic.
            3. SYLLOGISM (SILOGISME): 
@@ -985,7 +1012,7 @@ export const buildQuestionPrompt = (
            
            CRITICAL RULES FOR FIGURAL (VISUAL LOGIC):
            1. **VISUAL REPRESENTATION**: You MUST generate raw <svg> code for ALL figural questions using the coordinates from shapeInstructions.
-           2. **SVG REQUIREMENTS**: Use viewBox="0 0 100 100" (Standard). Use stroke="currentColor" fill="none" and stroke-width="2". Ensure width="100%" and height="auto".
+           2. **SVG REQUIREMENTS**: Use viewBox="0 0 100 100" (Standard). Use stroke="currentColor" fill="none" and stroke-width="2". Ensure width="100%" and height="auto". DO NOT use "black" or "#000000", ALWAYS use "currentColor".
            3. **TYPES & DIFFICULTY**:
               - **Ketidaksamaan (Odd One Out)**: EXTREME DIFFICULTY. The differences between the 5 options must be subtle and difficult to distinguish. Use intersecting shapes, slight angle differences, or complex layering patterns.
               - **Serial**: Sequence of changing shapes (combining Rotation, Addition, Shading).
@@ -994,7 +1021,7 @@ export const buildQuestionPrompt = (
            FEW-SHOT EXAMPLES (Abstract Structural Example):
            
            Type: Figural - Matrix 3x3 (Hard Pattern)
-           (For a matrix, use the 'matrix' JSON array of rows where each cell is {content: "SVG or '?'", id: "id", logic: "Logic"}).
+           (For a matrix, you MUST write the question text in the 'content' field (e.g. "Tentukan gambar yang tepat untuk mengisi kotak yang kosong pada matriks berikut:"). AND use the 'matrix' JSON array of rows where each cell is {content: "SVG or '?'", id: "id", logic: "Logic"}).
            
            Type: Figural - Ketidaksamaan (Odd One Out)
            Q: Manakah dari kelima jaring-jaring atau gambar spasial berikut yang berbeda strukturnya?
@@ -1013,9 +1040,14 @@ export const buildQuestionPrompt = (
            difficultyContext = `CONTEXT: SKD TWK (Tes Wawasan Kebangsaan).
            
            CRITICAL RULES FOR TWK:
+           0. LENGTH LIMIT: Batasi teks bacaan utama tidak lebih dari 3 paragraf dan maksimal 150 kata per soal untuk menjaga performa.
            1. FORMAT: Questions MUST be about TWK Themes (Bela Negara, Pilar Negara, UUD 1945, Bhinneka Tunggal Ika, Integritas, Nasionalisme, Patriotisme). DO NOT create scenario-based behavioral questions that resemble TKP (Tes Karakteristik Pribadi).
            2. OPTIONS: There must be 1 absolute CORRECT answer (score 5) and 4 entirely INCORRECT answers conceptually (score 0). DO NOT use TKP-style "best to worst" scoring where all options are varying degrees of good/bad behavior. Options must test constitutional/historical/national insight facts.
-           3. TOPICS & METADATA: The 'metadata.topic' MUST be strictly one of the following exact strings:
+           3. QUESTION TYPES (HAFALAN VS PENALARAN): 
+              - At least 40-50% of the generated questions MUST be "Hafalan" (Rote Memorization/Direct Knowledge) testing pure facts: historical dates, specific articles/pasal of UUD 1945, BPUPKI/PPKI history, exact clauses of Pancasila, historical figures, treaties, and government structures. DO NOT use long narratives for these; ask direct factual questions.
+              - The remaining questions can be "Penalaran" (Implementation/HOTS) involving short case studies or analysis.
+              - DO NOT make everything a long story or case study. The user specifically requests factual/memory-based questions (Hafalan) to be highly present just like in the real past-year exams (FR)!
+           4. TOPICS & METADATA: The 'metadata.topic' MUST be strictly one of the following exact strings:
               - "Nasionalisme (Kepentingan Nasional)"
               - "Integritas (Kejujuran/Komitmen)"
               - "Bela Negara (Peran Aktif)"
@@ -1078,15 +1110,15 @@ export const buildQuestionPrompt = (
            // Default Distribution
            let hotsPercent = "70%";
            let hardPercent = "30%";
+           const contextStr = typeof context === 'string' ? context.toUpperCase() : '';
 
            // OVERRIDE FOR SKD TWK & TIU
            if (category === 'SKD') {
-               const contextStr = typeof context === 'string' ? context.toUpperCase() : '';
                
-               // TWK: 80% HOTS, 20% Difficult
+               // TWK: 50% HOTS (Penalaran), 50% Hafalan (Factual)
                if (contextStr.includes('TWK') || contextStr.includes('WAWASAN')) {
-                   hotsPercent = "80%";
-                   hardPercent = "20%";
+                   hotsPercent = "50%";
+                   hardPercent = "30%";
                } 
                // TIU: 80% HOTS, 20% Difficult
                else if (contextStr.includes('TIU') || contextStr.includes('INTELEGENSIA')) {
@@ -1098,7 +1130,7 @@ export const buildQuestionPrompt = (
            difficultyContext = `DIFFICULTY DISTRIBUTION:
            - ${hotsPercent} of questions MUST be HOTS (Higher Order Thinking Skills).
            - ${hardPercent} of questions MUST be Difficult to Very Difficult.
-           - ABSOLUTELY NO Easy or simple recall questions.
+           - ${contextStr.includes('TWK') || contextStr.includes('WAWASAN') ? "For TWK, approximately 50% MUST BE 'Hafalan' (factual recall, memorization, history, UUD 1945 articles) as per actual real-world FR tests. Do NOT make them all HOTS." : "ABSOLUTELY NO Easy or simple recall questions."}
            - For TIU/Figural: Use COMPLEX visual patterns with the symbols defined in shapeInstructions. Avoid simple 1-step patterns.
            - For TIU/Verbal (Analogi/Silogisme): DO NOT use simple, ambiguous, or debatable analogies (e.g., "Televisi : Gambar : Suara"). Provide a huge variety of relationships (cause-effect, function, part-whole, synonym/antonym, sequence). Ensure the logical bridge is flawless and securely connected to the answer.
            - For TIU/Logika/Analitis (Posisi/Urutan/Jadwal): Construct airtight, non-contradictory logic puzzles. ALWAYS solve the arrangement internally FIRST in the explanation. Ensure exactly ONE valid arrangement exists without logical flaws or impossible scenarios (like circular round-robins that conflict, or queues that overlap).
@@ -1175,17 +1207,17 @@ export const buildQuestionPrompt = (
             prompt = `UTBK SNBT MODE - ${contextStr}. Generate HOTS questions suitable for this subtest. ${formattingInstructions} VARIANT: ${isMixed ? 'Mixed formats allowed (complex choice, short answer).' : 'Only multiple_choice allowed.'}`;
         }
         
-        prompt += `\nGenerate ${count} distinct questions. Provide DETAILED explanation.`;
+        prompt += `\nGenerate ${count} distinct questions. Provide clear and concise explanations (not too long, but easy to understand). Only provide very detailed explanations if the question is extremely difficult or complex.`;
 
       } else {
-        const commonInstruction = `Generate ${count} distinct questions. ${difficultyContext}. Provide DETAILED explanation. 
+        const commonInstruction = `Generate ${count} distinct questions. ${difficultyContext}. Provide clear and concise explanations (not too long, but easy to understand). Only provide very detailed/long explanations if the question is extremely difficult (HOTS) or involves complex logic/math.
         CRITICAL REMINDER: ALL MULTIPLE CHOICE OPTIONS MUST BE THE EXACT SAME LENGTH. NEVER MAKE THE CORRECT ANSWER THE LONGEST OPTION. 
         ${shapeInstructions} ${mathInstructions} ${formattingInstructions}`;
         
         if (isTkp) {
            prompt = `SKD TKP MODE. ${commonInstruction} SCORING: 1-5 points via 'tkpPoints'. Ensure high ambiguity between top choices. The 'option' field in tkpPoints MUST BE THE EXACT FULL TEXT of the option, NOT A/B/C/D/E.`;
         } else {
-            prompt = `TRY OUT / PRACTICE V5. Category: ${category}. Context: ${JSON.stringify(context)}. ${commonInstruction}. If TPA or Spatial, utilize 3D symbols (📦, 🧊, 🎲, 🧱) or geometric shapes heavily. Ensure all fractions use Unicode characters (e.g. ½, ⅓).`;
+            prompt = `TRY OUT / PRACTICE V5. Category: ${category}. Context: ${JSON.stringify(context)}. ${commonInstruction}. For Figural, Spatial, or TPA logic: YOU MUST USE <svg> FOR ALL GRAPHICS. DO NOT USE EMOJIS (📦, 🧊) OR UNICODE SHAPES IN PLACE OF ACTUAL <svg> GRAPHICS. Ensure all fractions use Unicode characters (e.g. ½, ⅓).`;
         }
       }
   }
@@ -1385,25 +1417,42 @@ const reindexQuestions = (questions: Question[], prefix: string): Question[] => 
 export const generateSkdSimulation = async (stream: SkdStreamType, variant: 'FULL' | 'TWK' | 'TIU' | 'TKP' = 'FULL'): Promise<Question[]> => {
     // 1. Setup Prompts
     const genTwk = async () => {
-        const p1 = generateQuestions(StudyMode.SIMULATION, 'SKD', 'Tes Wawasan Kebangsaan (TWK) - Nasionalisme dan Integritas', 15, [], stream, undefined, 'HOTS');
-        const p2 = generateQuestions(StudyMode.SIMULATION, 'SKD', 'Tes Wawasan Kebangsaan (TWK) - Bela Negara, Pilar Negara, dan Bahasa Indonesia', 15, [], stream, undefined, 'HOTS');
-        const [r1, r2] = await Promise.all([p1, p2]);
-        return [...r1, ...r2];
+        const randomSeed = Math.random().toString(36).substring(7);
+        const p1 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Wawasan Kebangsaan (TWK) - Nasionalisme. UNIQUE SEED: ${randomSeed}`, 6, [], stream, undefined, 'HOTS');
+        const p2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Wawasan Kebangsaan (TWK) - Integritas. UNIQUE SEED: ${randomSeed}`, 6, [], stream, undefined, 'HOTS');
+        const p3 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Wawasan Kebangsaan (TWK) - Bela Negara. UNIQUE SEED: ${randomSeed}`, 6, [], stream, undefined, 'HOTS');
+        const p4 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Wawasan Kebangsaan (TWK) - Pilar Negara. UNIQUE SEED: ${randomSeed}`, 6, [], stream, undefined, 'HOTS');
+        const p5 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Wawasan Kebangsaan (TWK) - Bahasa Indonesia. UNIQUE SEED: ${randomSeed}`, 6, [], stream, undefined, 'HOTS');
+        
+        const results = await Promise.all([p1, p2, p3, p4, p5]);
+        let allTwk: Question[] = [];
+        for (const r of results) allTwk.push(...r);
+        
+        // Ensure exactly 30 questions
+        if (allTwk.length < 30) {
+            const { generateSKDPackage } = await import('../utils/skdGenerator');
+            const fallback = generateSKDPackage(Math.floor(Math.random() * 100), 'CPNS');
+            const fallbackTwk = fallback.filter(q => q.metadata?.topic === 'TWK');
+            while (allTwk.length < 30 && fallbackTwk.length > 0) {
+                 allTwk.push(fallbackTwk.shift()!);
+            }
+        }
+        return allTwk.slice(0, 30);
     };
 
     const genTkp = async () => {
-        // Splitting into 5 batches of 9 questions to avoid AI token limits and truncation
-        const p1 = generateQuestions(StudyMode.SIMULATION, 'SKD', 'Tes Karakteristik Pribadi (TKP) - Pelayanan Publik', 9, [], stream, undefined, 'TKP');
-        const p2 = generateQuestions(StudyMode.SIMULATION, 'SKD', 'Tes Karakteristik Pribadi (TKP) - Jejaring Kerja', 9, [], stream, undefined, 'TKP');
-        const p3 = generateQuestions(StudyMode.SIMULATION, 'SKD', 'Tes Karakteristik Pribadi (TKP) - Sosial Budaya', 9, [], stream, undefined, 'TKP');
-        const p4 = generateQuestions(StudyMode.SIMULATION, 'SKD', 'Tes Karakteristik Pribadi (TKP) - TIK & Anti Radikalisme', 9, [], stream, undefined, 'TKP');
-        const p5 = generateQuestions(StudyMode.SIMULATION, 'SKD', 'Tes Karakteristik Pribadi (TKP) - Profesionalisme', 9, [], stream, undefined, 'TKP');
+        const randomSeed = Math.random().toString(36).substring(7);
+        const p1 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Karakteristik Pribadi (TKP) - Pelayanan Publik. UNIQUE SEED: ${randomSeed}`, 8, [], stream, undefined, 'TKP');
+        const p2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Karakteristik Pribadi (TKP) - Jejaring Kerja. UNIQUE SEED: ${randomSeed}`, 8, [], stream, undefined, 'TKP');
+        const p3 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Karakteristik Pribadi (TKP) - Sosial Budaya. UNIQUE SEED: ${randomSeed}`, 8, [], stream, undefined, 'TKP');
+        const p4 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Karakteristik Pribadi (TKP) - TIK. UNIQUE SEED: ${randomSeed}`, 8, [], stream, undefined, 'TKP');
+        const p5 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Karakteristik Pribadi (TKP) - Profesionalisme. UNIQUE SEED: ${randomSeed}`, 6, [], stream, undefined, 'TKP');
+        const p6 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Karakteristik Pribadi (TKP) - Anti Radikalisme. UNIQUE SEED: ${randomSeed}`, 7, [], stream, undefined, 'TKP');
         
-        const results = await Promise.all([p1, p2, p3, p4, p5]);
+        const results = await Promise.all([p1, p2, p3, p4, p5, p6]);
         let allTkp: Question[] = [];
         for (const r of results) allTkp.push(...r);
         
-        // If the AI didn't generate enough due to limits, pad it with the hardcoded backup
         if (allTkp.length < 45) {
             const { generateSKDPackage } = await import('../utils/skdGenerator');
             const fallback = generateSKDPackage(Math.floor(Math.random() * 100), 'CPNS');
@@ -1413,31 +1462,43 @@ export const generateSkdSimulation = async (stream: SkdStreamType, variant: 'FUL
             }
         }
         
-        // Trim if excess
         return allTkp.slice(0, 45);
     };
     
     const genTiu = async () => {
-        // TIU: 35 Questions Total Total (for full TIU subtest)
-        // Adjust for more spatial/matrix/figural and inequalities
-        // Figural/Matrix/Spatial: 12-14
-        // Numerik (including Inequalities): 10-12
-        // Verbal: 9-11
-        const getRandomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
-        
-        let figuralCount = getRandomInt(12, 14);
-        let numericCount = getRandomInt(10, 12);
-        let verbalCount = 35 - figuralCount - numericCount;
+        const randomSeed = Math.random().toString(36).substring(7);
 
-        const pTiuVerbal = generateQuestions(StudyMode.SIMULATION, 'SKD', 'SKD - VERBAL (Analogi, Silogisme, Analitis). HARD DIFFICULTY. MUST HAVE PERFECT LOGIC. For Analitis (posisi/urutan), create one unique valid arrangement and ensure questions are logically impossible to misinterpret.', verbalCount, [], stream, undefined, 'HOTS');
-        const pTiuNumerik = generateQuestions(StudyMode.SIMULATION, 'SKD', 'SKD - NUMERIK (Berhitung Cepat, Deret Kompleks, Perbandingan/Inequalities A vs B, Soal Cerita). VERY HARD. Must include variables, percentages, and fractions without premature rounding. Ensure the calculations have EXACT valid results matching the exact correct answer chosen.', numericCount, [], stream, undefined, 'HOTS');
-        const pTiuFigural = generateQuestions(StudyMode.SIMULATION, 'SKD', 'SKD - FIGURAL (Analogi, Ketidaksamaan, Serial, Matriks, Spasial, Jaring-jaring 3D). EXTREME DIFFICULTY. MUST OUTPUT <svg> FOR ALL QUESTIONS, INCLUDING IN EACH OF THE 5 OPTIONS. Abstract geometric patterns ONLY. Include 3x3 matrices, paper folding (spasial), and 3D rotations. MAKE KETIDAKSAMAAN EXTREMELY DIFFICULT. For 3D shapes/cubes (bangun ruang/jaring-jaring), MUST use isometric projection with proper <polygon> faces, distinct fill colors (e.g. #e2e8f0, #cbd5e1, #94a3b8) to simulate lighting and depth (shadow effects). Avoid ambiguous or overly simplistic 2D nets.', figuralCount, [], stream, undefined, 'HOTS');
-
-        const [tiuVerbal, tiuNumerik, tiuFigural] = await Promise.all([pTiuVerbal, pTiuNumerik, pTiuFigural]);
+        const pVerbal1 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - VERBAL: Analogi Kata. HARD DIFFICULTY. MUST HAVE PERFECT LOGIC. UNIQUE SEED: ${randomSeed}`, 2, [], stream, undefined, 'HOTS');
+        const pVerbal2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - VERBAL: Analogi Kalimat. HARD DIFFICULTY. UNIQUE SEED: ${randomSeed}`, 2, [], stream, undefined, 'HOTS');
+        const pVerbal3 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - VERBAL: Silogisme. HARD DIFFICULTY. UNIQUE SEED: ${randomSeed}`, 5, [], stream, undefined, 'HOTS');
+        const pVerbal4 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - VERBAL: Analitis. HARD DIFFICULTY. UNIQUE SEED: ${randomSeed}`, 3, [], stream, undefined, 'HOTS');
         
-        let tiu = [...tiuVerbal, ...tiuNumerik, ...tiuFigural];
+        const pNum1 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - NUMERIK: Hitungan (Berhitung). VERY HARD. UNIQUE SEED: ${randomSeed}`, 4, [], stream, undefined, 'HOTS');
+        const pNum2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - NUMERIK: Perbandingan Kuantitatif. VERY HARD. UNIQUE SEED: ${randomSeed}`, 3, [], stream, undefined, 'HOTS');
+        const pNum3 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - NUMERIK: Soal Cerita. VERY HARD. UNIQUE SEED: ${randomSeed}`, 4, [], stream, undefined, 'HOTS');
+        const pNum4 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - NUMERIK: Deret Angka. VERY HARD. UNIQUE SEED: ${randomSeed}`, 4, [], stream, undefined, 'HOTS');
+
+        const pFig1 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - FIGURAL: Analogi Gambar. EXTREME DIFFICULTY. YOU MUST OUTPUT <svg> FOR ALL QUESTIONS, AND <svg> FOR EACH OPTION. NO TEXT OPTIONS. UNIQUE SEED: ${randomSeed}`, 2, [], stream, undefined, 'HOTS');
+        const pFig2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - FIGURAL: Serial Gambar. EXTREME DIFFICULTY. OUTPUT <svg> FOR ALL. UNIQUE SEED: ${randomSeed}`, 2, [], stream, undefined, 'HOTS');
+        const pFig3 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - FIGURAL: Pola 9 Kotak Gambar (Matriks 3x3). EXTREME DIFFICULTY. OUTPUT <svg> FOR ALL. UNIQUE SEED: ${randomSeed}`, 1, [], stream, undefined, 'HOTS');
+        const pFig4 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - FIGURAL: Ketidaksamaan Gambar. EXTREME DIFFICULTY. OUTPUT <svg> FOR ALL. UNIQUE SEED: ${randomSeed}`, 3, [], stream, undefined, 'HOTS');
+
+        const results = await Promise.all([pVerbal1, pVerbal2, pVerbal3, pVerbal4, pNum1, pNum2, pNum3, pNum4, pFig1, pFig2, pFig3, pFig4]);
+        
+        let tiu: Question[] = [];
+        for (const r of results) tiu.push(...r);
+        
+        if (tiu.length < 35) {
+            const { generateSKDPackage } = await import('../utils/skdGenerator');
+            const fallback = generateSKDPackage(Math.floor(Math.random() * 100), 'CPNS');
+            const fallbackTiu = fallback.filter(q => q.metadata?.topic === 'TIU');
+            while (tiu.length < 35 && fallbackTiu.length > 0) {
+                 tiu.push(fallbackTiu.shift()!);
+            }
+        }
+        
         tiu.forEach(q => q.metadata.subtest = 'Tes Intelegensia Umum (TIU)');
-        return shuffleArray(tiu);
+        return tiu.slice(0, 35);
     };
 
     let allQuestions: Question[] = [];
@@ -1518,8 +1579,7 @@ export const generateTpaTbiSimulation = async (): Promise<Question[]> => {
 
 export const generatePsikotestKedinasanSimulation = async (): Promise<Question[]> => {
     const tiu = generateQuestions(StudyMode.SIMULATION, 'TPA', `PSIKOTEST KEDINASAN (TIU V3). HARD DIFFICULTY.`, 30, [], undefined, undefined, 'HOTS');
-    // Important: Specifically requesting 3D symbols for V3 Figural/Spatial
-    const figural = generateQuestions(StudyMode.SIMULATION, 'TPA', `PSIKOTEST KEDINASAN (LOGIKA GAMBAR V3). EXTREME DIFFICULTY. Use 3D UNICODE SHAPES (📦, 🧊, 🎲) or geometric (▲, ■) for spatial/pattern series. NO semantic/fruit/animal questions.`, 15, [], undefined, undefined, 'HOTS');
+    const figural = generateQuestions(StudyMode.SIMULATION, 'TPA', `PSIKOTEST KEDINASAN (LOGIKA GAMBAR V3). EXTREME DIFFICULTY. YOU MUST USE <svg> FOR ALL QUESTIONS AND ALL 5 OPTIONS. DO NOT USE EMOJIS OR TEXT SHAPES. Abstract geometric patterns ONLY. Include 3x3 matrices, paper folding (spasial), and 3D rotations. NO semantic/fruit/animal questions.`, 15, [], undefined, undefined, 'HOTS');
     const personality = generateQuestions(StudyMode.SIMULATION, 'TPA', `PSIKOTEST KEDINASAN (KEPRIBADIAN)`, 20, [], undefined, undefined, 'TKP');
 
     const [resTiu, resFigural, resPersonality] = await Promise.all([tiu, figural, personality]);
@@ -1572,7 +1632,7 @@ export const generatePsikotestSimulation = async () => {
     // Splitting into batches to ensure the prompt accurately triggers verbal, numeric, and spatial (IQ) components
     const verbal = generateQuestions(StudyMode.SIMULATION, 'PSIKOTEST', 'SIMULATION - Tes Verbal Psikotes (Analogi, Sinonim, Silogisme). EXTREME DIFFICULTY.', 14, [], undefined, undefined, 'HOTS');
     const numerik = generateQuestions(StudyMode.SIMULATION, 'PSIKOTEST', 'SIMULATION - Tes Numerik Psikotes (Deret, Aritmatika, Logika Angka). EXTREME DIFFICULTY.', 13, [], undefined, undefined, 'HOTS');
-    const spatial = generateQuestions(StudyMode.SIMULATION, 'PSIKOTEST', 'SIMULATION - IQ & Spatial Logic. EXTREME DIFFICULTY. MUST USE <svg> FOR ALL QUESTIONS.', 13, [], undefined, undefined, 'HOTS');
+    const spatial = generateQuestions(StudyMode.SIMULATION, 'PSIKOTEST', 'SIMULATION - IQ & Spatial Logic. EXTREME DIFFICULTY. YOU MUST USE <svg> FOR ALL QUESTIONS AND ALL 5 OPTIONS. DO NOT USE EMOJIS.', 13, [], undefined, undefined, 'HOTS');
     
     const [r1, r2, r3] = await Promise.all([verbal, numerik, spatial]);
     

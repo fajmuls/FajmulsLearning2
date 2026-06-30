@@ -543,6 +543,10 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
     // Common State (Resumable)
     const [currentIndex, setCurrentIndex] = useState(initialState?.currentIndex || 0);
     const [answerMap, setAnswerMap] = useState<Record<string, UserAnswer>>(initialState?.answerMap || {});
+    const answerMapRef = useRef(answerMap);
+    useEffect(() => {
+        answerMapRef.current = answerMap;
+    }, [answerMap]);
     
     const [isPaused, setIsPaused] = useState(false);
     const [isMobileGridOpen, setIsMobileGridOpen] = useState(false);
@@ -796,6 +800,28 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
 
     const currentQ = activeQuestions[currentIndex];
 
+    // Calculate scaled ideal time so it doesn't exceed total session time
+    const scaledIdealTimeSeconds = useMemo(() => {
+        if (!currentQ || !currentQ.metadata?.idealTimeSeconds) return 60;
+        
+        let totalTimeSecs = 0;
+        if (isUtbkSimulation) {
+            totalTimeSecs = (UTBK_EXAM_CONFIG[utbkSubtestIndex]?.duration || 0) * 60;
+        } else if (sessionDuration) {
+            totalTimeSecs = sessionDuration * 60;
+        } else if (mode === StudyMode.SIMULATION) {
+            totalTimeSecs = activeQuestions.length * 60; // Default fallback
+        }
+
+        if (totalTimeSecs > 0) {
+            const sumIdeal = activeQuestions.reduce((acc, q) => acc + (q.metadata?.idealTimeSeconds || 60), 0);
+            if (sumIdeal > 0) {
+                return Math.max(10, Math.round((currentQ.metadata.idealTimeSeconds / sumIdeal) * totalTimeSecs));
+            }
+        }
+        return currentQ.metadata.idealTimeSeconds;
+    }, [currentQ, activeQuestions, isUtbkSimulation, utbkSubtestIndex, sessionDuration, mode]);
+
     // Voice Command Handler
     useEffect(() => {
         if (!voiceEnabled || !transcript || !currentQ || !currentQ.options) return;
@@ -1031,7 +1057,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
         }
         clearSavedSession(); 
         SoundManager.play('finish');
-        onComplete(Object.values(answerMap));
+        onComplete(Object.values(answerMapRef.current));
     };
 
     const handleEarlyExit = () => {
@@ -1086,7 +1112,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
             if (onSaveAndExit) {
                 onSaveAndExit();
             } else {
-                onComplete(Object.values(answerMap), undefined, true);
+                onComplete(Object.values(answerMapRef.current), undefined, true);
             }
         } catch (e) {
             console.error(e);
@@ -1455,7 +1481,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                         <div className="flex flex-col gap-2 justify-center text-xs sm:text-sm font-black">
                             <button onClick={() => {
                                 isFinishedRef.current = true;
-                                onComplete(Object.values(answerMap), undefined, true);
+                                onComplete(Object.values(answerMapRef.current), undefined, true);
                             }} className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
                                 Simpan ke Riwayat
                             </button>
@@ -1731,7 +1757,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                     <div className="flex items-center justify-between gap-2 border-b border-slate-150/55 dark:border-slate-700/50 pb-2 mb-3.5 sm:mb-4">
                                         <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 md:gap-2">
                                             <span className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider">
-                                                {isUtbkSimulation ? UTBK_EXAM_CONFIG[utbkSubtestIndex].name : (currentQ.metadata?.subtest || 'General')}
+                                                {isUtbkSimulation ? UTBK_EXAM_CONFIG[utbkSubtestIndex].name : (currentQ.metadata?.topic || 'General')}
                                             </span>
                                             {currentQ.metadata?.topic && formatTopic(currentQ.metadata.subtest, currentQ.metadata.topic) && (
                                                 <span className="bg-emerald-50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-wider border border-emerald-100 dark:border-emerald-900/30">
@@ -1750,15 +1776,15 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                     </div>
 
                                     {/* Pacing Indicator */}
-                                    {mode === StudyMode.SIMULATION && currentQ.metadata?.idealTimeSeconds && (
-                                        <PacingBar idealTimeSeconds={currentQ.metadata.idealTimeSeconds} isActive={!isPaused} currentQId={currentQ.id} />
+                                    {mode === StudyMode.SIMULATION && scaledIdealTimeSeconds && (
+                                        <PacingBar idealTimeSeconds={scaledIdealTimeSeconds} isActive={!isPaused} currentQId={currentQ.id} />
                                     )}
 
                                     {category === 'BAHASA' && currentQ.content && (
                                         <TTSButton text={currentQ.content} />
                                     )}
 
-                                    <div className={`prose dark:prose-invert max-w-none mb-4 sm:mb-6 text-slate-800 dark:text-slate-100 fs-${fontSize} leading-relaxed word-break-safe`}>
+                                    <div className={`mb-4 sm:mb-6 text-slate-800 dark:text-slate-100 fs-${fontSize} leading-relaxed word-break-safe max-h-[300px] sm:max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600`}>
                                         {(currentQ.content && currentQ.content.includes(':::MATRIX:::')) || (currentQ.metadata && currentQ.metadata.matrix && currentQ.metadata.matrix.length > 0) ? (
                                             <MatrixQuestionRenderer 
                                                 content={currentQ.content} 
@@ -1827,7 +1853,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                                         <div className={`w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-md sm:rounded-lg flex items-center justify-center font-bold text-[10px] sm:text-xs md:text-sm mr-2 sm:mr-3 md:mr-4 flex-shrink-0 transition-colors select-none ${labelClass}`}>
                                                            <span>{optLabel}</span>
                                                         </div> 
-                                                        <div className={`flex-1 pt-0 sm:pt-0.5 md:pt-1 text-slate-700 dark:text-slate-200 fs-${fontSize} min-w-0 word-break-safe pointer-events-auto`}><SimpleMarkdown text={opt} /></div> 
+                                                        <div className={`flex-1 pt-0 sm:pt-0.5 md:pt-1 text-slate-700 dark:text-slate-200 fs-${fontSize} min-w-0 word-break-safe pointer-events-auto`}><SimpleMarkdown text={opt} isOption={true} /></div> 
                                                     </div> 
                                                 );
                                             })}
@@ -1881,7 +1907,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                                 <div className={`w-4 h-4 sm:w-5 sm:h-5 mt-0 rounded flex items-center justify-center border-2 mr-2.5 sm:mr-3.5 flex-shrink-0 transition-colors ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300 dark:border-slate-600'}`}>
                                                     {isSelected && <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
                                                 </div> 
-                                                <div className={`flex-1 pt-0 text-slate-700 dark:text-slate-200 fs-${fontSize} min-w-0 word-break-safe pointer-events-auto`}><SimpleMarkdown text={opt} /></div> 
+                                                <div className={`flex-1 pt-0 text-slate-700 dark:text-slate-200 fs-${fontSize} min-w-0 word-break-safe pointer-events-auto`}><SimpleMarkdown text={opt} isOption={true} /></div> 
                                             </div> 
                                         );
                                     })}

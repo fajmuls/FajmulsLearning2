@@ -250,14 +250,14 @@ const getDynamicSymbol = (r: () => number) => {
 
 const generateDynamicMatrixSVG = (seed: number, r: () => number) => {
     const symbols = [
-        (rot: number, scale: number) => `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(${rot} 50 50) ${scale < 1 ? 'scale('+scale+') translate('+(50/scale-50)+' '+(50/scale-50)+')' : ''}"><path d="M50,20 L80,80 L20,80 Z" fill="${scale < 0.8 ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="3"/><circle cx="50" cy="50" r="10" fill="currentColor"/></g></svg>`,
-        (rot: number, scale: number) => `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(${rot} 50 50)"><path d="M20,50 L80,50 M50,20 L50,80" stroke="currentColor" stroke-width="4"/><rect x="${scale < 1 ? 30 : 40}" y="${scale < 1 ? 30 : 40}" width="${scale < 1 ? 40 : 20}" height="${scale < 1 ? 40 : 20}" fill="none" stroke="currentColor" stroke-width="2"/></g></svg>`,
-        (rot: number, scale: number) => `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(${rot} 50 50)"><rect x="25" y="25" width="50" height="50" fill="${rot > 90 ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="3"/><path d="M25,25 L75,75 M75,25 L25,75" stroke="currentColor" stroke-width="${scale < 1 ? 1 : 4}"/></g></svg>`,
+        (rot: number, scale: number, layer: boolean) => `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(${rot} 50 50) ${scale < 1 ? 'scale('+scale+') translate('+(50/scale-50)+' '+(50/scale-50)+')' : ''}"><path d="M50,20 L80,80 L20,80 Z" fill="${scale < 0.8 ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="3"/><circle cx="50" cy="50" r="10" fill="currentColor"/>${layer ? '<line x1="20" y1="20" x2="80" y2="80" stroke="currentColor" stroke-width="2"/><line x1="80" y1="20" x2="20" y2="80" stroke="currentColor" stroke-width="2"/>' : ''}</g></svg>`,
+        (rot: number, scale: number, layer: boolean) => `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(${rot} 50 50)"><path d="M20,50 L80,50 M50,20 L50,80" stroke="currentColor" stroke-width="4"/><rect x="${scale < 1 ? 30 : 40}" y="${scale < 1 ? 30 : 40}" width="${scale < 1 ? 40 : 20}" height="${scale < 1 ? 40 : 20}" fill="${layer ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" opacity="${layer ? 0.5 : 1}"/></g></svg>`,
+        (rot: number, scale: number, layer: boolean) => `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(${rot} 50 50)"><rect x="25" y="25" width="50" height="50" fill="${rot > 90 && !layer ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="3"/><path d="M25,25 L75,75 M75,25 L25,75" stroke="currentColor" stroke-width="${scale < 1 ? 1 : 4}"/>${layer ? '<circle cx="50" cy="50" r="25" fill="none" stroke="currentColor" stroke-dasharray="4 4" stroke-width="3"/>' : ''}</g></svg>`,
     ];
     const symbolIndex = Math.floor(r() * symbols.length);
     const draw = symbols[symbolIndex % symbols.length];
     
-    // Complex pattern: Rotation + Scaling/Fill Toggle
+    // Complex pattern: Rotation + Scaling/Fill Toggle + Layering Logic (XOR-like or alternate)
     const matrix: any[][] = [];
     for(let row=0; row<3; row++) {
         const rowData: any[] = [];
@@ -267,7 +267,8 @@ const generateDynamicMatrixSVG = (seed: number, r: () => number) => {
             } else {
                 const rot = (row * 90 + col * 45) % 360;
                 const scale = 1 - (row + col) * 0.1;
-                rowData.push(draw(rot, scale));
+                const layer = (row + col) % 2 !== 0;
+                rowData.push(draw(rot, scale, layer));
             }
         }
         matrix.push(rowData);
@@ -275,20 +276,21 @@ const generateDynamicMatrixSVG = (seed: number, r: () => number) => {
     
     const finalRot = (2 * 90 + 2 * 45) % 360;
     const finalScale = 1 - (2 + 2) * 0.1;
-    const correctSvg = draw(finalRot, finalScale);
+    const finalLayer = (2 + 2) % 2 !== 0;
+    const correctSvg = draw(finalRot, finalScale, finalLayer);
     
     return {
         type: "Matriks Gambar Lanjut",
-        content: `Tentukan gambar yang tepat untuk mengisi tanda tanya (?) pada matriks berikut. Perhatikan pola rotasi dan perubahan detail internal secara simultan!\n\n:::MATRIX:::\n${JSON.stringify(matrix)}\n:::`,
+        content: `Tentukan gambar yang tepat untuk mengisi tanda tanya (?) pada matriks berikut. Perhatikan pola rotasi dan perubahan detail internal secara simultan!\n\n:::MATRIX:::\n${JSON.stringify(matrix)}\n:::END_MATRIX:::`,
         correct: correctSvg,
         opts: [
             correctSvg,
-            draw((finalRot + 90) % 360, finalScale),
-            draw(finalRot, 1.0),
-            draw((finalRot + 180) % 360, finalScale - 0.2),
+            draw((finalRot + 90) % 360, finalScale, finalLayer),
+            draw(finalRot, 1.0, !finalLayer),
+            draw((finalRot + 180) % 360, finalScale - 0.2, finalLayer),
             `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="20" fill="currentColor"/></svg>`
         ],
-        expl: `Pola melibatkan rotasi bertahap (90° per baris, 45° per kolom) serta pengecilan skala/detail secara linear dari kiri atas ke kanan bawah.`
+        expl: `Pola melibatkan rotasi bertahap (90° per baris, 45° per kolom), pengecilan skala secara linear, dan pergantian elemen layer secara selang-seling.`
     };
 };
 const generateDynamicCubeNetSVG = (seed: number, r: () => number) => {
@@ -331,10 +333,10 @@ const generateDynamicCubeNetSVG = (seed: number, r: () => number) => {
 const generateDynamicSeriesSVG = (seed: number, r: () => number) => {
     const symbolIndex = Math.floor(r() * 4);
     const symbols = [
-        (pos: number) => `<circle cx="${50 + pos * 10}" cy="50" r="${15 + pos * 5}" fill="${pos % 2 === 0 ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" />`,
-        (pos: number) => `<rect x="${25 + pos * 10}" y="25" width="50" height="50" fill="none" stroke="currentColor" stroke-width="2" transform="rotate(${pos * 45} 50 50)"/><circle cx="${50 + pos * 10}" cy="50" r="10" fill="currentColor"/>`,
-        (pos: number) => `<path d="M50,${20 + pos * 10} L${80 - pos * 10},80 L${20 + pos * 10},80 Z" fill="${pos === 3 ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" />`,
-        (pos: number) => `<polygon points="${50 + pos*5},${20 + pos*5} ${80 + pos*10},${70 + pos*5} ${20 + pos*5},${70 + pos*10}" fill="none" stroke="currentColor" stroke-width="${2 + pos}" transform="rotate(${pos * 90} 50 50)"/>`
+        (pos: number) => `<g transform="rotate(${pos * 45} 50 50)"><circle cx="${50 + pos * 5}" cy="50" r="${15 + pos * 5}" fill="${pos % 2 === 0 ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" opacity="0.8"/><rect x="${30 - pos * 5}" y="30" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2" transform="rotate(${pos * 15} 50 50)"/></g>`,
+        (pos: number) => `<g transform="rotate(${pos * 90} 50 50)"><rect x="${25 + pos * 5}" y="25" width="50" height="50" fill="none" stroke="currentColor" stroke-width="2" transform="rotate(${pos * 45} 50 50)"/><circle cx="${50 + pos * 5}" cy="50" r="10" fill="currentColor"/><path d="M 25 50 L 75 50" stroke="currentColor" stroke-width="${1 + pos}"/></g>`,
+        (pos: number) => `<g transform="rotate(${pos * 30} 50 50)"><path d="M50,${20 + pos * 5} L${80 - pos * 5},80 L${20 + pos * 5},80 Z" fill="${pos === 3 ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" /><circle cx="50" cy="${50 + pos * 5}" r="5" fill="currentColor"/></g>`,
+        (pos: number) => `<g transform="rotate(${pos * -45} 50 50)"><polygon points="${50 + pos*5},${20 + pos*5} ${80 + pos*5},${70 + pos*5} ${20 + pos*5},${70 + pos*5}" fill="none" stroke="currentColor" stroke-width="${2 + pos}" transform="rotate(${pos * 90} 50 50)"/><circle cx="50" cy="50" r="${10 + pos*5}" fill="none" stroke="currentColor" stroke-width="2"/></g>`
     ];
     const draw = symbols[symbolIndex];
     
@@ -372,41 +374,31 @@ const generateDynamicSeriesSVG = (seed: number, r: () => number) => {
     };
 };
 
-const generateDoubleTransformFigural = (seed: number, r: () => number) => {
-    const shapes = ['●', '■', '▲', '★', '◆'];
-    const s1 = getRandomItem(shapes, r);
-    const transforms = [
-        { name: "Rotasi 90° + Ubah Warna Jelas/Gelap", res: "● (Hitam/Putih Berlawanan)" },
-        { name: "Mirroring + Ukuran Berkurang", res: "Objek Terbalik & Kecil" },
-        { name: "Duplikasi + Pergeseran Diagonal", res: "Dua Objek Bertumpuk" },
-        { name: "Rotasi 180° + Arsir Internal", res: "Objek Terbalik dengan Garis-garis" }
-    ];
-    const t = getRandomItem(transforms, r);
-    
-    return {
-        type: "Transformasi Ganda (Analogi)",
-        content: `Jika objek [ ${s1} ] mengalami [ ${t.name} ], manakah hasil yang paling tepat sesuai dengan logika pola tersebut?`,
-        correct: t.res,
-        opts: [t.res, "Hanya rotasi saja", "Hanya perubahan warna saja", "Objek menghilang", "Objek menjadi tiga buah"],
-        expl: "Perhatikan bahwa ada dua perubahan sekaligus yang terjadi pada objek awal (Transformasi Ganda)."
-    };
-};
-
 const generateOddOneOutSVG = (seed: number, r: () => number) => {
-    const symbolIndex = Math.floor(r() * 3);
+    const symbolIndex = Math.floor(r() * 5);
     const symbols = [
-        (rot: number, isOdd: boolean) => `<g transform="rotate(${rot} 50 50)"><rect x="30" y="30" width="40" height="40" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="50" cy="${isOdd ? 80 : 20}" r="5" fill="currentColor"/></g>`,
-        (rot: number, isOdd: boolean) => `<g transform="rotate(${rot} 50 50)"><polygon points="50,20 80,80 20,80" fill="none" stroke="currentColor" stroke-width="3"/><line x1="50" y1="20" x2="50" y2="80" stroke="currentColor" stroke-width="${isOdd ? 2 : 5}"/></g>`,
-        (rot: number, isOdd: boolean) => `<g transform="rotate(${rot} 50 50)"><circle cx="50" cy="50" r="30" fill="none" stroke="currentColor" stroke-width="3"/><line x1="20" y1="50" x2="${isOdd ? 80 : 50}" y2="50" stroke="currentColor" stroke-width="3"/></g>`
+        (rot: number, isOdd: boolean) => `<g transform="rotate(${rot} 50 50)"><rect x="30" y="30" width="40" height="40" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="${isOdd ? 45 : 50}" cy="20" r="5" fill="currentColor"/><path d="M30 30 L70 70 M70 30 L30 70" stroke="currentColor" stroke-width="2" opacity="0.3"/></g>`,
+        (rot: number, isOdd: boolean) => `<g transform="rotate(${rot} 50 50)"><polygon points="50,20 80,80 20,80" fill="none" stroke="currentColor" stroke-width="3"/><line x1="50" y1="20" x2="50" y2="80" stroke="currentColor" stroke-width="${isOdd ? 2 : 5}"/><circle cx="50" cy="50" r="10" fill="currentColor" opacity="0.4"/></g>`,
+        (rot: number, isOdd: boolean) => `<g transform="rotate(${rot} 50 50)"><circle cx="50" cy="50" r="30" fill="none" stroke="currentColor" stroke-width="3"/><line x1="20" y1="50" x2="${isOdd ? 80 : 50}" y2="50" stroke="currentColor" stroke-width="3"/><rect x="40" y="40" width="20" height="20" fill="currentColor" opacity="0.5"/></g>`,
+        (rot: number, isOdd: boolean) => `<g transform="rotate(${rot} 50 50)"><circle cx="40" cy="50" r="25" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="60" cy="50" r="25" fill="none" stroke="currentColor" stroke-width="2"/><path d="M 50 30 A 25 25 0 0 0 50 70 A 25 25 0 0 0 50 30" fill="${isOdd ? 'currentColor' : 'none'}" opacity="0.5"/><line x1="40" y1="50" x2="60" y2="50" stroke="currentColor" stroke-width="2"/></g>`,
+        (rot: number, isOdd: boolean) => `<g transform="rotate(${rot} 50 50)"><rect x="25" y="25" width="50" height="50" fill="none" stroke="currentColor" stroke-width="2" transform="rotate(45 50 50)"/><rect x="30" y="30" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="${isOdd ? 45 : 50}" cy="50" r="15" fill="currentColor" opacity="0.4"/></g>`
     ];
     const draw = symbols[symbolIndex];
     
-    // Create 5 options, 4 are same but rotated, 1 is odd
+    // Create an array of 4 distinct rotations for the normal objects
+    const normalRotations = [0, 90, 180, 270];
+    for (let i = normalRotations.length - 1; i > 0; i--) {
+        const j = Math.floor(r() * (i + 1));
+        [normalRotations[i], normalRotations[j]] = [normalRotations[j], normalRotations[i]];
+    }
+
     const optionsArray = [];
     const oddIndex = Math.floor(r() * 5);
     
+    let normalIndex = 0;
+    
     for (let i = 0; i < 5; i++) {
-        const rot = (Math.floor(r() * 4) * 90);
+        const rot = i === oddIndex ? (Math.floor(r() * 4) * 90) : normalRotations[normalIndex++];
         const isOdd = i === oddIndex;
         // Output clean SVG wrapped
         const svg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${draw(rot, isOdd)}</svg>`;
@@ -427,95 +419,37 @@ const generateOddOneOutSVG = (seed: number, r: () => number) => {
 const generateProceduralFigural = (seed: number, index: number): { content: string, correct: string, opts: string[], expl: string, type: string } => {
     const r = pseudoRandom(seed);
     
-    let mode;
-    // Force SVG mode for items 20 to 28
-    if (index >= 20 && index <= 28) {
-        const pureVisualModes = [1, 3, 4, 7];
-        mode = getRandomItem(pureVisualModes, r);
-    } else {
-        mode = Math.floor(r() * 8); // Expanded variety
-    }
+    // Only use true SVG-based generators for Figural questions to maintain high difficulty and visual quality
+    const pureVisualModes = [1, 3, 4, 7];
+    const mode = getRandomItem(pureVisualModes, r);
 
-    if (mode === 0) {
-        // Rotation & Mirroring
-        const baseShape = getRandomItem(['▲', '◀', '▶', '▼', '◆', '⬟', '⬢', '⭘'], r);
-        const rotationSteps = ['90° CW', '180°', '270° CW', 'Horizontal Flip'];
-        const step = getRandomItem(rotationSteps, r);
-        
-        return {
-            type: "Rotasi & Pencerminan",
-            content: `Jika objek [ ${baseShape} ] mengalami transformasi [ ${step} ], manakah hasil yang benar?`,
-            correct: `Hasil transformasi ${step}`,
-            opts: [
-                `Hasil transformasi ${step}`,
-                "Objek tetap sama",
-                "Objek membesar 2x",
-                "Objek berubah warna",
-                "Objek menghilang"
-            ],
-            expl: `Transformasi ${step} mengubah orientasi dasar objek [ ${baseShape} ] secara spesifik.`
-        };
-    } else if (mode === 1) {
+    if (mode === 1) {
         // Dynamic Matrix SVG
         return generateDynamicMatrixSVG(seed, r);
-    } else if (mode === 2) {
-        // Double Transform
-        return generateDoubleTransformFigural(seed, r);
     } else if (mode === 3) {
         // Cube Net
         return generateDynamicCubeNetSVG(seed, r);
     } else if (mode === 4) {
         // Series SVG
         return generateDynamicSeriesSVG(seed, r);
-    } else if (mode === 5) {
-        // Dynamic Logic (Analogi)
-        const s1 = getRandomItem(['(A)', '(B)', '(C)'], r);
-        const s2 = getRandomItem(['(X)', '(Y)', '(Z)'], r);
-        return {
-            type: "Analogi Gambar (Dinamis)",
-            content: `Jika [ ${s1} ] menjadi [ ${s2} ], maka [ (M) ] akan menjadi ...? (Gunakan logika perbandingan yang sama)`,
-            correct: "(N)",
-            opts: ["(N)", "(O)", "(P)", "(Q)", "(R)"],
-            expl: "Analogi gambar memerlukan pencarian hubungan transformasi yang konsisten antara pasangan pertama untuk diterapkan pada pasangan kedua."
-        };
-    } else if (mode === 6) {
-        // Logical Addition / Subtraction of Shapes
-        const shape1 = '●';
-        const shape2 = '■';
-        const combined = '◙';
-        return {
-            type: "Analogi Kombinasi",
-            content: `Jika [ ${shape1} ] + [ ${shape2} ] = [ ${combined} ], maka [ ▲ ] + [ ▼ ] = ...?`,
-            correct: "⧓",
-            opts: ["⧓", "⧔", "⧕", "⧖", "⧗"],
-            expl: "Penggabungan dua segitiga berlawanan arah membentuk jam pasir (⧓)."
-        };
-    } else if (mode === 7) {
-        return generateOddOneOutSVG(seed, r);
     } else {
-        // Complex Series
-        return {
-            type: "Serial Kompleks",
-            content: "Pola: [ ● ] ➔ [ ●● ] ➔ [ ●●● ] ➔ [ ●●●● ] ➔ ...?",
-            correct: "[ ●●●●● ]",
-            opts: ["[ ●●●●● ]", "[ ●●●●●● ]", "[ ○○○○○ ]", "[ ■■■■■ ]", "[ ★★★★★ ]"],
-            expl: "Penambahan satu objek setiap langkah secara konsekutif."
-        };
+        // Odd One Out
+        return generateOddOneOutSVG(seed, r);
     }
 };
 
 const COMPLEX_SYLLOGISMS = [
     {
         q: "Premis 1: Semua mahasiswa tingkat akhir adalah teladan.\nPremis 2: Sebagian mahasiswa tingkat akhir bukan aktivis.\nPremis 3: Tidak ada aktivis yang tidak kompeten.\nKesimpulan yang tepat adalah ...",
-        correct: "Sebagian teladan adalah kompeten",
+        correct: "Sebagian teladan bukan aktivis",
         opts: [
-            "Sebagian teladan adalah kompeten",
+            "Sebagian teladan bukan aktivis",
             "Semua teladan adalah aktivis",
             "Tidak ada teladan yang kompeten",
             "Sebagian aktivis bukan mahasiswa tingkat akhir",
             "Semua mahasiswa tingkat akhir adalah aktivis"
         ],
-        expl: "Analisis: M (Mhs Akhir) ⊂ T (Teladan). Ada M yang b-A (bukan Aktivis). A ⊂ K (Kompeten). Karena ada M yang Aktivis, dan M adalah Teladan, maka ada Teladan yang Kompeten."
+        expl: "Analisis: M (Mhs Akhir) ⊂ T (Teladan). Ada M yang b-A (bukan Aktivis). Maka, sebagian T (Teladan) bukan A (Aktivis). Karena 3 premis ada yang negatif, kesimpulan harus mengarah pada yang negatif parsial."
     },
     {
         q: "Premis 1: Semua peneliti adalah pencari kebenaran.\nPremis 2: Sebagian pencari kebenaran bukan skeptis.\nPremis 3: Tidak ada pencari kebenaran yang malas.\nKesimpulan yang tepat adalah ...",
@@ -553,139 +487,130 @@ export const generateSKDPackage = (packageId: number, stream: 'CPNS' | 'KEDINASA
     // ==========================================
     // 1. TWK GENERATION (30 Soal)
     // ==========================================
-    for (let i = 0; i < 30; i++) {
-        const template = TWK_TEMPLATES[(i + packageId) % TWK_TEMPLATES.length];
-        
-        // Add variation to UUD questions to make them specific
-        let content = template.q;
-        let correctAnswer = template.a[0]; // First option is correct in template
-        let options = [...template.a];
+    const twkDist = [
+        { t: "Nasionalisme", count: 6 },
+        { t: "Integritas", count: 6 },
+        { t: "Bela Negara", count: 6 },
+        { t: "Pilar Negara", count: 6 },
+        { t: "Bahasa Indonesia", count: 6 }
+    ];
+    let twkIdx = 0;
+    twkDist.forEach(dist => {
+        for (let i = 0; i < dist.count; i++) {
+            // Find templates that match this topic
+            let matchingTemplates = TWK_TEMPLATES.filter(t => t.t.includes(dist.t));
+            if (matchingTemplates.length === 0) matchingTemplates = TWK_TEMPLATES; // fallback
+            const template = matchingTemplates[(i + packageId) % matchingTemplates.length];
+            
+            let content = template.q;
+            let correctAnswer = template.a[0];
+            let options = [...template.a];
 
-        if (template.t === "UUD 1945" && i % 2 === 0) {
-             content = "Bunyi Pasal 30 ayat (4) UUD 1945 berkaitan dengan peran Kepolisian Negara Republik Indonesia sebagai...";
-             correctAnswer = "Alat negara yang menjaga keamanan dan ketertiban masyarakat";
-             options = [correctAnswer, "Alat pertahanan negara", "Penjaga kedaulatan wilayah", "Komponen cadangan pertahanan", "Pengatur kebijakan kriminal"];
+            questions.push({
+                id: `p${packageId}-twk-${twkIdx++}`,
+                type: 'multiple_choice',
+                content: `(Soal ${dist.t}) - ${content}`,
+                options: shuffle(options, rand),
+                correctAnswer: correctAnswer,
+                explanation: template.expl || `Jawaban: ${correctAnswer}.`,
+                metadata: { difficulty: 'Hard', idealTimeSeconds: 50, topic: 'TWK', subtest: `TWK - ${dist.t}` }
+            });
         }
-
-        questions.push({
-            id: `p${packageId}-twk-${i}`,
-            type: 'multiple_choice',
-            content: content,
-            options: shuffle(options, rand),
-            correctAnswer: correctAnswer,
-            explanation: template.expl || `Jawaban: ${correctAnswer}.`,
-            metadata: { difficulty: 'Hard', idealTimeSeconds: 50, topic: 'TWK', subtest: `TWK - ${template.t}` }
-        });
-    }
+    });
 
     // ==========================================
     // 2. TIU GENERATION (35 Soal)
     // ==========================================
-    for (let i = 0; i < 35; i++) {
-        let content, correct, options, subtest, expl;
-
-        if (i < 10) {
-            // TIU NUMERIK (Hard + Perbandingan)
-            subtest = "TIU - Numerik";
+    const tiuDist = [
+        { t: "Analogi Kata", count: 2, type: 'verbal' },
+        { t: "Analogi Kalimat", count: 2, type: 'verbal' },
+        { t: "Hitungan", count: 4, type: 'numerik' },
+        { t: "Perbandingan Kuantitatif", count: 3, type: 'numerik' },
+        { t: "Soal Cerita", count: 4, type: 'numerik' },
+        { t: "Deret Angka", count: 4, type: 'numerik' },
+        { t: "Silogisme", count: 5, type: 'verbal' },
+        { t: "Analitis", count: 3, type: 'verbal' },
+        { t: "Analogi Gambar", count: 2, type: 'figural' },
+        { t: "Serial Gambar", count: 2, type: 'figural' },
+        { t: "Pola 9 Kotak Gambar", count: 1, type: 'figural' },
+        { t: "Ketidaksamaan Gambar", count: 3, type: 'figural' }
+    ];
+    
+    let tiuIdx = 0;
+    tiuDist.forEach(dist => {
+        for (let i = 0; i < dist.count; i++) {
+            let content, correct, options, expl;
             
-            if (i % 3 === 0) {
-                // Perbandingan Kuantitatif (X vs Y)
-                const template = NUMERIC_COMPARISON_TEMPLATES[(i + packageId) % NUMERIC_COMPARISON_TEMPLATES.length];
-                content = template.q;
+            if (dist.type === 'verbal') {
+                let matching = TIU_VERBAL_TEMPLATES.filter(t => t.type.toLowerCase().includes(dist.t.toLowerCase()));
+                if (matching.length === 0) matching = TIU_VERBAL_TEMPLATES;
+                const template = matching[(i + packageId) % matching.length];
+                content = `(Soal ${dist.t}) - ${template.q}`;
                 correct = template.correct;
                 options = shuffle([...template.opts], rand);
                 expl = template.expl;
-                subtest = "TIU - Perbandingan Kuantitatif";
-            } else {
-                const template = TIU_NUMERIC_TEMPLATES[(i + packageId) % TIU_NUMERIC_TEMPLATES.length];
-                // Add algorithmic variation for "Hitung Cepat"
-                if (i % 4 === 1) {
-                const a = Math.floor(rand() * 5) + 2;
-                const b = Math.floor(rand() * 5) + 2;
-                content = `Nilai dari (${a} + √${b})/(${a} - √${b}) + (${a} - √${b})/(${a} + √${b}) adalah...`;
-                // Formula: 2(a^2 + b) / (a^2 - b)
-                const num = 2 * (a*a + b);
-                const den = a*a - b;
-                const res = num / den;
-                
-                if (Number.isInteger(res)) {
-                    correct = res.toString();
-                    options = shuffle([correct, (res + 2).toString(), (res - 2).toString(), (res * 2).toString(), "0"], rand);
-                    expl = `Gunakan rumus cepat: (x+y)/(x-y) + (x-y)/(x+y) = 2(x²+y²)/(x²-y²). Disini x=${a}, y=√${b}.`;
-                } else {
-                    // Fallback to template if not integer
-                    content = template.q;
-                    correct = template.correct;
-                    options = shuffle(template.opts, rand);
-                    expl = template.expl;
-                }
-            } else {
-                content = template.q;
-                correct = template.correct;
-                options = shuffle(template.opts, rand);
-                expl = template.expl;
-            }
-        }
-    } else if (i < 20) {
-            // TIU VERBAL (Hard + Silogisme Kompleks)
-            subtest = "TIU - Verbal";
-            
-            if (i % 4 === 0) {
-                const template = COMPLEX_SYLLOGISMS[(i + packageId) % COMPLEX_SYLLOGISMS.length];
-                content = template.q;
+            } else if (dist.type === 'numerik') {
+                let matching = TIU_NUMERIC_TEMPLATES.filter(t => t.type.toLowerCase().includes(dist.t.toLowerCase()));
+                if (matching.length === 0) matching = TIU_NUMERIC_TEMPLATES;
+                const template = matching[(i + packageId) % matching.length];
+                content = `(Soal ${dist.t}) - ${template.q}`;
                 correct = template.correct;
                 options = shuffle([...template.opts], rand);
                 expl = template.expl;
-                subtest = "TIU - Silogisme Kompleks";
             } else {
-                const template = TIU_VERBAL_TEMPLATES[(i + packageId) % TIU_VERBAL_TEMPLATES.length];
-                content = template.q;
-                correct = template.correct;
-                options = shuffle(template.opts, rand);
-                expl = template.expl;
+                // Figural
+                const proc = generateProceduralFigural(i + packageId + tiuIdx * 100, i);
+                content = `(Soal ${dist.t}) - ${proc.content}`;
+                correct = proc.correct;
+                options = shuffle([...proc.opts], rand);
+                expl = proc.expl;
             }
 
-        } else {
-            // TIU FIGURAL (Dynamic Procedural)
-            const proc = generateProceduralFigural(i + packageId + 100, i);
-            content = proc.content;
-            correct = proc.correct;
-            options = shuffle([...proc.opts], rand);
-            expl = proc.expl;
-            subtest = `TIU - Figural (${proc.type})`;
+            questions.push({
+                id: `p${packageId}-tiu-${tiuIdx++}`,
+                type: 'multiple_choice',
+                content,
+                options: options,
+                correctAnswer: correct,
+                explanation: expl,
+                metadata: { difficulty: 'Hard', idealTimeSeconds: 60, topic: 'TIU', subtest: `TIU - ${dist.t}` }
+            });
         }
-
-        questions.push({
-            id: `p${packageId}-tiu-${i}`,
-            type: 'multiple_choice',
-            content,
-            options: options,
-            correctAnswer: correct,
-            explanation: expl,
-            metadata: { difficulty: 'Hard', idealTimeSeconds: 60, topic: 'TIU', subtest }
-        });
-    }
+    });
 
     // ==========================================
     // 3. TKP GENERATION (45 Soal)
     // ==========================================
-    for (let i = 0; i < 45; i++) {
-        const template = TKP_SCENARIOS[(i + packageId) % TKP_SCENARIOS.length];
-        
-        // Shuffle options but keep track of points
-        const shuffledOpts = shuffle([...template.opts], rand);
+    const tkpDist = [
+        { t: "Pelayanan Publik", count: 8 },
+        { t: "Jejaring Kerja", count: 8 },
+        { t: "Sosial Budaya", count: 8 },
+        { t: "TIK", count: 8 },
+        { t: "Profesionalisme", count: 6 },
+        { t: "Anti Radikalisme", count: 7 }
+    ];
+    
+    let tkpIdx = 0;
+    tkpDist.forEach(dist => {
+        for (let i = 0; i < dist.count; i++) {
+            let matching = TKP_SCENARIOS.filter(t => t.topic.toLowerCase().includes(dist.t.toLowerCase()));
+            if (matching.length === 0) matching = TKP_SCENARIOS;
+            const template = matching[(i + packageId) % matching.length];
+            
+            const shuffledOpts = shuffle([...template.opts], rand);
 
-        questions.push({
-            id: `p${packageId}-tkp-${i}`,
-            type: 'multiple_choice',
-            content: template.q,
-            options: shuffledOpts.map((o: any) => o.txt),
-            correctAnswer: template.opts.find((o: any) => o.pts === 5)?.txt || "",
-            tkpPoints: shuffledOpts.map((o: any) => ({ option: o.txt, points: o.pts })),
-            explanation: `Topik: ${template.topic}. Jawaban terbaik (5 poin) menunjukkan tindakan paling proaktif dan solutif.`,
-            metadata: { difficulty: 'Medium', idealTimeSeconds: 45, topic: 'TKP', subtest: `TKP - ${template.topic}` }
-        });
-    }
+            questions.push({
+                id: `p${packageId}-tkp-${tkpIdx++}`,
+                type: 'multiple_choice',
+                content: `(Soal ${dist.t}) - ${template.q}`,
+                options: shuffledOpts.map((o: any) => o.txt),
+                correctAnswer: template.opts.find((o: any) => o.pts === 5)?.txt || "",
+                tkpPoints: shuffledOpts.map((o: any) => ({ option: o.txt, points: o.pts })),
+                explanation: `Topik: ${dist.t}. Jawaban terbaik (5 poin) menunjukkan tindakan paling proaktif dan solutif.`,
+                metadata: { difficulty: 'Medium', idealTimeSeconds: 45, topic: 'TKP', subtest: `TKP - ${dist.t}` }
+            });
+        }
+    });
 
     return questions;
 };

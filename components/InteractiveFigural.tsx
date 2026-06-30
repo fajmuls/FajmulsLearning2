@@ -5,9 +5,11 @@ import { RotateCw, Box, Layers, MousePointer2, Shapes } from 'lucide-react';
 interface InteractiveFiguralProps {
     svgString: string;
     type?: string;
+    isOption?: boolean;
+    isInline?: boolean;
 }
 
-export const InteractiveFigural: React.FC<InteractiveFiguralProps> = ({ svgString: rawSvgString, type }) => {
+export const InteractiveFigural: React.FC<InteractiveFiguralProps> = ({ svgString: rawSvgString, type, isOption = false, isInline = false }) => {
     const [is3DMode, setIs3DMode] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -80,18 +82,55 @@ export const InteractiveFigural: React.FC<InteractiveFiguralProps> = ({ svgStrin
     const processedSvg = useMemo(() => {
         let cleanStr = svgString;
         try {
+            // Replace hardcoded colors for Dark mode compatibility
+            cleanStr = cleanStr.replace(/stroke="black"/gi, 'stroke="currentColor"');
+            cleanStr = cleanStr.replace(/stroke="#000000"/gi, 'stroke="currentColor"');
+            cleanStr = cleanStr.replace(/fill="black"/gi, 'fill="currentColor"');
+            cleanStr = cleanStr.replace(/fill="#000000"/gi, 'fill="currentColor"');
+
             const parser = new DOMParser();
             const doc = parser.parseFromString(cleanStr, 'image/svg+xml');
             const svgElement = doc.querySelector('svg');
             if (svgElement) {
-                svgElement.setAttribute('width', '100%');
-                svgElement.setAttribute('height', '100%');
+                // Ensure viewBox exists for proper scaling before overriding width/height
+                if (!svgElement.getAttribute('viewBox') && svgElement.getAttribute('width') && svgElement.getAttribute('height')) {
+                    const w = parseInt(svgElement.getAttribute('width') || '100', 10);
+                    const h = parseInt(svgElement.getAttribute('height') || '100', 10);
+                    svgElement.setAttribute('viewBox', `0 0 ${w} ${h}`);
+                }
+                
+                const currentClass = svgElement.getAttribute('class') || '';
+                
+                let isWide = false;
+                const viewBox = svgElement.getAttribute('viewBox');
+                if (viewBox) {
+                    const parts = viewBox.split(/[ ,]+/);
+                    if (parts.length >= 4) {
+                        const w = parseFloat(parts[2]);
+                        const h = parseFloat(parts[3]);
+                        if (w > h * 2.5) {
+                            isWide = true;
+                        }
+                    }
+                }
+                
+                const sizeClass = isOption ? 'max-h-[80px] sm:max-h-[100px] max-w-[80px] sm:max-w-[100px] mx-auto' : isInline ? 'w-full h-full object-contain' : `max-h-[220px] md:max-h-[300px] object-contain ${isWide ? 'w-auto h-[120px] sm:h-[150px]' : 'w-full'}`;
+                
+                if (isWide && !isOption && !isInline) {
+                     svgElement.removeAttribute('width');
+                     svgElement.setAttribute('height', '100%');
+                } else {
+                     svgElement.setAttribute('width', '100%');
+                     svgElement.setAttribute('height', 'auto');
+                }
+                
                 svgElement.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+                svgElement.setAttribute('class', `${currentClass} ${sizeClass} transition-transform duration-300 select-none`);
                 return svgElement.outerHTML;
             }
         } catch (e) {}
         return cleanStr;
-    }, [svgString]);
+    }, [svgString, isOption]);
 
     if (isLoading) {
         return (
@@ -121,19 +160,20 @@ export const InteractiveFigural: React.FC<InteractiveFiguralProps> = ({ svgStrin
         return (
             <motion.div 
                 layoutId="figural-container"
-                className="relative group w-full flex justify-center items-center py-4"
+                className={`relative group flex justify-center items-center ${isInline ? 'w-full h-full p-0 m-0' : 'w-full py-4'}`}
             >
                 <button 
                     onClick={() => setIsMinimized(true)}
-                    className="absolute top-0 right-0 p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-indigo-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    className={`absolute top-0 right-0 p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-indigo-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10 ${isOption || isInline ? 'hidden' : ''}`}
                     title="Sembunyikan"
                 >
                     <RotateCw size={14} className="rotate-45" />
                 </button>
                 <div 
-                    className="w-full h-full flex justify-center items-center overflow-hidden max-w-[280px] sm:max-w-md mx-auto"
-                    dangerouslySetInnerHTML={{ __html: processedSvg.replace(/currentColor/g, 'var(--tw-prose-body, #334155)') }}
-                />
+                    className={`flex items-center mx-auto ${isOption ? 'justify-center w-full h-full max-w-[120px] max-h-[120px]' : isInline ? 'justify-center w-full h-full' : 'justify-start sm:justify-center w-full max-w-full overflow-x-auto overflow-y-hidden pb-4'}`}
+                >
+                    <div className={isOption || isInline ? 'w-full h-full flex justify-center items-center overflow-hidden' : 'w-full flex justify-center min-w-max'} dangerouslySetInnerHTML={{ __html: processedSvg }} />
+                </div>
             </motion.div>
         );
     }
@@ -141,17 +181,17 @@ export const InteractiveFigural: React.FC<InteractiveFiguralProps> = ({ svgStrin
     return (
         <motion.div 
             layoutId="figural-container"
-            className="flex flex-col items-center w-full my-4 relative group"
+            className={`flex flex-col items-center relative group ${isInline ? 'w-full h-full p-0 m-0' : 'w-full my-4'}`}
         >
             <button 
                 onClick={() => setIsMinimized(true)}
-                className="absolute top-0 right-0 p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-indigo-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                className={`absolute top-0 right-0 p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-indigo-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10 ${isOption || isInline ? 'hidden' : ''}`}
                 title="Sembunyikan"
             >
                 <RotateCw size={14} className="rotate-45" />
             </button>
 
-            <div className="relative w-full flex justify-center items-center min-h-[220px]">
+            <div className={`relative flex justify-center items-center ${isOption ? 'min-h-[120px] max-w-[120px] mx-auto' : isInline ? 'w-full h-full min-h-0' : 'w-full min-h-[220px]'}`}>
                 <AnimatePresence mode="wait">
                     {!is3DMode ? (
                         <motion.div
@@ -159,8 +199,8 @@ export const InteractiveFigural: React.FC<InteractiveFiguralProps> = ({ svgStrin
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
-                            className="p-4 max-w-full overflow-hidden"
-                            dangerouslySetInnerHTML={{ __html: svgString.replace(/currentColor/g, 'var(--tw-prose-body, #334155)') }}
+                            className="p-4 max-w-full overflow-hidden flex justify-center items-center"
+                            dangerouslySetInnerHTML={{ __html: processedSvg }}
                         />
                     ) : (
                         <motion.div
