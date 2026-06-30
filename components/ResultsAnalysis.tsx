@@ -342,7 +342,7 @@ export const ResultsAnalysis: React.FC<ResultsProps> = ({ answers, questions, on
                         {questions.map((q, i) => {
                             const ans = answers.find(a => a.questionId === q.id);
                             const isCorrect = ans?.isCorrect;
-                            const topicQuery = encodeURIComponent(`Pembahasan Soal ${category} ${q.metadata.subtest || q.metadata.topic}`);
+                            const topicQuery = encodeURIComponent(`Pembahasan Soal ${category} ${q.metadata?.subtest || q.metadata?.topic || ''}`);
                             
                             return (
                                 <div key={i} className="p-3 sm:p-4 border-b border-slate-100 dark:border-slate-700 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-750 transition flex items-start gap-2">

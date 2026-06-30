@@ -375,12 +375,12 @@ export const formatTopic = (subtest: string | undefined, topic: string | undefin
     if (lowerRaw.includes('ketidaksamaan') || lowerRaw.includes('beda')) return 'Ketidaksamaan gambar';
     
     // TKP
-    if (lowerRaw.includes('pelayanan')) return 'Pelayanan publik';
-    if (lowerRaw.includes('jejaring')) return 'Jejaring kerja';
-    if (lowerRaw.includes('sosial budaya')) return 'Sosial budaya';
+    if (lowerRaw.includes('pelayanan')) return 'Pelayanan Publik';
+    if (lowerRaw.includes('jejaring')) return 'Jejaring Kerja';
+    if (lowerRaw.includes('sosial budaya')) return 'Sosial Budaya';
     if (lowerRaw.includes('tik') || lowerRaw.includes('teknologi') || lowerRaw === 'tik') return 'TIK';
     if (lowerRaw.includes('profesionalisme')) return 'Profesionalisme';
-    if (lowerRaw.includes('radikalisme')) return 'Anti radikalisme';
+    if (lowerRaw.includes('radikalisme')) return 'Anti Radikalisme';
     
     // Hide redundant generic topics
     if (['twk', 'tiu', 'tkp', 'skd', 'general', 'umum', 'lainnya'].includes(lowerRaw.replace(/[^a-z]/g, ''))) {

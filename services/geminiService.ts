@@ -455,6 +455,16 @@ async function* callGeminiStream(prompt: string, schema?: Schema, imageBase64?: 
 
 function sanitizeQuestion(q: Question): Question {
   if (!q.id) q.id = `q-${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Ensure metadata exists
+  if (!q.metadata) {
+      q.metadata = {
+          difficulty: 'Medium',
+          idealTimeSeconds: 60,
+          topic: 'General',
+          subtest: 'General'
+      };
+  }
 
   // Robust SVG Cleaner & Wrapper
   const cleanAndWrapSvg = (text: string): string => {
@@ -1475,6 +1485,14 @@ export const generateSkdSimulation = async (stream: SkdStreamType, variant: 'FUL
                 taken.push(fbSub[fbIdx++]);
             }
             
+            // AFTER taking 'taken' questions:
+            taken.forEach(q => {
+                if (q.metadata) {
+                    q.metadata.topic = topic; // 'TWK', 'TIU', or 'TKP'
+                    q.metadata.subtest = subtestStr; // The standardized subtest string
+                }
+            });
+
             finalQuestions.push(...taken);
         }
         
@@ -1665,7 +1683,10 @@ export const generatePsikotestKedinasanSimulation = async (): Promise<Question[]
 
     resTiu.forEach(q => q.metadata.subtest = 'TIU - Verbal & Numerik');
     resFigural.forEach(q => q.metadata.subtest = 'Tes Logika Gambar (Abstrak)');
-    resPersonality.forEach(q => q.metadata.subtest = 'Tes Kepribadian');
+    resPersonality.forEach(q => {
+        q.metadata.subtest = 'Tes Kepribadian';
+        q.metadata.topic = 'TKP';
+    });
 
     const allQuestions = [...resTiu, ...resFigural, ...resPersonality];
     return reindexQuestions(allQuestions, 'KEDINASAN');

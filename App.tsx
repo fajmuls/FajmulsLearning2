@@ -3270,13 +3270,13 @@ function App() {
           answers.forEach((a) => {
             const q = questions.find((q) => q.id === a.questionId);
             if (q) {
-              if (q.metadata.subtest.includes("TIU")) tiuScore += a.scoreEarned;
+              if (q.metadata?.subtest?.includes("TIU")) tiuScore += a.scoreEarned;
               else if (
-                q.metadata.subtest.includes("Gambar") ||
-                q.metadata.subtest.includes("Figural")
+                q.metadata?.subtest?.includes("Gambar") ||
+                q.metadata?.subtest?.includes("Figural")
               )
                 figuralScore += a.scoreEarned;
-              else if (q.metadata.subtest.includes("Kepribadian")) {
+              else if (q.metadata?.subtest?.includes("Kepribadian")) {
                 personalityPoints += a.scoreEarned;
                 personalityQuestions++;
               }
