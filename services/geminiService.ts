@@ -1021,7 +1021,7 @@ export const buildQuestionPrompt = (
            FEW-SHOT EXAMPLES (Abstract Structural Example):
            
            Type: Figural - Matrix 3x3 (Hard Pattern)
-           (For a matrix, you MUST write the question text in the 'content' field (e.g. "Tentukan gambar yang tepat untuk mengisi kotak yang kosong pada matriks berikut:"). AND use the 'matrix' JSON array of rows where each cell is {content: "SVG or '?'", id: "id", logic: "Logic"}).
+           (For a matrix, you MUST write the question text in the 'content' field. AND use the 'metadata.matrix' field to provide a JSON array of rows where each cell is {content: "<svg>...</svg>" or "?", id: "id", logic: "Logic"}. NEVER USE TEXT DESCRIPTIONS IN THE CONTENT, YOU MUST WRITE ACTUAL <svg> TAGS).
            
            Type: Figural - Ketidaksamaan (Odd One Out)
            Q: Manakah dari kelima jaring-jaring atau gambar spasial berikut yang berbeda strukturnya?
@@ -1211,7 +1211,7 @@ export const buildQuestionPrompt = (
 
       } else {
         const commonInstruction = `Generate ${count} distinct questions. ${difficultyContext}. Provide clear and concise explanations (not too long, but easy to understand). Only provide very detailed/long explanations if the question is extremely difficult (HOTS) or involves complex logic/math.
-        CRITICAL REMINDER: ALL MULTIPLE CHOICE OPTIONS MUST BE THE EXACT SAME LENGTH. NEVER MAKE THE CORRECT ANSWER THE LONGEST OPTION. 
+        CRITICAL REMINDER: ALL MULTIPLE CHOICE OPTIONS MUST BE THE EXACT SAME LENGTH. NEVER MAKE THE CORRECT ANSWER THE LONGEST OPTION. YOU MUST GENERATE EXACTLY 5 OPTIONS FOR EVERY QUESTION (A, B, C, D, E). NEVER GENERATE FEWER THAN 5 OPTIONS.
         ${shapeInstructions} ${mathInstructions} ${formattingInstructions}`;
         
         if (isTkp) {
@@ -1552,11 +1552,12 @@ CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of th
 
         const pVerbal = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - VERBAL. UNIQUE SEED: ${randomSeed}.
 GENERATE EXACTLY 12 QUESTIONS WITH THIS DISTRIBUTION:
-- 2 questions about "Analogi Kata"
+- 2 questions about "Analogi Kata" (Complex relationships, not just simple synonyms)
 - 2 questions about "Analogi Kalimat"
-- 5 questions about "Silogisme"
-- 3 questions about "Analitis"
-CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TIU - Analogi Kata", "TIU - Analogi Kalimat", "TIU - Silogisme", or "TIU - Analitis".`, 12, [], stream, undefined, 'HOTS');
+- 5 questions about "Silogisme" (MUST use EXTREME DIFFICULTY with 3-4 complex premises, quantifiers like 'Semua/Beberapa', and conditional logic. Do NOT use simple 2-premise logic!)
+- 3 questions about "Analitis" (Very complex logic puzzles with multiple constraints/variables)
+CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TIU - Analogi Kata", "TIU - Analogi Kalimat", "TIU - Silogisme", or "TIU - Analitis".
+CRITICAL 2: EVERY SINGLE QUESTION MUST HAVE EXACTLY 5 OPTIONS. NEVER GENERATE LESS THAN 5 OPTIONS.`, 12, [], stream, undefined, 'HOTS');
         
         const pNum = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - NUMERIK. UNIQUE SEED: ${randomSeed}.
 GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
@@ -1566,7 +1567,8 @@ GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
 - 4 questions about "Deret Angka"
 CRITICAL: 
 1. For each question, set the metadata.subtest field to EXACTLY one of these strings: "TIU - Hitungan", "TIU - Perbandingan Kuantitatif", "TIU - Soal Cerita", or "TIU - Deret Angka".
-2. ALWAYS use proper LaTeX for math fractions (e.g., \\frac{1}{2} instead of 1/2) and equations. Surround them with \\( ... \\).`, 15, [], stream, undefined, 'HOTS');
+2. ALWAYS use proper LaTeX for math fractions (e.g., \\frac{1}{2} instead of 1/2) and equations. Surround them with \\( ... \\).
+3. EVERY SINGLE QUESTION MUST HAVE EXACTLY 5 OPTIONS. NEVER GENERATE LESS THAN 5 OPTIONS.`, 15, [], stream, undefined, 'HOTS');
         
         const pFig = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - FIGURAL. EXTREME DIFFICULTY. YOU MUST OUTPUT <svg> FOR ALL QUESTIONS, AND <svg> FOR EACH OPTION. NO TEXT OPTIONS. UNIQUE SEED: ${randomSeed}.
 GENERATE EXACTLY 8 QUESTIONS WITH THIS DISTRIBUTION:
@@ -1574,7 +1576,8 @@ GENERATE EXACTLY 8 QUESTIONS WITH THIS DISTRIBUTION:
 - 2 questions about "Serial Gambar"
 - 1 question about "Pola 9 Kotak Gambar" (Matriks 3x3)
 - 3 questions about "Ketidaksamaan Gambar"
-CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TIU - Analogi Gambar", "TIU - Serial Gambar", "TIU - Pola 9 Kotak Gambar", or "TIU - Ketidaksamaan Gambar".`, 8, [], stream, undefined, 'HOTS');
+CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TIU - Analogi Gambar", "TIU - Serial Gambar", "TIU - Pola 9 Kotak Gambar", or "TIU - Ketidaksamaan Gambar".
+CRITICAL 2: EVERY SINGLE QUESTION MUST HAVE EXACTLY 5 OPTIONS. NEVER GENERATE LESS THAN 5 OPTIONS.`, 8, [], stream, undefined, 'HOTS');
 
         const results = await Promise.all([pVerbal, pNum, pFig]);
         
