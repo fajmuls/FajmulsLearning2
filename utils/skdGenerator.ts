@@ -126,9 +126,9 @@ const TIU_NUMERIC_TEMPLATES = [
     {
         type: "Statistika & Peluang",
         q: "Dalam sebuah kotak terdapat 5 bola merah, 3 bola kuning, dan 2 bola hijau. Jika diambil 3 bola sekaligus secara acak, berapakah peluang terambilnya minimal 1 bola hijau?",
-        correct: "8/15",
-        opts: ["1/3", "2/5", "7/15", "8/15", "3/4"],
-        expl: "P(Min 1 Hijau) = 1 - P(Gak ada Hijau). P(Gak ada) = C(8,3)/C(10,3) = (56)/(120) = 7/15. Peluang = 1 - 7/15 = 8/15."
+        correct: "\\(\\frac{8}{15}\\)",
+        opts: ["\\(\\frac{1}{3}\\)", "\\(\\frac{2}{5}\\)", "\\(\\frac{7}{15}\\)", "\\(\\frac{8}{15}\\)", "\\(\\frac{3}{4}\\)"],
+        expl: "P(Min 1 Hijau) = 1 - P(Gak ada Hijau). P(Gak ada) = C(8,3)/C(10,3) = (56)/(120) = \\(\\frac{7}{15}\\). Peluang = 1 - \\(\\frac{7}{15}\\) = \\(\\frac{8}{15}\\)."
     }
 ];
 
@@ -416,12 +416,20 @@ const generateOddOneOutSVG = (seed: number, r: () => number) => {
     };
 };
 
-const generateProceduralFigural = (seed: number, index: number): { content: string, correct: string, opts: string[], expl: string, type: string } => {
+const generateProceduralFigural = (seed: number, index: number, type?: string): { content: string, correct: string, opts: string[], expl: string, type: string } => {
     const r = pseudoRandom(seed);
     
-    // Only use true SVG-based generators for Figural questions to maintain high difficulty and visual quality
-    const pureVisualModes = [1, 3, 4, 7];
-    const mode = getRandomItem(pureVisualModes, r);
+    let mode = 1; // Default
+    if (type) {
+        if (type.includes("Pola 9 Kotak")) mode = 1;
+        else if (type.includes("Jaring")) mode = 3;
+        else if (type.includes("Serial")) mode = 4;
+        else if (type.includes("Ketidaksamaan")) mode = 0; // The last one
+        else if (type.includes("Analogi")) mode = 4; // fallback for analogi
+    } else {
+        const pureVisualModes = [1, 3, 4, 7];
+        mode = getRandomItem(pureVisualModes, r);
+    }
 
     if (mode === 1) {
         // Dynamic Matrix SVG
@@ -476,7 +484,7 @@ const NUMERIC_COMPARISON_TEMPLATES = [
         q: "Sebuah dadu dilempar satu kali. Jika X adalah peluang munculnya mata dadu prima, dan Y adalah peluang munculnya mata dadu genap. Manakah hubungan yang benar?",
         correct: "x = y",
         opts: ["x = y", "x > y", "x < y", "2x = y", "x + y = 2"],
-        expl: "P(Prima) = {2,3,5} = 3/6 = 0.5. P(Genap) = {2,4,6} = 3/6 = 0.5. Maka x = y."
+        expl: "P(Prima) = {2,3,5} = \\(\\frac{3}{6}\\) = 0.5. P(Genap) = {2,4,6} = \\(\\frac{3}{6}\\) = 0.5. Maka x = y."
     }
 ];
 
@@ -559,7 +567,7 @@ export const generateSKDPackage = (packageId: number, stream: 'CPNS' | 'KEDINASA
                 expl = template.expl;
             } else {
                 // Figural
-                const proc = generateProceduralFigural(i + packageId + tiuIdx * 100, i);
+                const proc = generateProceduralFigural(i + packageId + tiuIdx * 100, i, dist.t);
                 content = `(Soal ${dist.t}) - ${proc.content}`;
                 correct = proc.correct;
                 options = shuffle([...proc.opts], rand);
@@ -612,5 +620,9 @@ export const generateSKDPackage = (packageId: number, stream: 'CPNS' | 'KEDINASA
         }
     });
 
-    return questions;
+    const twkQuestions = shuffle(questions.slice(0, 30), rand);
+    const tiuQuestions = shuffle(questions.slice(30, 65), rand);
+    const tkpQuestions = shuffle(questions.slice(65), rand);
+
+    return [...twkQuestions, ...tiuQuestions, ...tkpQuestions];
 };

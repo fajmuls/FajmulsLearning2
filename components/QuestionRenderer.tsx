@@ -51,10 +51,14 @@ export const SvgRenderer: React.FC<SvgRendererProps> = ({ svgString }) => {
 const ensureLaTeXWrapping = (text: string): string => {
     if (!text) return text;
     
+    // Convert plain fractions like "1/2" to "\frac{1}{2}", carefully ignoring dates like "12/10/2024"
+    // We use a capture group for the preceding character to avoid lookbehinds for better browser support.
+    let preparedText = text.replace(/(^|[^\d/])(\d+)\/(\d+)(?=[^\d/]|$)/g, '$1\\frac{$2}{$3}');
+    
     const commonLaTeXRegex = /\\(frac|sqrt|pm|times|le|ge|approx|neq|cdot|div|alpha|beta|gamma|delta|theta|pi|sigma|omega|infty|partial|sum|prod|int|oint|text|degree|log|ln|sin|cos|tan|cot|sec|csc|subset|supset|in|cap|cup|perp|parallel|angle)(\{[^{}]*\}|[a-zA-Z0-9\.\,])*|([0-9]+[\+\-\*\/\=\<\>\^][0-9\(\)\.\,]+)/g;
     
     // Split text by existing math blocks to avoid double wrapping
-    const parts = text.split(/(\\\([\s\S]*?\\\))|(\$[\s\S]*?\$)|(\$\$[\s\S]*?\$\$)/g);
+    const parts = preparedText.split(/(\\\([\s\S]*?\\\))|(\$[\s\S]*?\$)|(\$\$[\s\S]*?\$\$)/g);
     
     let processed = "";
     for (let i = 0; i < parts.length; i++) {
@@ -124,7 +128,12 @@ export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean; isO
             {codeBlockParts.map((part: string, index: number) => {
                 if (part.startsWith('```') && part.endsWith('```')) {
                     // Check if it's SVG
-                    const content = part.slice(3, -3).trim().replace(/^(xml|html|svg)\n/i, '');
+                    const rawContent = part.slice(3, -3).trim();
+                    const content = rawContent.replace(/^(xml|html|svg|math|latex|tex)\n/i, '');
+                    const isMathBlock = rawContent.toLowerCase().startsWith('math\n') || 
+                                        rawContent.toLowerCase().startsWith('latex\n') ||
+                                        rawContent.toLowerCase().startsWith('tex\n') ||
+                                        (/\\(frac|sqrt|pm|times|le|ge|approx|neq|cdot|div|alpha|beta|gamma|delta|theta|pi|sigma|omega|infty|partial|sum|prod|int|oint|text|degree|log|ln|sin|cos|tan|cot|sec|csc|subset|supset|in|cap|cup|perp|parallel|angle)/.test(content) && !content.includes('<svg'));
                     
                     if (content.toLowerCase().includes('<svg') || content.startsWith('<svg')) {
                         const svgMatches = content.match(/<svg[\s\S]*?<\/svg>/gi);
@@ -161,6 +170,13 @@ export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean; isO
                                 </div>
                             );
                         }
+                    } else if (isMathBlock) {
+                         const safeMathExpr = content.replace(/([^\\]|^)%/g, '$1\\%');
+                         return (
+                             <div key={index} className="my-2 sm:my-4 flex justify-center w-full py-1 sm:py-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl overflow-hidden word-break-safe text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
+                                 <BlockMath math={safeMathExpr} renderError={(error) => <span className="text-inherit whitespace-pre-wrap">{content}</span>} />
+                             </div>
+                         );
                     }
                     
                     return (
@@ -259,14 +275,56 @@ export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean; isO
 export const formatTopic = (subtest: string | undefined, topic: string | undefined) => {
     if (!subtest && !topic) return null;
     
+    let raw = subtest || topic || '';
     if (subtest && subtest.includes(' - ')) {
         const parts = subtest.split(' - ');
-        return parts.slice(1).join(' - ').trim();
+        raw = parts.slice(1).join(' - ').trim();
+    } else if (subtest && subtest !== topic) {
+        raw = subtest;
+    } else if (topic && topic.includes(' - ')) {
+        const parts = topic.split(' - ');
+        raw = parts.slice(1).join(' - ').trim();
+    } else {
+        raw = topic || '';
     }
     
-    if (subtest && subtest !== topic) return subtest;
-    if (topic) return topic;
-    return null;
+    const lowerRaw = raw.toLowerCase();
+    
+    // TWK
+    if (lowerRaw.includes('nasionalisme')) return 'Nasionalisme';
+    if (lowerRaw.includes('integritas')) return 'Integritas';
+    if (lowerRaw.includes('bela negara')) return 'Bela negara';
+    if (lowerRaw.includes('pilar negara') || lowerRaw.includes('pancasila') || lowerRaw.includes('uud') || lowerRaw.includes('nkri') || lowerRaw.includes('bhinneka')) return 'Pilar negara';
+    if (lowerRaw.includes('bahasa')) return 'Bahasa Indonesia';
+    
+    // TIU
+    if (lowerRaw.includes('analogi kata')) return 'Analogi kata';
+    if (lowerRaw.includes('analogi kalimat')) return 'Analogi kalimat';
+    if (lowerRaw.includes('hitungan') || lowerRaw.includes('berhitung')) return 'Hitungan';
+    if (lowerRaw.includes('perbandingan')) return 'Perbandingan kuantitatif';
+    if (lowerRaw.includes('cerita')) return 'Soal cerita';
+    if (lowerRaw.includes('deret')) return 'Deret angka';
+    if (lowerRaw.includes('silogisme')) return 'Silogisme';
+    if (lowerRaw.includes('analitis') || lowerRaw.includes('analisis')) return 'Analisis';
+    if (lowerRaw.includes('analogi gambar')) return 'Analogi gambar';
+    if (lowerRaw.includes('serial')) return 'Serial gambar';
+    if (lowerRaw.includes('9 kotak') || lowerRaw.includes('sembilan kotak') || lowerRaw.includes('matriks')) return 'Pola sembilan kotak gambar';
+    if (lowerRaw.includes('ketidaksamaan') || lowerRaw.includes('beda')) return 'Ketidaksamaan gambar';
+    
+    // TKP
+    if (lowerRaw.includes('pelayanan')) return 'Pelayanan publik';
+    if (lowerRaw.includes('jejaring')) return 'Jejaring kerja';
+    if (lowerRaw.includes('sosial budaya')) return 'Sosial budaya';
+    if (lowerRaw.includes('tik') || lowerRaw.includes('teknologi') || lowerRaw === 'tik') return 'TIK';
+    if (lowerRaw.includes('profesionalisme')) return 'Profesionalisme';
+    if (lowerRaw.includes('radikalisme')) return 'Anti radikalisme';
+    
+    // Hide redundant generic topics
+    if (['twk', 'tiu', 'tkp', 'skd', 'general', 'umum', 'lainnya'].includes(lowerRaw.replace(/[^a-z]/g, ''))) {
+        return null;
+    }
+    
+    return raw;
 };
 
 interface MatrixProps {

@@ -1757,11 +1757,16 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                     <div className="flex items-center justify-between gap-2 border-b border-slate-150/55 dark:border-slate-700/50 pb-2 mb-3.5 sm:mb-4">
                                         <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 md:gap-2">
                                             <span className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider">
-                                                {isUtbkSimulation ? UTBK_EXAM_CONFIG[utbkSubtestIndex].name : (currentQ.metadata?.topic || 'General')}
+                                                {isUtbkSimulation ? UTBK_EXAM_CONFIG[utbkSubtestIndex].name : (
+                                                    (currentQ.metadata?.topic === 'TWK' || currentQ.metadata?.subtest?.includes('TWK')) ? 'Tes Wawasan Kebangsaan' :
+                                                    (currentQ.metadata?.topic === 'TIU' || currentQ.metadata?.subtest?.includes('TIU')) ? 'Tes Intelegensia Umum' :
+                                                    (currentQ.metadata?.topic === 'TKP' || currentQ.metadata?.subtest?.includes('TKP')) ? 'Tes Karakteristik Pribadi' :
+                                                    (currentQ.metadata?.topic || 'General')
+                                                )}
                                             </span>
-                                            {currentQ.metadata?.topic && formatTopic(currentQ.metadata.subtest, currentQ.metadata.topic) && (
+                                            {formatTopic(currentQ.metadata?.subtest, currentQ.metadata?.topic) && (
                                                 <span className="bg-emerald-50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-wider border border-emerald-100 dark:border-emerald-900/30">
-                                                    {formatTopic(currentQ.metadata.subtest, currentQ.metadata.topic)}
+                                                    {formatTopic(currentQ.metadata?.subtest, currentQ.metadata?.topic)}
                                                 </span>
                                             )}
                                             {(currentQ.metadata?.difficulty === 'HOTS' || currentQ.metadata?.difficulty === 'Hard') && (

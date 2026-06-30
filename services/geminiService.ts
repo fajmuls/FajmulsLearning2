@@ -1416,106 +1416,189 @@ const reindexQuestions = (questions: Question[], prefix: string): Question[] => 
 
 export const generateSkdSimulation = async (stream: SkdStreamType, variant: 'FULL' | 'TWK' | 'TIU' | 'TKP' = 'FULL'): Promise<Question[]> => {
     // 1. Setup Prompts
+    
+    const enforceDistribution = (generated: Question[], topic: 'TWK'|'TIU'|'TKP', fallback: Question[]): Question[] => {
+        const exactDistributions: Record<'TWK'|'TIU'|'TKP', Record<string, number>> = {
+            TWK: {
+                "TWK - Nasionalisme": 6,
+                "TWK - Integritas": 6,
+                "TWK - Bela Negara": 6,
+                "TWK - Pilar Negara": 6,
+                "TWK - Bahasa Indonesia": 6
+            },
+            TIU: {
+                "TIU - Analogi Kata": 2,
+                "TIU - Analogi Kalimat": 2,
+                "TIU - Hitungan": 4,
+                "TIU - Perbandingan Kuantitatif": 3,
+                "TIU - Soal Cerita": 4,
+                "TIU - Deret Angka": 4,
+                "TIU - Silogisme": 5,
+                "TIU - Analitis": 3,
+                "TIU - Analogi Gambar": 2,
+                "TIU - Serial Gambar": 2,
+                "TIU - Pola 9 Kotak Gambar": 1,
+                "TIU - Ketidaksamaan Gambar": 3
+            },
+            TKP: {
+                "TKP - Pelayanan Publik": 8,
+                "TKP - Jejaring Kerja": 8,
+                "TKP - Sosial Budaya": 8,
+                "TKP - TIK": 8,
+                "TKP - Profesionalisme": 6,
+                "TKP - Anti Radikalisme": 7
+            }
+        };
+
+        const dist = exactDistributions[topic];
+        const finalQuestions: Question[] = [];
+        
+        for (const ObjectEntry of Object.entries(dist)) {
+            const subtestStr = ObjectEntry[0];
+            const count = ObjectEntry[1];
+            
+            const matchesTopic = (q: Question) => {
+                if (q.metadata?.subtest === subtestStr) return true;
+                const baseName = subtestStr.split(' - ')[1].toLowerCase();
+                return q.metadata?.subtest?.toLowerCase().includes(baseName) || q.metadata?.topic?.toLowerCase().includes(baseName);
+            };
+
+            const genSub = generated.filter(matchesTopic);
+            const fbSub = fallback.filter(matchesTopic);
+            
+            let taken: Question[] = [];
+            
+            // Take from generated first, up to 'count'
+            for (const q of genSub) {
+                if (taken.length < count) taken.push(q);
+            }
+            
+            // If still missing, fill from fallback
+            let fbIdx = 0;
+            while (taken.length < count && fbIdx < fbSub.length) {
+                taken.push(fbSub[fbIdx++]);
+            }
+            
+            finalQuestions.push(...taken);
+        }
+        
+        return shuffleArray(finalQuestions);
+    };
+
     const genTwk = async () => {
         const randomSeed = Math.random().toString(36).substring(7);
-        const p1 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Wawasan Kebangsaan (TWK) - Nasionalisme. UNIQUE SEED: ${randomSeed}`, 6, [], stream, undefined, 'HOTS');
-        const p2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Wawasan Kebangsaan (TWK) - Integritas. UNIQUE SEED: ${randomSeed}`, 6, [], stream, undefined, 'HOTS');
-        const p3 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Wawasan Kebangsaan (TWK) - Bela Negara. UNIQUE SEED: ${randomSeed}`, 6, [], stream, undefined, 'HOTS');
-        const p4 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Wawasan Kebangsaan (TWK) - Pilar Negara. UNIQUE SEED: ${randomSeed}`, 6, [], stream, undefined, 'HOTS');
-        const p5 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Wawasan Kebangsaan (TWK) - Bahasa Indonesia. UNIQUE SEED: ${randomSeed}`, 6, [], stream, undefined, 'HOTS');
+        // Batch 1: 15 questions
+        const p1 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Wawasan Kebangsaan (TWK). UNIQUE SEED: ${randomSeed}. 
+GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
+- 6 questions about "Nasionalisme"
+- 6 questions about "Integritas"
+- 3 questions about "Bela Negara"
+CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings matching its topic: "TWK - Nasionalisme", "TWK - Integritas", or "TWK - Bela Negara".`, 15, [], stream, undefined, 'HOTS');
         
-        const results = await Promise.all([p1, p2, p3, p4, p5]);
+        // Batch 2: 15 questions
+        const p2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Wawasan Kebangsaan (TWK). UNIQUE SEED: ${randomSeed}. 
+GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
+- 3 questions about "Bela Negara"
+- 6 questions about "Pilar Negara"
+- 6 questions about "Bahasa Indonesia"
+CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings matching its topic: "TWK - Bela Negara", "TWK - Pilar Negara", or "TWK - Bahasa Indonesia".`, 15, [], stream, undefined, 'HOTS');
+        
+        const results = await Promise.all([p1, p2]);
         let allTwk: Question[] = [];
         for (const r of results) allTwk.push(...r);
         
-        // Ensure exactly 30 questions
-        if (allTwk.length < 30) {
-            const { generateSKDPackage } = await import('../utils/skdGenerator');
-            const fallback = generateSKDPackage(Math.floor(Math.random() * 100), 'CPNS');
-            const fallbackTwk = fallback.filter(q => q.metadata?.topic === 'TWK');
-            while (allTwk.length < 30 && fallbackTwk.length > 0) {
-                 allTwk.push(fallbackTwk.shift()!);
-            }
-        }
-        return allTwk.slice(0, 30);
+        const { generateSKDPackage } = await import('../utils/skdGenerator');
+        const fallback = generateSKDPackage(Math.floor(Math.random() * 100), 'CPNS');
+        const fallbackTwk = fallback.filter(q => q.metadata?.topic === 'TWK');
+        
+        return enforceDistribution(allTwk, 'TWK', fallbackTwk);
     };
 
     const genTkp = async () => {
         const randomSeed = Math.random().toString(36).substring(7);
-        const p1 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Karakteristik Pribadi (TKP) - Pelayanan Publik. UNIQUE SEED: ${randomSeed}`, 8, [], stream, undefined, 'TKP');
-        const p2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Karakteristik Pribadi (TKP) - Jejaring Kerja. UNIQUE SEED: ${randomSeed}`, 8, [], stream, undefined, 'TKP');
-        const p3 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Karakteristik Pribadi (TKP) - Sosial Budaya. UNIQUE SEED: ${randomSeed}`, 8, [], stream, undefined, 'TKP');
-        const p4 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Karakteristik Pribadi (TKP) - TIK. UNIQUE SEED: ${randomSeed}`, 8, [], stream, undefined, 'TKP');
-        const p5 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Karakteristik Pribadi (TKP) - Profesionalisme. UNIQUE SEED: ${randomSeed}`, 6, [], stream, undefined, 'TKP');
-        const p6 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Karakteristik Pribadi (TKP) - Anti Radikalisme. UNIQUE SEED: ${randomSeed}`, 7, [], stream, undefined, 'TKP');
+        const p1 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Karakteristik Pribadi (TKP). UNIQUE SEED: ${randomSeed}.
+GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
+- 8 questions about "Pelayanan Publik"
+- 7 questions about "Jejaring Kerja"
+CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TKP - Pelayanan Publik" or "TKP - Jejaring Kerja".`, 15, [], stream, undefined, 'TKP');
         
-        const results = await Promise.all([p1, p2, p3, p4, p5, p6]);
+        const p2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Karakteristik Pribadi (TKP). UNIQUE SEED: ${randomSeed}.
+GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
+- 1 question about "Jejaring Kerja"
+- 8 questions about "Sosial Budaya"
+- 6 questions about "TIK"
+CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TKP - Jejaring Kerja", "TKP - Sosial Budaya", or "TKP - TIK".`, 15, [], stream, undefined, 'TKP');
+        
+        const p3 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Karakteristik Pribadi (TKP). UNIQUE SEED: ${randomSeed}.
+GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
+- 2 questions about "TIK"
+- 6 questions about "Profesionalisme"
+- 7 questions about "Anti Radikalisme"
+CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TKP - TIK", "TKP - Profesionalisme", or "TKP - Anti Radikalisme".`, 15, [], stream, undefined, 'TKP');
+        
+        const results = await Promise.all([p1, p2, p3]);
         let allTkp: Question[] = [];
         for (const r of results) allTkp.push(...r);
         
-        if (allTkp.length < 45) {
-            const { generateSKDPackage } = await import('../utils/skdGenerator');
-            const fallback = generateSKDPackage(Math.floor(Math.random() * 100), 'CPNS');
-            const fallbackTkp = fallback.filter(q => q.metadata?.topic === 'TKP');
-            while (allTkp.length < 45 && fallbackTkp.length > 0) {
-                 allTkp.push(fallbackTkp.shift()!);
-            }
-        }
+        const { generateSKDPackage } = await import('../utils/skdGenerator');
+        const fallback = generateSKDPackage(Math.floor(Math.random() * 100), 'CPNS');
+        const fallbackTkp = fallback.filter(q => q.metadata?.topic === 'TKP');
         
-        return allTkp.slice(0, 45);
+        return enforceDistribution(allTkp, 'TKP', fallbackTkp);
     };
     
     const genTiu = async () => {
         const randomSeed = Math.random().toString(36).substring(7);
 
-        const pVerbal1 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - VERBAL: Analogi Kata. HARD DIFFICULTY. MUST HAVE PERFECT LOGIC. UNIQUE SEED: ${randomSeed}`, 2, [], stream, undefined, 'HOTS');
-        const pVerbal2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - VERBAL: Analogi Kalimat. HARD DIFFICULTY. UNIQUE SEED: ${randomSeed}`, 2, [], stream, undefined, 'HOTS');
-        const pVerbal3 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - VERBAL: Silogisme. HARD DIFFICULTY. UNIQUE SEED: ${randomSeed}`, 5, [], stream, undefined, 'HOTS');
-        const pVerbal4 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - VERBAL: Analitis. HARD DIFFICULTY. UNIQUE SEED: ${randomSeed}`, 3, [], stream, undefined, 'HOTS');
+        const pVerbal = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - VERBAL. UNIQUE SEED: ${randomSeed}.
+GENERATE EXACTLY 12 QUESTIONS WITH THIS DISTRIBUTION:
+- 2 questions about "Analogi Kata"
+- 2 questions about "Analogi Kalimat"
+- 5 questions about "Silogisme"
+- 3 questions about "Analitis"
+CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TIU - Analogi Kata", "TIU - Analogi Kalimat", "TIU - Silogisme", or "TIU - Analitis".`, 12, [], stream, undefined, 'HOTS');
         
-        const pNum1 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - NUMERIK: Hitungan (Berhitung). VERY HARD. UNIQUE SEED: ${randomSeed}`, 4, [], stream, undefined, 'HOTS');
-        const pNum2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - NUMERIK: Perbandingan Kuantitatif. VERY HARD. UNIQUE SEED: ${randomSeed}`, 3, [], stream, undefined, 'HOTS');
-        const pNum3 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - NUMERIK: Soal Cerita. VERY HARD. UNIQUE SEED: ${randomSeed}`, 4, [], stream, undefined, 'HOTS');
-        const pNum4 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - NUMERIK: Deret Angka. VERY HARD. UNIQUE SEED: ${randomSeed}`, 4, [], stream, undefined, 'HOTS');
+        const pNum = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - NUMERIK. UNIQUE SEED: ${randomSeed}.
+GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
+- 4 questions about "Hitungan"
+- 3 questions about "Perbandingan Kuantitatif"
+- 4 questions about "Soal Cerita"
+- 4 questions about "Deret Angka"
+CRITICAL: 
+1. For each question, set the metadata.subtest field to EXACTLY one of these strings: "TIU - Hitungan", "TIU - Perbandingan Kuantitatif", "TIU - Soal Cerita", or "TIU - Deret Angka".
+2. ALWAYS use proper LaTeX for math fractions (e.g., \\frac{1}{2} instead of 1/2) and equations. Surround them with \\( ... \\).`, 15, [], stream, undefined, 'HOTS');
+        
+        const pFig = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - FIGURAL. EXTREME DIFFICULTY. YOU MUST OUTPUT <svg> FOR ALL QUESTIONS, AND <svg> FOR EACH OPTION. NO TEXT OPTIONS. UNIQUE SEED: ${randomSeed}.
+GENERATE EXACTLY 8 QUESTIONS WITH THIS DISTRIBUTION:
+- 2 questions about "Analogi Gambar"
+- 2 questions about "Serial Gambar"
+- 1 question about "Pola 9 Kotak Gambar" (Matriks 3x3)
+- 3 questions about "Ketidaksamaan Gambar"
+CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TIU - Analogi Gambar", "TIU - Serial Gambar", "TIU - Pola 9 Kotak Gambar", or "TIU - Ketidaksamaan Gambar".`, 8, [], stream, undefined, 'HOTS');
 
-        const pFig1 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - FIGURAL: Analogi Gambar. EXTREME DIFFICULTY. YOU MUST OUTPUT <svg> FOR ALL QUESTIONS, AND <svg> FOR EACH OPTION. NO TEXT OPTIONS. UNIQUE SEED: ${randomSeed}`, 2, [], stream, undefined, 'HOTS');
-        const pFig2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - FIGURAL: Serial Gambar. EXTREME DIFFICULTY. OUTPUT <svg> FOR ALL. UNIQUE SEED: ${randomSeed}`, 2, [], stream, undefined, 'HOTS');
-        const pFig3 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - FIGURAL: Pola 9 Kotak Gambar (Matriks 3x3). EXTREME DIFFICULTY. OUTPUT <svg> FOR ALL. UNIQUE SEED: ${randomSeed}`, 1, [], stream, undefined, 'HOTS');
-        const pFig4 = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - FIGURAL: Ketidaksamaan Gambar. EXTREME DIFFICULTY. OUTPUT <svg> FOR ALL. UNIQUE SEED: ${randomSeed}`, 3, [], stream, undefined, 'HOTS');
-
-        const results = await Promise.all([pVerbal1, pVerbal2, pVerbal3, pVerbal4, pNum1, pNum2, pNum3, pNum4, pFig1, pFig2, pFig3, pFig4]);
+        const results = await Promise.all([pVerbal, pNum, pFig]);
         
         let tiu: Question[] = [];
         for (const r of results) tiu.push(...r);
         
-        if (tiu.length < 35) {
-            const { generateSKDPackage } = await import('../utils/skdGenerator');
-            const fallback = generateSKDPackage(Math.floor(Math.random() * 100), 'CPNS');
-            const fallbackTiu = fallback.filter(q => q.metadata?.topic === 'TIU');
-            while (tiu.length < 35 && fallbackTiu.length > 0) {
-                 tiu.push(fallbackTiu.shift()!);
-            }
-        }
+        const { generateSKDPackage } = await import('../utils/skdGenerator');
+        const fallback = generateSKDPackage(Math.floor(Math.random() * 100), 'CPNS');
+        const fallbackTiu = fallback.filter(q => q.metadata?.topic === 'TIU');
         
-        tiu.forEach(q => q.metadata.subtest = 'Tes Intelegensia Umum (TIU)');
-        return tiu.slice(0, 35);
+        return enforceDistribution(tiu, 'TIU', fallbackTiu);
     };
 
     let allQuestions: Question[] = [];
 
     if (variant === 'TWK') {
         allQuestions = await genTwk();
-        allQuestions.forEach(q => q.metadata.subtest = 'Tes Wawasan Kebangsaan (TWK)');
     } else if (variant === 'TIU') {
         allQuestions = await genTiu();
     } else if (variant === 'TKP') {
         allQuestions = await genTkp();
-        allQuestions.forEach(q => q.metadata.subtest = 'Tes Karakteristik Pribadi (TKP)');
     } else {
         // FULL variant
         const [twk, tiu, tkp] = await Promise.all([genTwk(), genTiu(), genTkp()]);
-        twk.forEach(q => q.metadata.subtest = 'Tes Wawasan Kebangsaan (TWK)');
-        tkp.forEach(q => q.metadata.subtest = 'Tes Karakteristik Pribadi (TKP)');
         allQuestions = [...twk, ...tiu, ...tkp];
     }
 
@@ -1526,11 +1609,11 @@ export const generateUtbkSimulation = async (variant: 'ONLY_MC' | 'MIXED' = 'MIX
     // Penalaran Umum: 30 soal (Induktif 10, Deduktif 10, Kuantitatif 10)
     const pPU_Induktif = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Penalaran Umum (Penalaran Induktif)', 10, [], undefined, undefined, 'HOTS', variant);
     const pPU_Deduktif = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Penalaran Umum (Penalaran Deduktif)', 10, [], undefined, undefined, 'HOTS', variant);
-    const pPU_Kuantitatif = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Penalaran Umum (Penalaran Kuantitatif)', 10, [], undefined, undefined, 'HOTS', variant);
+    const pPU_Kuantitatif = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Penalaran Umum (Penalaran Kuantitatif). ALWAYS use proper LaTeX for math fractions (e.g., \\frac{1}{2} instead of 1/2) and equations. Surround them with \\( ... \\).', 10, [], undefined, undefined, 'HOTS', variant);
 
     const pPPU = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Pengetahuan dan Pemahaman Umum', 20, [], undefined, undefined, 'HOTS', variant);
     const pPBM = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Pemahaman Bacaan dan Menulis', 20, [], undefined, undefined, 'HOTS', variant);
-    const pPK = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Pengetahuan Kuantitatif', 20, [], undefined, undefined, 'HOTS', variant);
+    const pPK = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Pengetahuan Kuantitatif. ALWAYS use proper LaTeX for math fractions (e.g., \\frac{1}{2} instead of 1/2) and equations. Surround them with \\( ... \\).', 20, [], undefined, undefined, 'HOTS', variant);
     
     // Literasi Bahasa Indonesia: 30 soal
     const pLitIndo = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Literasi Bahasa Indonesia', 30, [], undefined, undefined, 'HOTS', variant);
@@ -1539,7 +1622,7 @@ export const generateUtbkSimulation = async (variant: 'ONLY_MC' | 'MIXED' = 'MIX
     const pLitIng = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Literasi Bahasa Inggris', 20, [], undefined, undefined, 'HOTS', variant);
     
     // Penalaran Matematika: 20 soal
-    const pPM = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Penalaran Matematika', 20, [], undefined, undefined, 'HOTS', variant);
+    const pPM = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Penalaran Matematika. ALWAYS use proper LaTeX for math fractions (e.g., \\frac{1}{2} instead of 1/2) and equations. Surround them with \\( ... \\).', 20, [], undefined, undefined, 'HOTS', variant);
 
     const [puInd, puDed, puKuan, ppu, pbm, pk, lind, ling, pm] = await Promise.all([
         pPU_Induktif, pPU_Deduktif, pPU_Kuantitatif, 
@@ -1562,7 +1645,7 @@ export const generateUtbkSimulation = async (variant: 'ONLY_MC' | 'MIXED' = 'MIX
 
 export const generateTpaTbiSimulation = async (): Promise<Question[]> => {
     const tpaVerbal = generateQuestions(StudyMode.SIMULATION, 'TPA', `TPA - Verbal (HOTS). Complex analogies and syllogisms.`, 15, [], undefined, undefined, 'HOTS');
-    const tpaQuant = generateQuestions(StudyMode.SIMULATION, 'TPA', `TPA - Kuantitatif (HOTS). Advanced arithmetic, algebra, and geometry.`, 15, [], undefined, undefined, 'HOTS');
+    const tpaQuant = generateQuestions(StudyMode.SIMULATION, 'TPA', `TPA - Kuantitatif (HOTS). Advanced arithmetic, algebra, and geometry. ALWAYS use proper LaTeX for math fractions (e.g., \\frac{1}{2} instead of 1/2) and equations. Surround them with \\( ... \\).`, 15, [], undefined, undefined, 'HOTS');
     const tpaLogic = generateQuestions(StudyMode.SIMULATION, 'TPA', `TPA - Penalaran (HOTS). Complex logical deduction and spatial reasoning.`, 15, [], undefined, undefined, 'HOTS');
     const tbi = generateQuestions(StudyMode.SIMULATION, 'TPA', `TBI - Bahasa Inggris (TOEFL Style). Advanced grammar and reading comprehension.`, 20, [], undefined, undefined, 'HOTS');
 

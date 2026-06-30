@@ -1106,7 +1106,16 @@ export const ReviewView: React.FC<{ item: TestHistoryItem, onBack: () => void, o
 
         item.questions.forEach((q, i) => {
             // Determine subtest name
-            let subtest = q.metadata?.subtest || "Lainnya";
+            let subtest = "Lainnya";
+            if (q.metadata?.topic === 'TWK' || q.metadata?.subtest?.includes('TWK')) {
+                subtest = "Tes Wawasan Kebangsaan";
+            } else if (q.metadata?.topic === 'TIU' || q.metadata?.subtest?.includes('TIU')) {
+                subtest = "Tes Intelegensia Umum";
+            } else if (q.metadata?.topic === 'TKP' || q.metadata?.subtest?.includes('TKP')) {
+                subtest = "Tes Karakteristik Pribadi";
+            } else if (q.metadata?.subtest) {
+                subtest = q.metadata.subtest;
+            }
             
             // Clean up subtest name if needed
             if (subtest.startsWith("SKD - ")) subtest = subtest.replace("SKD - ", "");
