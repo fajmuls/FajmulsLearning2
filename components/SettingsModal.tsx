@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
     Settings, Volume2, VolumeX, Bell, BellOff, CheckCircle, 
     XCircle, Music, Moon, Sun, Sparkles, Layout, Monitor, 
-    Type, Palette, Bot, Timer, Check
+    Type, Palette, Bot, Timer, Check, Database
 } from 'lucide-react';
 import { AppSettings, UserProfile, AppFontSize, AppPattern, AppUiPreset } from '../types';
 import { SoundManager } from '../services/soundService';
@@ -19,8 +19,6 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onUpdate, userProfile, onUpdateProfile }) => {
     const [activeTab, setActiveTab] = useState<'display' | 'system'>('display');
-
-    if (!isOpen) return null;
 
     const toggle = (key: keyof AppSettings) => {
         SoundManager.play('tap');
@@ -116,6 +114,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
 
     return (
         <AnimatePresence>
+            {isOpen && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden p-4">
                 {/* Backdrop */}
                 <motion.div 
@@ -128,11 +127,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
 
                 {/* Modal Container */}
                 <motion.div 
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.9, opacity: 0 }}
+                    initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    exit={{ scale: 0.95, opacity: 0, y: 10 }}
                     transition={{ type: "spring", damping: 25, stiffness: 400 }}
-                    className="settings-modal relative bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl w-full sm:max-w-[340px] max-h-[82vh] rounded-[2.5rem] shadow-2xl flex flex-col border border-slate-200/50 dark:border-slate-800/50 overflow-hidden"
+                    className="settings-modal relative bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl w-full sm:max-w-[420px] max-h-[85vh] rounded-[2rem] shadow-2xl flex flex-col border border-slate-200/50 dark:border-slate-800/50 overflow-hidden"
                 >
                     {/* Header */}
                     <div className="px-5 pt-5 pb-1 flex justify-between items-center mb-3">
@@ -155,15 +154,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                         <div className="flex bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-xl">
                             <button 
                                 onClick={() => { SoundManager.play('tap'); setActiveTab('display'); }}
-                                className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'display' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500'}`}
+                                className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'display' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500'}`}
                             >
-                                <Layout size={11} /> Tampilan
+                                <Layout size={12} /> Tampilan
                             </button>
                             <button 
                                 onClick={() => { SoundManager.play('tap'); setActiveTab('system'); }}
-                                className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'system' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500'}`}
+                                className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'system' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500'}`}
                             >
-                                <Monitor size={11} /> Sistem
+                                <Monitor size={12} /> Sistem
                             </button>
                         </div>
                     </div>
@@ -331,6 +330,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                     </div>
                 </motion.div>
             </div>
+            )}
         </AnimatePresence>
     );
 };

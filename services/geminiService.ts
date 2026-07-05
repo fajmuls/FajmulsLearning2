@@ -38,6 +38,51 @@ function shuffleArray<T>(array: T[]): T[] {
     return newArr;
 }
 
+// HYBRID BANK SOAL HELPERS
+export function getBankSoal(category: CategoryType, topic?: string): Question[] {
+    if (typeof window === 'undefined') return [];
+    try {
+        const stored = localStorage.getItem(`bank_soal_${category}`);
+        if (!stored) return [];
+        const all: Question[] = JSON.parse(stored);
+        if (topic) {
+            const upperTopic = topic.toUpperCase();
+            return all.filter(q => 
+                (q.metadata.topic && q.metadata.topic.toUpperCase() === upperTopic) || 
+                (q.metadata.subtest && q.metadata.subtest.toUpperCase() === upperTopic)
+            );
+        }
+        return all;
+    } catch (e) {
+        return [];
+    }
+}
+
+export function saveToBankSoal(category: CategoryType, question: Question) {
+    if (typeof window === 'undefined') return;
+    try {
+        const current = getBankSoal(category);
+        // Avoid exact duplicates by content
+        if (current.some(q => q.content === question.content)) return;
+        
+        const updated = [...current, question];
+        localStorage.setItem(`bank_soal_${category}`, JSON.stringify(updated));
+    } catch (e) {
+        console.error("Failed to save to bank soal", e);
+    }
+}
+
+export function removeFromBankSoal(category: CategoryType, questionId: string) {
+    if (typeof window === 'undefined') return;
+    try {
+        const current = getBankSoal(category);
+        const updated = current.filter(q => q.id !== questionId);
+        localStorage.setItem(`bank_soal_${category}`, JSON.stringify(updated));
+    } catch (e) {
+        console.error("Failed to remove from bank soal", e);
+    }
+}
+
 const questionSchema: Schema = {
   type: Type.OBJECT,
   properties: {
@@ -678,6 +723,11 @@ export const buildQuestionPrompt = (
   - **FLAWLESS LOGIC**: For Analytical Logic (ordering, seating, schedules) and Syllogisms, double-check your logical constraints. Ensure there is ONE and ONLY ONE valid sequence/configuration that matches all premises without contradiction.
   - **EQUAL OPTION LENGTHS (ANTI-GUESSING)**: You MUST ensure that all 5 options (A, B, C, D, E) are roughly the EXACT SAME LENGTH (character and word count). The correct answer MUST NEVER be noticeably longer or more detailed than the distractor options. If you need to add detail to the correct answer, you MUST also add equally complex and long details to the incorrect answers to camouflage it.
   - **DISTRACTOR QUALITY (Near-Miss Logic for HOTS)**: For incorrect options (distractors), do NOT use random or easily guessable wrong answers. Construct them logically based on common calculation errors, misread signs, logical traps, or near-misses of the exact correct answer. In TWK and TKP, distractors must sound incredibly plausible, academic, and highly professional.
+  - **HOTS REQUIREMENT (MASTER LEVEL)**: Every question MUST be at the HOTS level. Questions should require analysis, evaluation, and creation, not just simple recall. Use "Analyze...", "Evaluate...", "Determine the best course of action based on..." phrasing.
+  - **SUB-TEST STANDARDIZATION**: You MUST use these exact names for subtests:
+    - TWK: "Nasionalisme", "Integritas", "Bela Negara", "Pilar Negara", "Bahasa Indonesia".
+    - TIU: "Kemampuan Verbal", "Kemampuan Numerik", "Kemampuan Figural".
+    - TKP: "Pelayanan Publik", "Jejaring Kerja", "Sosial Budaya", "Teknologi Informasi dan Komunikasi", "Profesionalisme", "Anti Radikalisme".
   - **PREMISES**:
     - If a question involves multiple premises, EACH item must be on a NEW LINE with clean spacing.
   - **READABILITY**:
@@ -788,7 +838,8 @@ export const buildQuestionPrompt = (
           Use Unicode math symbols for Numerik questions.
           `;
       }
-      prompt += `\nLanguage: Bahasa Indonesia.`;
+
+  prompt += `\nLanguage: Bahasa Indonesia.`;
 
   } else {
       let difficultyContext = "";
@@ -801,20 +852,23 @@ export const buildQuestionPrompt = (
            difficultyContext = `CONTEXT: SKD TWK (Tes Wawasan Kebangsaan) - EXTREME HOTS DIFFICULTY (MASTER LEVEL).
            
            THEME & TOPICS (STRICTLY FOLLOW THESE):
-           - Pancasila: Ideologi, sejarah perumusan, dan butir-butir pengamalannya.
-           - UUD 1945: Pembukaan, pasal-pasal, dan tata urutan peraturan perundang-undangan (Sangat mendalam).
-           - Bhinneka Tunggal Ika: Toleransi, keragaman suku, agama, ras, dan golongan dalam konteks sejarah dan konstitusi.
-           - NKRI: Sistem tata negara, sejarah perjuangan bangsa dari zaman kerajaan hingga kemerdekaan, dan peran mendalam tokoh nasional.
-           - Nasionalisme & Bela Negara: Cinta tanah air, rela berkorban, integrasi nasional, dan implementasi bela negara di era modern.
-           - Bahasa Indonesia: Tata bahasa baku (EYD/PUEBI), ejaan, pemahaman bacaan tingkat tinggi, dan penarikan kesimpulan teks.
+           - Nasionalisme: 20-30% questions.
+           - Integritas: 20% questions.
+           - Bela Negara: 20% questions.
+           - Pilar Negara (Pancasila, UUD 1945, NKRI, Bhinneka Tunggal Ika): 20% questions.
+           - Bahasa Indonesia: 10-20% questions.
+
+           CONTENT RATIO (CRITICAL):
+           - 20-40% Memorization (Hafalan): Key dates, articles, and definitions.
+           - 60-80% Reasoning/Application (Penalaran): Case studies, analysis of national situations, and implementation of values.
 
            CRITICAL TWK RULES (ELITE DIFFICULTY & SANGAT MENGECOH):
            1. **NO IMAGES/SVG**: DILARANG KERAS menghasilkan gambar, SVG, atau visual apa pun. Soal TWK HARUS 100% TEKS.
-           2. FORMAT: Gunakan narasi/studi kasus yang kompleks, namun **SANGAT SINGKAT (MAKSIMAL 60-80 KATA)**. Fokus pada kualitas dilema atau analisis, bukan panjang teks.
-           3. JAWABAN: Harus ada 1 Benar dan 4 Salah. Opsi jawaban harus menguji pemahaman KONSEPTUAL dan ANALITIS yang mendalam.
-           4. EXPLANATION: Berikan penjelasan yang **SINGKAT, PADAT, DAN JELAS**. Langsung ke inti mengapa jawaban tersebut benar dan mengapa yang lain salah. Maksimal 2-3 kalimat pendek.
-           5. DISTRACTORS: Pengecoh HARUS SANGAT SULIT. Gunakan penjelasan yang secara normatif "terdengar benar" tapi tidak tepat secara konstitusional atau sejarah.
-           6. Language: Gunakan Bahasa Indonesia formal akademik yang rapi (EYD).`;
+           2. FORMAT: Gunakan narasi/studi kasus nyata atau skenario geopolitik/ketatanegaraan yang kompleks (Maks 80 kata). Jangan gunakan soal hafalan sederhana.
+           3. JAWABAN: Opsi jawaban harus menguji pemahaman KONSEPTUAL tingkat tinggi, mensyaratkan peserta untuk membandingkan 2 asas/undang-undang secara bersamaan.
+           4. EXPLANATION: Berikan penjelasan yang **SINGKAT, PADAT, DAN JELAS**. Maksimal 2-3 kalimat pendek, fokus pada 'key differentiator'.
+           5. DISTRACTORS (PENGECOH): Pengecoh HARUS SUPER SULIT. Semua opsi salah harus terdengar sangat logis, konstitusional, dan sering dianggap benar oleh orang awam. Selisih kebenaran antara opsi A-E harus sangat tipis.
+           6. METADATA TRAP: Jelaskan jebakan pola pikir apa yang membuat mayoritas orang salah menjawab soal ini.`;
       } else if (isTiu) {
            difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - EXTREME HOTS (ELITE LEVEL).
            
@@ -824,31 +878,28 @@ export const buildQuestionPrompt = (
            - Kemampuan Figural: Analogi gambar, ketidaksamaan gambar, dan serial gambar (Gunakan SVG yang kompleks).
 
            CRITICAL TIU RULES (ELITE DIFFICULTY & PENGECOH EKSTREM):
-           0. LENGTH LIMIT: Soal harus **PENDEK DAN JELAS (MAKSIMAL 100 KATA)**. Kualitas kesulitan bukan dari panjang teks, tapi dari kedalaman logika/hitungannya.
-           1. VERBAL ANALOGY: Gunakan analogi bertingkat atau 3-variabel dengan kosa kata KBBI level tinggi.
-           2. NUMERICAL SERIES: Pola harus sulit (bertingkat atau interleaved) tapi logis.
-           3. LOGICAL REASONING: Gunakan silogisme dengan 2-3 premis yang SULIT (menggunakan negasi atau kuantor yang menjebak).
-           4. EXPLANATION: Berikan penjelasan **TO THE POINT**. Untuk hitungan, tunjukkan langkah tercepat. Untuk logika, berikan rumus atau skema logikanya secara singkat.
-           5. FIGURAL: (Already defined). Ensure SVGs are precise.
-           6. ODD ONE OUT: Just ask "Pilihlah gambar yang tidak sesuai."
-           7. ANTI-GUESSING BY LENGTH: PANJANG OPSI (A-E) HARUS SAMA UNTUK VERBAL/LOGIKA.`;
+           0. LENGTH LIMIT: Soal harus **PENDEK DAN JELAS (MAKSIMAL 100 KATA)**.
+           1. VERBAL ANALOGY: Gunakan analogi 3-variabel dengan kosa kata KBBI level tinggi yang jarang dipakai. Hindari analogi sederhana.
+           2. NUMERICAL SERIES: Pola harus SANGAT SULIT (kombinasi Fibonacci, deret prima, pola bertingkat/interleaved 3 lapis).
+           3. LOGICAL REASONING: Gunakan silogisme dengan 3-4 premis yang SULIT (mengandung negasi ganda atau kuantor "sebagian/semua" yang menjebak).
+           4. SOAL CERITA: Buat soal cerita matematika dengan 3 variabel dependen (misalnya kecepatan, waktu kerja bersama dengan jeda istirahat).
+           5. EXPLANATION: Berikan penjelasan TUNTAS langkah demi langkah, dan WAJIB sertakan trik cepat/shortcut.
+           6. FIGURAL: Gunakan SVG yang kompleks. Minimal 3 transformasi berbarengan (rotasi, translasi, inverse color).
+           7. ANTI-GUESSING BY LENGTH: PANJANG OPSI (A-E) HARUS SAMA PERSIS.`;
       } else if (isTkp) {
            difficultyContext = `CONTEXT: SKD TKP (Tes Karakteristik Pribadi) - EXTREME AMBIGUITY (SANGAT MENGECOH).
            
            THEME & TOPICS (STRICTLY FOLLOW THESE):
-           - Pelayanan Publik: Melayani masyarakat dengan ramah, profesional, dan solutif di situasi tersulit.
-           - Jejaring Kerja: Beradaptasi, bekerja sama, membangun kemitraan, dan resolusi konflik tim.
-           - Sosial Budaya: Toleransi, menghargai perbedaan, dan integritas di tengah keberagaman.
-           - Teknologi Informasi (TIK): Adaptasi dan pemanfaatan teknologi informasi untuk efisiensi kerja.
-           - Profesionalisme: Disiplin, tanggung jawab, integritas, dan performa kerja di bawah tekanan.
-           - Anti Radikalisme: Pemahaman dan sikap tegas terhadap ideologi yang bertentangan dengan Pancasila.
+           - Pelayanan Publik, Jejaring Kerja, Sosial Budaya, Teknologi Informasi dan Komunikasi, Profesionalisme, Anti Radikalisme.
 
-           CRITICAL TKP RULES (ANTI MENGIRA-NGIRA DENGAN PANJANG TEKS & KEEP IT CONCISE):
+           CRITICAL TKP RULES (STRICT 1-5 GRADATION & DILEMA ETIS):
            1. SISTEM SCORING WAJIB: 5-4-3-2-1.
-           2. NO LENGTH BIAS: Semua opsi (A-E) harus memiliki panjang teks yang IDENTIK.
-           3. CONCISE & CLEAR: Soal harus **SANGAT SINGKAT (MAKSIMAL 50-70 KATA)**. Masalah harus langsung terlihat namun solusinya ambigu/debatable antara poin 5 dan 4.
-           4. EXPLANATION: Jelaskan secara **SINGKAT** mengapa poin 5 adalah yang terbaik berdasarkan prinsip profesionalisme/pelayanan/integritas terkait.
-           5. VISUALS: NO SVG.`;
+           2. TINGKAT KESULITAN: Kasus harus berupa DILEMA ETIS atau konflik kepentingan tingkat tinggi (misal: integritas vs target institusi, profesionalisme vs loyalitas kawan).
+           3. DISTORSI PILIHAN: Opsi poin 5 harus mencerminkan solusi paling ideal, profesional, paripurna, dan inovatif (berdampak panjang). Opsi poin 4 harus "hampir benar" dan normatif tapi bersifat reaktif/jangka pendek. Opsi poin 1 harus tampak seperti solusi instan tapi sangat merugikan institusi secara jangka panjang.
+           4. LOGIKA GRADASI: Perbedaan antara poin 5, 4, dan 3 harus SANGAT TIPIS (membutuhkan penalaran karakter ASN paripurna).
+           5. NO LENGTH BIAS: Semua opsi (A-E) harus memiliki panjang teks yang IDENTIK agar peserta tidak menebak opsi terpanjang.
+           6. CONCISE & CLEAR: Soal maksimal 70 kata, padat dengan konflik.
+           7. EXPLANATION: Jelaskan filosofi ASN di balik poin 5, dan mengapa opsi poin 4 kurang tepat (apa minusnya).`;
       }
 
       if (category === 'SKD' && typeof context === 'string' && (context.toUpperCase().includes('TIU') || context.toUpperCase().includes('INTELEGENSIA'))) {
@@ -882,19 +933,19 @@ export const buildQuestionPrompt = (
                  figuralCount = count - verbalCount - numericCount;
              }
              
-             difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - FULL MIX.
+             difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - FULL MIX - ELITE DIFFICULTY.
              
              DISTRIBUTION (Total ${count} questions):
-             - VERBAL: ${verbalCount} questions (Analogi, Silogisme, Analitis)
-             - NUMERIK: ${numericCount} questions (Berhitung, Deret, Perbandingan, Soal Cerita)
+             - VERBAL: ${verbalCount} questions (Analogi 3-variabel, Silogisme kompleks, Analitis multi-variabel)
+             - NUMERIK: ${numericCount} questions (Berhitung cepat, Deret berlapis, Perbandingan, Soal Cerita HOTS)
              - FIGURAL: ${figuralCount} questions (Analogi, Ketidaksamaan, Serial, Matriks, Spasial)
              
              CRITICAL RULES:
              1. **FIGURAL (VISUAL LOGIC)**: 
-                - **CANVAS-BASED SVG**: Use the robust drawing utility coordinate paths.
-                - **Ketidaksamaan (Odd One Out)**: Differences must be subtle. MUST use SVG.
-                - **Serial/Analogi**: Combine 2-3 transformations.
-             2. **NUMERIK**: Use Unicode math symbols and LaTeX for complex formulas.
+                - **CANVAS-BASED SVG**: Gunakan SVG kompleks.
+                - **Transformasi**: Wajib gunakan minimal 3 transformasi objek berbarengan (ukuran, rotasi, posisi).
+             2. **NUMERIK**: Gunakan LaTeX untuk formula kompleks. Buat perhitungan yang memerlukan shortcut/trik khusus untuk dikerjakan di bawah 1 menit.
+             3. **VERBAL**: Gunakan penalaran silogisme menjebak dengan 3-4 premis. Analogi wajib menggunakan kosa kata tingkat tinggi.
              `;
         } else if (category === 'SKD' && typeof context === 'string' && (context.toUpperCase().includes('VERBAL') || context.toUpperCase().includes('ANALOGI') || context.toUpperCase().includes('SILOGISME') || context.toUpperCase().includes('ANALITIS'))) {
            difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - VERBAL.
@@ -1226,6 +1277,24 @@ export const buildQuestionPrompt = (
             prompt = `TRY OUT / PRACTICE V5. Category: ${category}. Context: ${JSON.stringify(context)}. ${commonInstruction}. For Figural, Spatial, or TPA logic: YOU MUST USE <svg> FOR ALL GRAPHICS. DO NOT USE EMOJIS (📦, 🧊) OR UNICODE SHAPES IN PLACE OF ACTUAL <svg> GRAPHICS. Ensure all fractions use Unicode characters (e.g. ½, ⅓).`;
         }
       }
+  }
+
+  // HYBRID CONTEXT: Pull from Bank Soal
+  const bankQuestions = getBankSoal(category, typeof context === 'string' ? context : undefined);
+  if (bankQuestions.length > 0) {
+      const examples = shuffleArray(bankQuestions).slice(0, 3);
+      const hybridInstruction = `
+      HYBRID SYSTEM - REFERENCE EXAMPLES (FEW-SHOT):
+      The following questions are from the user's Question Bank. They represent the baseline standard.
+      CRITICAL INSTRUCTION: You MUST generate NEW questions that are STRICTLY HARDER, more complex, and more deceptive than these examples. DO NOT copy them exactly. Elevate the difficulty level significantly.
+      
+      ${examples.map((q, i) => `Example ${i+1}: 
+      Content: ${q.content}
+      Correct Answer: ${q.correctAnswer}
+      Explanation: ${q.explanation}
+      Metadata: ${JSON.stringify(q.metadata)}`).join('\n\n')}
+      `;
+      prompt += `\n${hybridInstruction}`;
   }
   
   return { prompt, base64Pdf, schema };

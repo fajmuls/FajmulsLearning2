@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ArrowLeft, Upload as UploadIcon, Zap, Lock, Loader2, Download, Trash2, Clock, FileText, Plus, ShieldCheck, RefreshCw, Box, AlertTriangle, PenTool, ListOrdered, Calendar, CheckSquare, Square, Type } from 'lucide-react';
+import { ArrowLeft, Upload as UploadIcon, Zap, Lock, Loader2, Download, Trash2, Clock, FileText, Plus, ShieldCheck, RefreshCw, Box, AlertTriangle, PenTool, ListOrdered, Calendar, CheckSquare, Square, Type, Eye, Settings } from 'lucide-react';
 import { CategoryType, SkdStreamType, StaticTestPackage, TestHistoryItem, UserPackageStats, TpaStreamType, TkaLevelType, BackgroundGenTask, UserProfile } from '../types';
 import { SoundManager } from '../services/soundService';
 import { ADMIN_TOKEN_HASH } from '../constants';
@@ -16,6 +16,8 @@ interface TOSelectionProps {
     history: TestHistoryItem[];
     userProfile?: UserProfile | null;
     onSelectPackage: (pkg: StaticTestPackage) => void;
+    onAdminViewPackage?: (pkg: StaticTestPackage) => void;
+    onOpenSettings?: () => void;
     onGenerateNew: (token: string, options?: { utbkVariant?: 'ONLY_MC' | 'MIXED', skdVariant?: 'FULL' | 'TWK' | 'TIU' | 'TKP' }) => Promise<void>;
     onImportPackage: (files: FileList) => void;
     onDeletePackage: (id: string) => void;
@@ -35,7 +37,7 @@ interface TOSelectionProps {
 
 export const TOSelectionScreen: React.FC<TOSelectionProps> = ({ 
     category, skdStream, tpaStream, tkaLevel, availablePackages, history, userProfile,
-    onSelectPackage, onGenerateNew, onImportPackage, onDeletePackage, onDeleteMultiplePackages, onFixDuplicates, onFixGaps, onBack, showToast, confirmEnabled,
+    onSelectPackage, onAdminViewPackage, onOpenSettings, onGenerateNew, onImportPackage, onDeletePackage, onDeleteMultiplePackages, onFixDuplicates, onFixGaps, onBack, showToast, confirmEnabled,
     onRefresh, isLoading, activeGenTask
 }) => {
     
@@ -640,6 +642,14 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                         >
                             <RefreshCw size={20} className={isLoading ? "animate-spin" : ""} />
                         </button>
+
+                        <button 
+                            onClick={() => onOpenSettings?.()} 
+                            className="p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:shadow-sm transition"
+                            title="Pengaturan"
+                        >
+                            <Settings size={20} />
+                        </button>
                     </div>
                 </div>
                 <h1 className="text-base sm:text-xl font-bold text-slate-800 dark:text-white mb-4 sm:hidden">{headerTitle}</h1>
@@ -861,6 +871,15 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                                     <div className={`flex justify-between items-start ${isSelectionMode ? 'pl-6 sm:pl-8' : ''}`}>
                                         <h4 className="text-[13px] sm:text-base md:text-lg font-bold text-slate-800 dark:text-white mb-1 group-hover:text-indigo-600 transition-colors pr-1.5 line-clamp-2">{pkg.title}</h4>
                                         <div className="flex gap-0.5 sm:gap-1">
+                                            {isUserAdmin(userProfile) && onAdminViewPackage && (
+                                                <div 
+                                                    onClick={(e) => { e.stopPropagation(); onAdminViewPackage(pkg); }}
+                                                    className="p-1.5 sm:p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 bg-slate-50 dark:bg-slate-700/50 dark:hover:bg-slate-700 rounded-lg transition"
+                                                    title="View Questions (Admin)"
+                                                >
+                                                    <Eye size={14} className="sm:w-[18px] sm:h-[18px]" />
+                                                </div>
+                                            )}
                                             <div 
                                                 onClick={(e) => handleDownloadPackage(e, pkg)}
                                                 className="p-1.5 sm:p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 bg-slate-50 dark:bg-slate-700/50 dark:hover:bg-slate-700 rounded-lg transition"

@@ -34,6 +34,9 @@ import {
 } from "./types";
 import { TkaSelection } from "./components/TkaSelection";
 import { SubjectSelection } from "./components/SubjectSelection";
+import { BankSoalManager } from "./components/BankSoalManager";
+import { AdminSessionViewer } from "./components/AdminSessionViewer";
+import { GenerationProgressBox } from "./components/GenerationProgressBox";
 import {
   CATEGORIES,
   UTBK_SUBTESTS,
@@ -125,7 +128,8 @@ import {
   Swords,
   Flag,
   Bot,
-  Headphones
+  Headphones,
+  Database
 } from "lucide-react";
 import { PomodoroTimer } from "./components/PomodoroTimer";
 import { Flashcard } from "./components/Flashcard";
@@ -821,7 +825,9 @@ const ResumeSessionList: React.FC<{
   onResume: (s: SavedSessionState) => void;
   onDelete: (id: string) => void;
   loading: boolean;
-}> = ({ sessions, onBack, onResume, onDelete, loading }) => {
+  isAdmin?: boolean;
+  onAdminView?: (s: SavedSessionState) => void;
+}> = ({ sessions, onBack, onResume, onDelete, loading, isAdmin, onAdminView }) => {
   const getVisuals = (category: CategoryType) => {
     switch (category) {
       case "TKA":
@@ -983,6 +989,15 @@ const ResumeSessionList: React.FC<{
                       />{" "}
                       Lanjutkan
                     </button>
+                    {isAdmin && onAdminView && (
+                      <button
+                        onClick={() => onAdminView(s)}
+                        className="p-2 sm:p-3 text-purple-600 bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 rounded-xl transition border border-purple-200 dark:border-purple-800"
+                        title="Admin View"
+                      >
+                        <Database size={16} className="sm:w-5 sm:h-5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -2043,10 +2058,14 @@ function App() {
     | "SOCIAL_HUB"
     | "BATTLE"
     | "MARKED_QUESTIONS"
+    | "BANK_SOAL"
+    | "ADMIN_SESSION_VIEW"
   >("SPLASH");
   const [selectedCategory, setSelectedCategory] = useState<CategoryType | null>(
     null,
   );
+  const [adminSessionToView, setAdminSessionToView] = useState<any>(null);
+  const [adminViewerSource, setAdminViewerSource] = useState<"RESUME_LIST" | "TO_SELECTION">("RESUME_LIST");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [benchmarkTab, setBenchmarkTab] = useState<"DASHBOARD" | "RANKING">(
@@ -4181,91 +4200,37 @@ function App() {
       {/* Global floating Background Task Progress widget */}
       <AnimatePresence>
         {activeGenTask && currentView !== "SESSION" && (
-          <motion.div
-            initial={{ opacity: 0, x: 50, scale: 0.9 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 50, scale: 0.9 }}
-            className="fixed top-24 right-4 sm:top-24 z-[60] flex items-center gap-3 bg-slate-900/90 dark:bg-slate-950/95 text-white px-4 py-2.5 rounded-full shadow-xl border border-slate-700/50 backdrop-blur-md transition-all hover:bg-slate-800/90"
-            title={activeGenTask.title}
-          >
-            {activeGenTask.status === "generating" && (
-              <>
-                <Loader2 size={16} className="text-indigo-400 animate-spin shrink-0" />
-                <span className="text-[11px] font-bold text-slate-200 tracking-wide">Meracik {activeGenTask.progress}%</span>
-                <button
-                    onClick={() => {
-                        SoundManager.play("click");
-                        setActiveGenTask(null);
-                    }}
-                    className="text-slate-400 hover:text-slate-200 ml-1 shrink-0"
-                >
-                    <XCircle size={14} />
-                </button>
-              </>
-            )}
-
-            {activeGenTask.status === "completed" && (
-              <>
-                <CheckCircle size={16} className="text-emerald-400 shrink-0" />
-                <div className="flex items-center gap-3 pr-1">
-                    <button
-                        onClick={() => {
-                          SoundManager.play("click");
-                          const pkg = availablePackages.find(
-                            (p) =>
-                              p.id.includes(activeGenTask.id) ||
-                              p.title === activeGenTask.title,
-                          );
-                          if (pkg) {
-                            handlePackageSelect(pkg);
-                          } else {
-                            const latestAi = availablePackages.find(
-                              (p) =>
-                                p.isAiGenerated &&
-                                p.category === activeGenTask.category,
-                            );
-                            if (latestAi) {
-                              handlePackageSelect(latestAi);
-                            } else {
-                              startSession(StudyMode.SIMULATION);
-                            }
-                          }
-                          setActiveGenTask(null);
-                        }}
-                        className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors uppercase tracking-wide"
-                    >
-                        Mulai Tes
-                    </button>
-                    <div className="w-px h-3 bg-slate-700 rounded-full"></div>
-                    <button
-                        onClick={() => {
-                          SoundManager.play("click");
-                          setActiveGenTask(null);
-                        }}
-                        className="text-slate-400 hover:text-slate-200"
-                    >
-                        <XCircle size={14} />
-                    </button>
-                </div>
-              </>
-            )}
-
-            {activeGenTask.status === "failed" && (
-              <>
-                <AlertTriangle size={16} className="text-rose-400 shrink-0" />
-                <span className="text-[11px] font-bold text-rose-300 tracking-wide">Gagal Meracik</span>
-                <button
-                    onClick={() => {
-                        SoundManager.play("click");
-                        setActiveGenTask(null);
-                    }}
-                    className="text-slate-400 hover:text-slate-200 ml-1 shrink-0"
-                >
-                    <XCircle size={14} />
-                </button>
-              </>
-            )}
-          </motion.div>
+          <GenerationProgressBox
+            task={activeGenTask}
+            onCancel={() => {
+              setActiveGenTask(null);
+            }}
+            onClose={() => {
+              setActiveGenTask(null);
+            }}
+            onStart={() => {
+              const pkg = availablePackages.find(
+                (p) =>
+                  p.id.includes(activeGenTask.id) ||
+                  p.title === activeGenTask.title,
+              );
+              if (pkg) {
+                handlePackageSelect(pkg);
+              } else {
+                const latestAi = availablePackages.find(
+                  (p) =>
+                    p.isAiGenerated &&
+                    p.category === activeGenTask.category,
+                );
+                if (latestAi) {
+                  handlePackageSelect(latestAi);
+                } else {
+                  startSession(StudyMode.SIMULATION);
+                }
+              }
+              setActiveGenTask(null);
+            }}
+          />
         )}
       </AnimatePresence>
 
@@ -4401,40 +4366,72 @@ function App() {
                 </div>
               </div>
               {showProfileDropdown && (
-                <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden z-50 animate-fade-in-up">
-                  {!userProfile?.isGuest && (
+                <div className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 overflow-hidden z-50 animate-fade-in-up">
+                  <div className="p-3 border-b border-slate-50 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Akun Saya</p>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{userProfile?.username || "Tamu"}</p>
+                  </div>
+                  
+                  <div className="p-1.5 space-y-1">
+                    {!userProfile?.isGuest && (
+                      <button
+                        onClick={() => {
+                          setShowProfileDropdown(false);
+                          SoundManager.play("click");
+                          setCurrentView("SOCIAL_HUB");
+                        }}
+                        className="w-full text-left px-3 py-2.5 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl flex items-center gap-3 transition-colors text-slate-700 dark:text-slate-200 text-xs font-bold group"
+                      >
+                        <div className="p-1.5 bg-blue-100 dark:bg-blue-900/40 rounded-lg group-hover:scale-110 transition-transform">
+                          <Users size={14} className="text-blue-500" />
+                        </div>
+                        Social Hub
+                      </button>
+                    )}
+
                     <button
                       onClick={() => {
                         setShowProfileDropdown(false);
                         SoundManager.play("click");
-                        setCurrentView("SOCIAL_HUB");
+                        setSettingsOpen(true);
                       }}
-                      className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors text-slate-700 dark:text-slate-200 text-sm font-medium"
+                      className="w-full text-left px-3 py-2.5 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl flex items-center gap-3 transition-colors text-slate-700 dark:text-slate-200 text-xs font-bold group"
                     >
-                      <Users size={16} className="text-blue-500" /> Social Hub
+                      <div className="p-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg group-hover:rotate-45 transition-transform">
+                        <Settings size={14} className="text-slate-500" />
+                      </div>
+                      Pengaturan
                     </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      setShowProfileDropdown(false);
-                      SoundManager.play("click");
-                      setSettingsOpen(true);
-                    }}
-                    className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors text-slate-700 dark:text-slate-200 text-sm font-medium"
-                  >
-                    <Settings size={16} className="text-slate-500" /> Pengaturan
-                  </button>
-                  {userProfile && (
+
+                    {userProfile && (FirebaseService.isUserAdmin(userProfile) || userProfile.email?.endsWith('@fajmuls.com')) && (
+                      <button
+                        onClick={() => {
+                          setShowProfileDropdown(false);
+                          SoundManager.play("click");
+                          setCurrentView("BANK_SOAL");
+                        }}
+                        className="w-full text-left px-3 py-2.5 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl flex items-center gap-3 transition-colors text-purple-600 dark:text-purple-400 text-xs font-bold group"
+                      >
+                        <div className="p-1.5 bg-purple-100 dark:bg-purple-900/40 rounded-lg group-hover:scale-110 transition-transform">
+                          <Database size={14} />
+                        </div>
+                        Bank Soal
+                      </button>
+                    )}
+
                     <button
                       onClick={() => {
                         setShowProfileDropdown(false);
                         handleLogout();
                       }}
-                      className="w-full text-left px-4 py-3 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center gap-3 transition-colors text-rose-600 dark:text-rose-400 text-sm font-medium border-t border-slate-100 dark:border-slate-700"
+                      className="w-full text-left px-3 py-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl flex items-center gap-3 transition-colors text-rose-600 dark:text-rose-400 text-xs font-bold border-t border-slate-50 dark:border-slate-700/50 mt-1 pt-2"
                     >
-                      <LogOut size={16} /> Keluar
+                      <div className="p-1.5 bg-rose-100 dark:bg-rose-900/40 rounded-lg">
+                        <LogOut size={14} />
+                      </div>
+                      Keluar
                     </button>
-                  )}
+                  </div>
                 </div>
               )}
             </div>
@@ -4646,6 +4643,21 @@ function App() {
                       />{" "}
                       Rank
                     </button>
+                    {userProfile && (FirebaseService.isUserAdmin(userProfile) || userProfile.email?.endsWith('@fajmuls.com')) && (
+                      <button
+                        onClick={() => {
+                          SoundManager.play("click");
+                          setCurrentView("BANK_SOAL");
+                        }}
+                        className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 text-xs sm:text-base sm:px-5 sm:py-3 rounded-xl shadow-sm border font-bold transition ${settings.theme === "fajmuls" ? "bg-white/80 backdrop-blur text-purple-700 border-purple-200 hover:bg-purple-50" : "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40"}`}
+                      >
+                        <Database
+                          size={18}
+                          className="text-purple-500 w-3.5 h-3.5 sm:w-4.5 sm:h-4.5"
+                        />{" "}
+                        Bank Soal
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -4745,6 +4757,12 @@ function App() {
                 history={testHistory}
                 userProfile={userProfile}
                 onSelectPackage={handlePackageSelect}
+                onOpenSettings={() => setSettingsOpen(true)}
+                onAdminViewPackage={(pkg) => {
+                  setAdminSessionToView(pkg);
+                  setAdminViewerSource("TO_SELECTION");
+                  setCurrentView("ADMIN_SESSION_VIEW");
+                }}
                 onGenerateNew={handleGenerateNewPackage}
                 onDeletePackage={handleDeletePackage}
                 onDeleteMultiplePackages={handleDeleteMultiplePackages}
@@ -4781,6 +4799,11 @@ function App() {
                 onResume={handleResumeSession}
                 onDelete={handleDeleteSavedSession}
                 loading={loadingSessions}
+                isAdmin={userProfile ? (FirebaseService.isUserAdmin(userProfile) || userProfile.email?.endsWith('@fajmuls.com')) : false}
+                onAdminView={(s) => {
+                  setAdminSessionToView(s);
+                  setCurrentView("ADMIN_SESSION_VIEW");
+                }}
               />
             </motion.div>
           )}
@@ -5267,6 +5290,25 @@ function App() {
               isOpen={showPomodoro}
               onClose={() => setShowPomodoro(false)}
               onOpen={() => setShowPomodoro(true)}
+            />
+          )}
+
+          {currentView === "BANK_SOAL" && (
+            <BankSoalManager
+              onBack={() => setCurrentView("HOME")}
+              showToast={showToast}
+            />
+          )}
+
+          {currentView === "ADMIN_SESSION_VIEW" && adminSessionToView && (
+            <AdminSessionViewer
+              session={adminSessionToView}
+              fontSize={settings.fontSize}
+              onBack={() => {
+                setAdminSessionToView(null);
+                setCurrentView(adminViewerSource);
+              }}
+              showToast={showToast}
             />
           )}
       </div>
