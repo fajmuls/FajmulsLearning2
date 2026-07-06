@@ -127,11 +127,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
 
                 {/* Modal Container */}
                 <motion.div 
-                    initial={{ scale: 0.95, opacity: 0, y: 10 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                    transition={{ type: "spring", damping: 25, stiffness: 400 }}
-                    className="settings-modal relative bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl w-full sm:max-w-[420px] max-h-[85vh] rounded-[2rem] shadow-2xl flex flex-col border border-slate-200/50 dark:border-slate-800/50 overflow-hidden"
+                    initial={{ scale: 0.98, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.98, opacity: 0 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    className="settings-modal relative bg-white dark:bg-slate-900 w-full sm:max-w-[420px] max-h-[85vh] rounded-[2rem] shadow-2xl flex flex-col border border-slate-200 dark:border-slate-800 overflow-hidden"
                 >
                     {/* Header */}
                     <div className="px-5 pt-5 pb-1 flex justify-between items-center mb-3">

@@ -4338,6 +4338,16 @@ function App() {
             </div>
 
             <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+              <button
+                onClick={() => {
+                  SoundManager.play("click");
+                  setSettingsOpen(true);
+                }}
+                className="hidden sm:flex p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500"
+                title="Pengaturan"
+              >
+                <Settings size={20} />
+              </button>
               {userProfile?.gamification && (
                 <div className="scale-90 sm:scale-100 origin-right">
                   <GamificationBar
@@ -4403,22 +4413,6 @@ function App() {
                       Pengaturan
                     </button>
 
-                    {userProfile && (FirebaseService.isUserAdmin(userProfile) || userProfile.email?.endsWith('@fajmuls.com')) && (
-                      <button
-                        onClick={() => {
-                          setShowProfileDropdown(false);
-                          SoundManager.play("click");
-                          setCurrentView("BANK_SOAL");
-                        }}
-                        className="w-full text-left px-3 py-2.5 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl flex items-center gap-3 transition-colors text-purple-600 dark:text-purple-400 text-xs font-bold group"
-                      >
-                        <div className="p-1.5 bg-purple-100 dark:bg-purple-900/40 rounded-lg group-hover:scale-110 transition-transform">
-                          <Database size={14} />
-                        </div>
-                        Bank Soal
-                      </button>
-                    )}
-
                     <button
                       onClick={() => {
                         setShowProfileDropdown(false);
@@ -4462,8 +4456,8 @@ function App() {
                     className="w-14 h-14 sm:w-28 sm:h-28 object-contain mx-auto mb-1.5 sm:mb-4 animate-float"
                   />
                   <div className="inline-flex flex-col items-center bg-white/75 dark:bg-slate-900/75 backdrop-blur-md px-5 py-2.5 sm:px-8 sm:py-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
-                    <h1 className="text-lg sm:text-3xl font-black text-slate-900 dark:text-white leading-tight mb-1">
-                      Pilih Jalur Belajarmu
+                    <h1 className="text-base sm:text-3xl font-black text-slate-900 dark:text-white leading-tight mb-1">
+                      Pilih Jalur Belajarmu & Analisisnya
                     </h1>
                     <p className="text-[10px] sm:text-xs font-semibold text-indigo-600 dark:text-indigo-400">
                       Sistem belajar adaptif untuk persiapan ujian.
@@ -4772,6 +4766,11 @@ function App() {
                 onBack={() => {
                   SoundManager.play("back");
                   setCurrentView("DASHBOARD");
+                }}
+                onCategoryChange={(cat) => {
+                  SoundManager.play("click");
+                  setSelectedCategory(cat);
+                  // Optionally refresh or reset subtest/topic here if needed
                 }}
                 showToast={showToast}
                 confirmEnabled={settings.confirmActions}

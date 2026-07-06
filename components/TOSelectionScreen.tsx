@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ArrowLeft, Upload as UploadIcon, Zap, Lock, Loader2, Download, Trash2, Clock, FileText, Plus, ShieldCheck, RefreshCw, Box, AlertTriangle, PenTool, ListOrdered, Calendar, CheckSquare, Square, Type, Eye, Settings } from 'lucide-react';
+import { ArrowLeft, Upload as UploadIcon, Zap, Lock, Loader2, Download, Trash2, Clock, FileText, Plus, ShieldCheck, RefreshCw, Box, AlertTriangle, PenTool, ListOrdered, Calendar, CheckSquare, Square, Type, Eye, Settings, ChevronDown, BookOpen, Award, Brain } from 'lucide-react';
 import { CategoryType, SkdStreamType, StaticTestPackage, TestHistoryItem, UserPackageStats, TpaStreamType, TkaLevelType, BackgroundGenTask, UserProfile } from '../types';
 import { SoundManager } from '../services/soundService';
 import { ADMIN_TOKEN_HASH } from '../constants';
@@ -30,6 +30,7 @@ interface TOSelectionProps {
     onRefresh: () => void;
     isLoading: boolean;
     activeGenTask?: BackgroundGenTask | null;
+    onCategoryChange?: (cat: CategoryType) => void;
 }
 
 // Simple Token Verification (Direct String)
@@ -38,8 +39,15 @@ interface TOSelectionProps {
 export const TOSelectionScreen: React.FC<TOSelectionProps> = ({ 
     category, skdStream, tpaStream, tkaLevel, availablePackages, history, userProfile,
     onSelectPackage, onAdminViewPackage, onOpenSettings, onGenerateNew, onImportPackage, onDeletePackage, onDeleteMultiplePackages, onFixDuplicates, onFixGaps, onBack, showToast, confirmEnabled,
-    onRefresh, isLoading, activeGenTask
+    onRefresh, isLoading, activeGenTask, onCategoryChange
 }) => {
+    
+    const CATEGORIES_DATA: { id: CategoryType; label: string; icon: any }[] = [
+        { id: 'UTBK', label: 'UTBK-SNBT', icon: BookOpen },
+        { id: 'SKD', label: 'SKD CPNS', icon: Award },
+        { id: 'TPA', label: 'Psikotes / TPA', icon: Brain },
+        { id: 'GENERAL', label: 'Materi Sekolah', icon: PenTool },
+    ];
     
     // Trigger refresh on mount (load when menu opens)
     useEffect(() => {
@@ -63,6 +71,8 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
     const [skdMenuMode, setSkdMenuMode] = useState<'MAIN' | 'SUBTEST'>('MAIN');
     const [selectedSkdVariant, setSelectedSkdVariant] = useState<'FULL' | 'TWK' | 'TIU' | 'TKP'>('FULL');
     const [skdViewMode, setSkdViewMode] = useState<'FULL' | 'SUBTEST'>('FULL');
+    const [activeGenTaskInfo, setActiveGenTaskInfo] = useState<BackgroundGenTask | null>(null);
+    const [activeDropdown, setActiveDropdown] = useState<'category' | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // FIX: Updated logic to check both ID and Title
@@ -617,22 +627,62 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
             )}
 
             <div className="max-w-4xl w-full">
-                <div className="flex justify-between items-center mb-6">
-                    <button onClick={onBack} className="flex items-center gap-2 text-slate-500 hover:text-indigo-600"><ArrowLeft size={20}/> Kembali</button>
-                    <div className="flex items-center gap-4">
-                        <h1 className="text-2xl font-bold text-slate-800 dark:text-white hidden sm:block">{headerTitle}</h1>
-                        
-                        {/* SELECTION MODE TOGGLE */}
-                        <button 
-                            onClick={() => {
-                                setIsSelectionMode(!isSelectionMode);
-                                setSelectedIds(new Set());
-                            }}
-                            className={`p-2 rounded-lg border transition ${isSelectionMode ? 'bg-indigo-100 border-indigo-500 text-indigo-700' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
-                            title="Mode Seleksi"
-                        >
-                            <CheckSquare size={20} />
+                <div className="flex flex-col gap-6 mb-8">
+                    {/* Centered Category Selector */}
+                    <div className="flex flex-col items-center gap-3">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Pilih Kategori Try Out</span>
+                        <div className="relative w-full max-w-sm">
+                            <button
+                                onClick={() => setActiveDropdown(activeDropdown === 'category' ? null : 'category')}
+                                className="w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm font-black text-slate-700 dark:text-slate-300 transition-all hover:border-indigo-500 shadow-md hover:shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
+                                        {CATEGORIES_DATA.find(c => c.id === category)?.icon && React.createElement(CATEGORIES_DATA.find(c => c.id === category)!.icon, { size: 20, className: "text-indigo-600 dark:text-indigo-400" })}
+                                    </div>
+                                    <span className="text-base">{CATEGORIES_DATA.find(c => c.id === category)?.label}</span>
+                                </div>
+                                <ChevronDown size={20} className={`text-slate-400 transition-transform ${activeDropdown === 'category' ? 'rotate-180' : ''}`} />
+                            </button>
+                            {activeDropdown === 'category' && (
+                                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden animate-fade-in-up border-t-4 border-t-indigo-500">
+                                    {CATEGORIES_DATA.map(cat => (
+                                        <button
+                                            key={cat.id}
+                                            onClick={() => { onCategoryChange?.(cat.id); setActiveDropdown(null); }}
+                                            className={`w-full text-left px-5 py-4 text-sm flex items-center gap-4 transition hover:bg-slate-50 dark:hover:bg-slate-700 border-b border-slate-50 dark:border-slate-700/50 last:border-none ${category === cat.id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-black' : 'text-slate-600 dark:text-slate-400 font-bold'}`}
+                                        >
+                                            <div className={`p-1.5 rounded-md ${category === cat.id ? 'bg-indigo-100 dark:bg-indigo-900/40' : 'bg-slate-100 dark:bg-slate-800'}`}>
+                                                {React.createElement(cat.icon, { size: 18 })}
+                                            </div>
+                                            {cat.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex justify-between items-center gap-3">
+                        <button onClick={onBack} className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors font-bold text-sm bg-white dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <ArrowLeft size={20}/> 
+                            <span>Kembali</span>
                         </button>
+    
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-xl font-bold text-slate-800 dark:text-white hidden lg:block mr-2">{headerTitle}</h1>
+                            
+                            {/* SELECTION MODE TOGGLE */}
+                            <button 
+                                onClick={() => {
+                                    setIsSelectionMode(!isSelectionMode);
+                                    setSelectedIds(new Set());
+                                }}
+                                className={`p-2.5 rounded-xl border transition-all ${isSelectionMode ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400'}`}
+                                title="Mode Seleksi"
+                            >
+                                <CheckSquare size={20} />
+                            </button>
 
                         <button 
                             onClick={handleManualRefresh} 
@@ -643,16 +693,12 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                             <RefreshCw size={20} className={isLoading ? "animate-spin" : ""} />
                         </button>
 
-                        <button 
-                            onClick={() => onOpenSettings?.()} 
-                            className="p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:shadow-sm transition"
-                            title="Pengaturan"
-                        >
-                            <Settings size={20} />
-                        </button>
+
                     </div>
                 </div>
-                <h1 className="text-base sm:text-xl font-bold text-slate-800 dark:text-white mb-4 sm:hidden">{headerTitle}</h1>
+            </div>
+
+            <h1 className="text-base sm:text-xl font-bold text-slate-800 dark:text-white mb-4 sm:hidden">{headerTitle}</h1>
 
                 {/* SELECTION ACTION BAR */}
                 {isSelectionMode && (
@@ -724,76 +770,84 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                 )}
 
                 {/* ADMIN ACTIONS PANEL */}
-                <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 mb-6 sm:mb-8">
-                     <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
-                         <h3 className="font-bold text-sm sm:text-lg text-slate-800 dark:text-white flex items-center gap-1.5 sm:gap-2">
-                             <Lock size={16} className="text-slate-400 sm:w-[18px] sm:h-[18px]"/> Admin Zone
-                             {(gapCount > 0 || duplicateCount > 0) && (
-                                 <span className="relative flex h-3 w-3 sm:h-3.5 sm:w-3.5 ml-1" title="Masalah urutan/duplikat terdeteksi">
-                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                                     <span className="relative inline-flex rounded-full h-3 w-3 sm:h-3.5 sm:w-3.5 bg-rose-500"></span>
-                                 </span>
-                             )}
-                         </h3>
-                         
-                         <div className="flex gap-3 w-full sm:w-auto">
-                             <button 
-                                onClick={() => initiateAction('GENERATE')} 
-                                disabled={isGenerating} 
-                                 className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-indigo-600 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:bg-indigo-700 disabled:opacity-50 transition shadow-sm"
-                             >
-                                 {isGenerating ? <Loader2 className="animate-spin" size={14}/> : <Plus size={14} className="sm:w-[18px] sm:h-[18px]"/>}
-                                 <span>Buat Paket AI</span>
-                             </button>
-
-                             <button 
-                                onClick={() => initiateAction('IMPORT')} 
-                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-white dark:bg-slate-700 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition shadow-sm"
-                             >
-                                 <UploadIcon size={14} className="sm:w-[18px] sm:h-[18px]"/>
-                                 <span>Import</span>
-                             </button>
+                {isUserAdmin(userProfile) && (
+                    <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 mb-6 sm:mb-8">
+                         <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
+                             <h3 className="font-bold text-sm sm:text-lg text-slate-800 dark:text-white flex items-center gap-1.5 sm:gap-2">
+                                 <Lock size={16} className="text-slate-400 sm:w-[18px] sm:h-[18px]"/> Admin Zone
+                                 {(gapCount > 0 || duplicateCount > 0) && (
+                                     <span className="relative flex h-3 w-3 sm:h-3.5 sm:w-3.5 ml-1" title="Masalah urutan/duplikat terdeteksi">
+                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                         <span className="relative inline-flex rounded-full h-3 w-3 sm:h-3.5 sm:w-3.5 bg-rose-500"></span>
+                                     </span>
+                                 )}
+                             </h3>
+                             
+                             <div className="flex gap-3 w-full sm:w-auto">
+                                 <button 
+                                    onClick={() => initiateAction('GENERATE')} 
+                                    disabled={isGenerating} 
+                                     className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-indigo-600 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:bg-indigo-700 disabled:opacity-50 transition shadow-sm"
+                                 >
+                                     {isGenerating ? <Loader2 className="animate-spin" size={14}/> : <Plus size={14} className="sm:w-[18px] sm:h-[18px]"/>}
+                                     <span>Buat Paket AI</span>
+                                 </button>
+    
+                                 <button 
+                                    onClick={() => initiateAction('IMPORT')} 
+                                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-white dark:bg-slate-700 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition shadow-sm"
+                                 >
+                                     <UploadIcon size={14} className="sm:w-[18px] sm:h-[18px]"/>
+                                     <span>Import</span>
+                                 </button>
+                             </div>
                          </div>
-                     </div>
-
-                     {/* Hidden File Input */}
-                     <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        className="hidden" 
-                        accept=".json" 
-                        multiple
-                        onChange={(e) => {
-                            if(e.target.files && e.target.files.length > 0) {
-                                onImportPackage(e.target.files);
-                            }
-                            if(fileInputRef.current) fileInputRef.current.value = '';
-                        }}
-                     />
-                </div>
+    
+                         {/* Hidden File Input */}
+                         <input 
+                            type="file" 
+                            ref={fileInputRef} 
+                            className="hidden" 
+                            accept=".json" 
+                            multiple
+                            onChange={(e) => {
+                                if(e.target.files && e.target.files.length > 0) {
+                                    onImportPackage(e.target.files);
+                                }
+                                if(fileInputRef.current) fileInputRef.current.value = '';
+                            }}
+                         />
+                    </div>
+                )}
 
                 {/* SKD VIEW TABS */}
                 {category === 'SKD' && (
-                   <div className="flex bg-slate-200 dark:bg-slate-700/50 p-1.5 rounded-xl mb-6 shadow-sm w-full font-bold">
+                   <div className="flex bg-slate-100 dark:bg-slate-800 p-2 rounded-2xl mb-8 shadow-inner w-full font-black border-2 border-slate-200 dark:border-slate-700">
                        <button 
-                           onClick={() => setSkdViewMode('FULL')}
-                           className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm rounded-lg transition-all ${
+                           onClick={() => {
+                               SoundManager.play('click');
+                               setSkdViewMode('FULL');
+                           }}
+                           className={`flex-1 py-3.5 text-xs sm:text-sm rounded-xl transition-all duration-300 transform active:scale-95 ${
                                skdViewMode === 'FULL' 
-                                   ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' 
+                                   ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200 dark:shadow-indigo-900/40' 
                                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                            }`}
                        >
-                           Full Tryout
+                           SIMULASI FULL
                        </button>
                        <button 
-                           onClick={() => setSkdViewMode('SUBTEST')}
-                           className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm rounded-lg transition-all ${
+                           onClick={() => {
+                               SoundManager.play('click');
+                               setSkdViewMode('SUBTEST');
+                           }}
+                           className={`flex-1 py-3.5 text-xs sm:text-sm rounded-xl transition-all duration-300 transform active:scale-95 ${
                                skdViewMode === 'SUBTEST' 
-                                   ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' 
+                                   ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200 dark:shadow-indigo-900/40' 
                                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                            }`}
                        >
-                           Subtes Tryout
+                           LATIHAN SUBTES
                        </button>
                    </div>
                 )}
@@ -869,25 +923,9 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                                     {pkg.isAiGenerated && <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-bl-lg">AI</div>}
                                     
                                     <div className={`flex justify-between items-start ${isSelectionMode ? 'pl-6 sm:pl-8' : ''}`}>
-                                        <h4 className="text-[13px] sm:text-base md:text-lg font-bold text-slate-800 dark:text-white mb-1 group-hover:text-indigo-600 transition-colors pr-1.5 line-clamp-2">{pkg.title}</h4>
+                                        <h4 className="text-[11px] sm:text-base md:text-lg font-bold text-slate-800 dark:text-white mb-0.5 group-hover:text-indigo-600 transition-colors pr-1.5 line-clamp-2 leading-tight">{pkg.title}</h4>
                                         <div className="flex gap-0.5 sm:gap-1">
-                                            {isUserAdmin(userProfile) && onAdminViewPackage && (
-                                                <div 
-                                                    onClick={(e) => { e.stopPropagation(); onAdminViewPackage(pkg); }}
-                                                    className="p-1.5 sm:p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 bg-slate-50 dark:bg-slate-700/50 dark:hover:bg-slate-700 rounded-lg transition"
-                                                    title="View Questions (Admin)"
-                                                >
-                                                    <Eye size={14} className="sm:w-[18px] sm:h-[18px]" />
-                                                </div>
-                                            )}
-                                            <div 
-                                                onClick={(e) => handleDownloadPackage(e, pkg)}
-                                                className="p-1.5 sm:p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 bg-slate-50 dark:bg-slate-700/50 dark:hover:bg-slate-700 rounded-lg transition"
-                                                title="Download JSON Soal"
-                                            >
-                                                <Download size={14} className="sm:w-[18px] sm:h-[18px]" />
-                                            </div>
-                                            {!isSelectionMode && (
+                                            {!isSelectionMode && isUserAdmin(userProfile) && (
                                                 <div 
                                                     onClick={(e) => { e.stopPropagation(); initiateAction('DELETE', pkg.id); }}
                                                     className="p-1.5 sm:p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 bg-slate-50 dark:bg-slate-700/50 dark:hover:bg-slate-700 rounded-lg transition"

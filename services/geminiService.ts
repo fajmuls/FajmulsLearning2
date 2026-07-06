@@ -83,6 +83,17 @@ export function removeFromBankSoal(category: CategoryType, questionId: string) {
     }
 }
 
+export function updateBankSoal(category: CategoryType, updatedQuestion: Question) {
+    if (typeof window === 'undefined') return;
+    try {
+        const current = getBankSoal(category);
+        const updated = current.map(q => q.id === updatedQuestion.id ? updatedQuestion : q);
+        localStorage.setItem(`bank_soal_${category}`, JSON.stringify(updated));
+    } catch (e) {
+        console.error("Failed to update bank soal", e);
+    }
+}
+
 const questionSchema: Schema = {
   type: Type.OBJECT,
   properties: {
