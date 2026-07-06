@@ -1293,11 +1293,15 @@ export const buildQuestionPrompt = (
   // HYBRID CONTEXT: Pull from Bank Soal
   const bankQuestions = getBankSoal(category, typeof context === 'string' ? context : undefined);
   if (bankQuestions.length > 0) {
-      const examples = shuffleArray(bankQuestions).slice(0, 3);
+      const examples = shuffleArray(bankQuestions).slice(0, 5);
       const hybridInstruction = `
       HYBRID SYSTEM - REFERENCE EXAMPLES (FEW-SHOT):
-      The following questions are from the user's Question Bank. They represent the baseline standard.
-      CRITICAL INSTRUCTION: You MUST generate NEW questions that are STRICTLY HARDER, more complex, and more deceptive than these examples. DO NOT copy them exactly. Elevate the difficulty level significantly.
+      The following questions are from the user's "Question Bank Manager". They represent the baseline standard and style.
+      CRITICAL INSTRUCTION: 
+      1. Use these examples ONLY as a reference for style, formatting, and complexity. 
+      2. YOU MUST GENERATE NEW QUESTIONS that are SIGNIFICANTLY HARDER, more deceptive, and more mathematically/logically challenging than these examples.
+      3. Do NOT repeat or copy the logic of these examples. Elevate the depth of analysis required.
+      4. For ${category === 'SKD' ? 'SKD' : category}, ensure the logic traps are sophisticated and high-level (HOTS).
       
       ${examples.map((q, i) => `Example ${i+1}: 
       Content: ${q.content}

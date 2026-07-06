@@ -3829,7 +3829,7 @@ function App() {
           questions: newQuestions,
           durationMinutes: duration,
           isAiGenerated: true,
-          version: "v5",
+          version: "v6",
           createdAt: new Date().toISOString(),
         };
 

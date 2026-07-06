@@ -20,7 +20,13 @@ import {
   Save,
   Brain,
   Award,
-  PenTool
+  PenTool,
+  GraduationCap,
+  Globe,
+  Activity,
+  Timer,
+  MessageSquare,
+  Book
 } from 'lucide-react';
 import { Question, CategoryType } from '../types';
 import * as Gemini from '../services/geminiService';
@@ -32,10 +38,17 @@ interface BankSoalManagerProps {
 }
 
 const CATEGORIES_DATA: { id: CategoryType; label: string; icon: any }[] = [
-  { id: 'UTBK', label: 'UTBK-SNBT', icon: BookOpen },
-  { id: 'SKD', label: 'SKD CPNS', icon: Award },
-  { id: 'TPA', label: 'Psikotes / TPA', icon: Brain },
-  { id: 'GENERAL', label: 'Materi Sekolah', icon: PenTool },
+  { id: 'UTBK', label: 'UTBK SNBT', icon: BookOpen },
+  { id: 'SKD', label: 'SKD CASN/KEDINASAN', icon: Award },
+  { id: 'TKA', label: 'TKA (SAINTEK/SOSHUM)', icon: GraduationCap },
+  { id: 'PELAJARAN', label: 'MATERI SEKOLAH', icon: PenTool },
+  { id: 'BAHASA', label: 'UJIAN BAHASA', icon: Globe },
+  { id: 'TPA', label: 'TPA & PSIKOTES BUMN', icon: Brain },
+  { id: 'PSIKOTEST', label: 'PSIKOTES & IQ', icon: Activity },
+  { id: 'KECERMATAN', label: 'TES KECERMATAN', icon: Timer },
+  { id: 'INTERVIEW', label: 'WAWANCARA', icon: MessageSquare },
+  { id: 'SKRIPSI', label: 'ASISTEN SKRIPSI', icon: Book },
+  { id: 'GENERAL', label: 'STUDY COPILOT', icon: Database },
 ];
 
 export const BankSoalManager: React.FC<BankSoalManagerProps> = ({ onBack, showToast }) => {
@@ -52,6 +65,9 @@ export const BankSoalManager: React.FC<BankSoalManagerProps> = ({ onBack, showTo
   const [loading, setLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<'subtest' | 'topic' | 'category' | null>(null);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const fetchQuestions = () => {
     setLoading(true);
@@ -73,7 +89,12 @@ export const BankSoalManager: React.FC<BankSoalManagerProps> = ({ onBack, showTo
   }, [category]);
 
   const handleDelete = (questionId: string) => {
-    if (!confirm("Hapus soal ini dari bank soal?")) return;
+    setShowDeleteConfirm(questionId);
+  };
+
+  const confirmDelete = () => {
+    if (!showDeleteConfirm) return;
+    const questionId = showDeleteConfirm;
     
     try {
       Gemini.removeFromBankSoal(category, questionId);
@@ -90,13 +111,17 @@ export const BankSoalManager: React.FC<BankSoalManagerProps> = ({ onBack, showTo
       showToast("Soal berhasil dihapus", "success");
     } catch (e) {
       showToast("Gagal menghapus soal", "error");
+    } finally {
+      setShowDeleteConfirm(null);
     }
   };
 
   const handleBulkDelete = () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`Hapus ${selectedIds.size} soal terpilih dari bank soal?`)) return;
+    setIsBulkDeleting(true);
+  };
 
+  const confirmBulkDelete = () => {
     try {
       selectedIds.forEach(id => Gemini.removeFromBankSoal(category, id));
       setQuestions(prev => prev.filter(q => !selectedIds.has(q.id)));
@@ -108,6 +133,8 @@ export const BankSoalManager: React.FC<BankSoalManagerProps> = ({ onBack, showTo
       showToast("Soal terpilih berhasil dihapus", "success");
     } catch (e) {
       showToast("Gagal menghapus soal terpilih", "error");
+    } finally {
+      setIsBulkDeleting(false);
     }
   };
 
@@ -153,111 +180,147 @@ export const BankSoalManager: React.FC<BankSoalManagerProps> = ({ onBack, showTo
       return matchSearch && matchSubtest && matchTopic;
   });
 
+  const groupedQuestions = useMemo(() => {
+    const groups: { [key: string]: Question[] } = {};
+    filteredQuestions.forEach(q => {
+      const topic = q.metadata?.topic || 'Lainnya';
+      if (!groups[topic]) groups[topic] = [];
+      groups[topic].push(q);
+    });
+    return groups;
+  }, [filteredQuestions]);
+
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 overflow-hidden">
       {/* Header */}
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 sticky top-0 z-10 shrink-0">
+        <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <button 
               onClick={onBack}
-              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
+              className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors border border-slate-200 dark:border-slate-700 shadow-sm"
             >
               <ArrowLeft size={20} />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Database className="text-purple-500" size={24} />
-                Bank Soal Hybrid & Analisis
+              <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <div className="p-1.5 bg-purple-600 rounded-lg shadow-lg shadow-purple-500/20">
+                  <Database className="text-white" size={20} />
+                </div>
+                Bank Soal Hybrid
               </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Kelola soal yang akan digunakan sebagai basis AI generation
-              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-                    <div className="relative">
-                        <button
-                          type="button"
-                          onClick={() => setActiveDropdown(activeDropdown === 'category' ? null : 'category')}
-                          className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all hover:border-purple-500 shadow-sm min-w-[120px] justify-between"
-                        >
-                          <div className="flex items-center gap-2">
-                            {CATEGORIES_DATA.find(c => c.id === category)?.icon && React.createElement(CATEGORIES_DATA.find(c => c.id === category)!.icon, { size: 14, className: "text-purple-500" })}
-                            <span className="uppercase tracking-tight">{CATEGORIES_DATA.find(c => c.id === category)?.label}</span>
-                          </div>
-                          <ChevronDown size={14} className={`transition-transform ${activeDropdown === 'category' ? 'rotate-180' : ''}`} />
-                        </button>
-                        {activeDropdown === 'category' && (
-                          <div className="absolute top-full right-0 mt-1 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-up">
-                            {CATEGORIES_DATA.map(cat => (
-                              <button
-                                key={cat.id}
-                                type="button"
-                                onClick={() => { setCategory(cat.id as CategoryType); setActiveDropdown(null); }}
-                                className={`w-full text-left px-4 py-3 text-xs flex items-center gap-3 transition hover:bg-slate-50 dark:hover:bg-slate-700 ${category === cat.id ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 font-bold' : 'text-slate-600 dark:text-slate-400'}`}
-                              >
-                                {React.createElement(cat.icon, { size: 16 })}
-                                <span className="uppercase tracking-wide">{cat.label}</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                    </div>
+          <div className="hidden md:flex items-center gap-3 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="px-3 py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status:</div>
+            <div className="flex items-center gap-2 px-3 py-1 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+              <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-tighter">Database Cloud Active</span>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl mx-auto w-full flex flex-col md:flex-row gap-6 p-4 overflow-hidden">
-        {/* Left Side: List */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 space-y-3">
+      <main className="flex-1 max-w-[1600px] mx-auto w-full flex flex-col md:flex-row gap-0 overflow-hidden">
+        {/* SIDEBAR: Category Selector */}
+        <aside className="w-full md:w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-y-auto shrink-0 hidden md:block">
+          <div className="p-4 space-y-1">
+            <div className="px-2 mb-4">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Kategori Tryout</span>
+            </div>
+            {CATEGORIES_DATA.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setCategory(cat.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
+                  category === cat.id 
+                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20 translate-x-1' 
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                {React.createElement(cat.icon, { size: 18, strokeWidth: 2.5 })}
+                <span className="uppercase tracking-tight">{cat.label}</span>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        {/* MOBILE CATEGORY SCROLLER */}
+        <div className="md:hidden flex overflow-x-auto bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-2 gap-2 scrollbar-hide shrink-0">
+          {CATEGORIES_DATA.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setCategory(cat.id)}
+              className={`flex-none flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black transition-all ${
+                category === cat.id 
+                  ? 'bg-purple-600 text-white shadow-md' 
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+              }`}
+            >
+              {React.createElement(cat.icon, { size: 14 })}
+              <span className="uppercase">{cat.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Right Side: Questions List & Filters */}
+        <div className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-950 overflow-hidden relative">
+          <div className="p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 space-y-3 shrink-0">
             <div className="flex items-center gap-3">
                 <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 <input 
                     type="text"
-                    placeholder="Cari soal atau topik..."
+                    placeholder="Cari soal, materi, atau topik spesifik..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none transition-all font-medium"
                 />
                 </div>
                 <button 
-                onClick={fetchQuestions}
-                className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-                title="Refresh"
+                  onClick={fetchQuestions}
+                  className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-purple-600 hover:text-white transition shadow-sm active:scale-95"
+                  title="Sinkronisasi Data"
                 >
-                <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                  <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                 </button>
             </div>
             
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex gap-2 flex-1">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg shrink-0">
+                  <Filter size={14} className="text-slate-400" />
+                  <span className="text-[10px] font-black text-slate-500 uppercase">Filter:</span>
+                </div>
+                
                 {availableSubtests.length > 0 && (
-                  <div className="relative flex-1">
+                  <div className="relative">
                     <button
                       onClick={() => setActiveDropdown(activeDropdown === 'subtest' ? null : 'subtest')}
-                      className="w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-[9px] sm:text-[10px] font-black text-slate-700 dark:text-slate-300 transition-all hover:border-purple-500"
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all border ${
+                        selectedSubtest 
+                          ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400' 
+                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600'
+                      }`}
                     >
-                      <span className="truncate uppercase">{selectedSubtest || 'Semua Sub-tes'}</span>
+                      <span className="truncate max-w-[120px]">{selectedSubtest || 'SEMUA SUBTES'}</span>
                       <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'subtest' ? 'rotate-180' : ''}`} />
                     </button>
                     {activeDropdown === 'subtest' && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-30 overflow-hidden animate-fade-in-up">
+                      <div className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in-up">
                         <button
                           onClick={() => { setSelectedSubtest(null); setSelectedTopic(null); setActiveDropdown(null); }}
-                          className="w-full text-left px-3 py-2 text-[9px] sm:text-[10px] hover:bg-slate-100 dark:hover:bg-slate-700 transition uppercase font-bold"
+                          className="w-full text-left px-4 py-2.5 text-[10px] font-black hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-400 uppercase"
                         >
-                          Semua Sub-tes
+                          SEMUA SUBTES
                         </button>
                         {availableSubtests.map(st => (
                           <button
                             key={st}
                             onClick={() => { setSelectedSubtest(st); setSelectedTopic(null); setActiveDropdown(null); }}
-                            className="w-full text-left px-3 py-2 text-[9px] sm:text-[10px] hover:bg-slate-100 dark:hover:bg-slate-700 transition uppercase"
+                            className="w-full text-left px-4 py-2.5 text-[10px] font-bold hover:bg-purple-50 dark:hover:bg-purple-900/20 text-slate-700 dark:text-slate-300 uppercase tracking-tight"
                           >
                             {st}
                           </button>
@@ -268,27 +331,31 @@ export const BankSoalManager: React.FC<BankSoalManagerProps> = ({ onBack, showTo
                 )}
 
                 {availableTopics.length > 0 && (
-                  <div className="relative flex-1">
+                  <div className="relative">
                     <button
                       onClick={() => setActiveDropdown(activeDropdown === 'topic' ? null : 'topic')}
-                      className="w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-[9px] sm:text-[10px] font-black text-slate-700 dark:text-slate-300 transition-all hover:border-purple-500"
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all border ${
+                        selectedTopic 
+                          ? 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400' 
+                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600'
+                      }`}
                     >
-                      <span className="truncate uppercase">{selectedTopic || 'Semua Tema'}</span>
+                      <span className="truncate max-w-[120px]">{selectedTopic || 'SEMUA TEMA'}</span>
                       <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'topic' ? 'rotate-180' : ''}`} />
                     </button>
                     {activeDropdown === 'topic' && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-30 overflow-hidden animate-fade-in-up">
+                      <div className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in-up">
                         <button
                           onClick={() => { setSelectedTopic(null); setActiveDropdown(null); }}
-                          className="w-full text-left px-3 py-2 text-[9px] sm:text-[10px] hover:bg-slate-100 dark:hover:bg-slate-700 transition uppercase font-bold"
+                          className="w-full text-left px-4 py-2.5 text-[10px] font-black hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-400 uppercase"
                         >
-                          Semua Tema
+                          SEMUA TEMA
                         </button>
                         {availableTopics.map(t => (
                           <button
                             key={t}
                             onClick={() => { setSelectedTopic(t); setActiveDropdown(null); }}
-                            className="w-full text-left px-3 py-2 text-[9px] sm:text-[10px] hover:bg-slate-100 dark:hover:bg-slate-700 transition uppercase"
+                            className="w-full text-left px-4 py-2.5 text-[10px] font-bold hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-slate-700 dark:text-slate-300 uppercase tracking-tight"
                           >
                             {t}
                           </button>
@@ -299,30 +366,29 @@ export const BankSoalManager: React.FC<BankSoalManagerProps> = ({ onBack, showTo
                 )}
               </div>
 
-              {filteredQuestions.length > 0 && (
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                <button 
+                  onClick={toggleSelectAll}
+                  className="text-[10px] font-black text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 px-2 py-1 rounded-lg uppercase tracking-tighter transition"
+                >
+                  {selectedIds.size === filteredQuestions.length ? 'BATAL' : 'PILIH SEMUA'}
+                </button>
+                {selectedIds.size > 0 && (
                   <button 
-                    onClick={toggleSelectAll}
-                    className="text-[10px] sm:text-xs font-bold text-purple-600 dark:text-purple-400 hover:underline whitespace-nowrap"
+                    onClick={handleBulkDelete}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black bg-rose-600 text-white shadow-lg shadow-rose-500/20 active:scale-95 transition uppercase"
                   >
-                    {selectedIds.size === filteredQuestions.length ? 'Batal Semua' : 'Pilih Semua'}
+                    <Trash size={12} />
+                    Hapus ({selectedIds.size})
                   </button>
-                  {selectedIds.size > 0 && (
-                    <button 
-                      onClick={handleBulkDelete}
-                      className="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold bg-red-500 text-white shadow-lg shadow-red-500/20 active:scale-95 transition"
-                    >
-                      <Trash size={12} className="sm:w-[14px] sm:h-[14px]" />
-                      Hapus ({selectedIds.size})
-                    </button>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-2 space-y-2 scrollbar-hide">
-            {filteredQuestions.length === 0 ? (
+          <div className="flex-1 overflow-y-auto p-4 space-y-8 scrollbar-hide pb-24">
+            {Object.entries(groupedQuestions).length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-center p-8">
                 <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
                   <BookOpen className="text-slate-300 dark:text-slate-600" size={32} />
@@ -333,72 +399,83 @@ export const BankSoalManager: React.FC<BankSoalManagerProps> = ({ onBack, showTo
                 </p>
               </div>
             ) : (
-              filteredQuestions.map((q) => (
-                <motion.div 
-                  key={q.id}
-                  layoutId={q.id}
-                  onClick={() => setSelectedQuestion(q)}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all flex items-start gap-3 ${
-                    selectedQuestion?.id === q.id 
-                      ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 ring-1 ring-purple-500/30' 
-                      : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-purple-200 dark:hover:border-purple-800'
-                  }`}
-                >
-                  <div 
-                    onClick={(e) => toggleSelect(q.id, e)}
-                    className={`w-5 h-5 rounded border mt-0.5 shrink-0 flex items-center justify-center transition-all ${
-                      selectedIds.has(q.id) 
-                        ? 'bg-purple-600 border-purple-600 text-white' 
-                        : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800'
-                    }`}
-                  >
-                    {selectedIds.has(q.id) && <Check size={12} strokeWidth={4} />}
+              Object.entries(groupedQuestions).map(([topic, topicQuestions]) => (
+                <div key={topic} className="space-y-3">
+                  <div className="flex items-center gap-2 px-3">
+                    <div className="h-3 w-1 bg-purple-500 rounded-full"></div>
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{topic}</h3>
+                    <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full text-slate-500">{topicQuestions.length}</span>
                   </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                            {q.metadata?.subtest || 'Umum'}
-                          </span>
-                          {q.metadata?.topic && (
-                            <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[10px] font-bold bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
-                              {q.metadata.topic}
-                            </span>
-                          )}
+                  <div className="space-y-2">
+                    {topicQuestions.map((q) => (
+                      <motion.div 
+                        key={q.id}
+                        layoutId={q.id}
+                        onClick={() => setSelectedQuestion(q)}
+                        className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 shadow-sm ${
+                          selectedQuestion?.id === q.id 
+                            ? 'bg-purple-50 dark:bg-purple-900/10 border-purple-600 ring-4 ring-purple-500/5' 
+                            : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-purple-200 dark:hover:border-purple-800 hover:shadow-md'
+                        }`}
+                      >
+                        <div 
+                          onClick={(e) => toggleSelect(q.id, e)}
+                          className={`w-5 h-5 rounded-lg border-2 mt-0.5 shrink-0 flex items-center justify-center transition-all ${
+                            selectedIds.has(q.id) 
+                              ? 'bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-500/30' 
+                              : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'
+                          }`}
+                        >
+                          {selectedIds.has(q.id) && <Check size={12} strokeWidth={4} />}
                         </div>
-                        <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 line-clamp-2 leading-relaxed">
-                          {q.content.replace(/<[^>]*>/g, '')}
-                        </p>
-                      </div>
-                      <div className="flex flex-col gap-2 shrink-0">
-                        <button 
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedQuestion(q);
-                            setIsMaximized(true);
-                          }}
-                          className="p-2 rounded-lg text-slate-400 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all active:scale-90 md:hidden"
-                        >
-                          <Maximize2 size={18} />
-                        </button>
-                        <button 
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(q.id);
-                          }}
-                          className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-90"
-                          title="Hapus Soal"
-                        >
-                          <Trash size={18} />
-                        </button>
-                      </div>
-                    </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start gap-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                <span className="px-2 py-0.5 rounded-lg text-[9px] font-black bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 uppercase tracking-widest">
+                                  {q.metadata?.subtest || 'Umum'}
+                                </span>
+                                {q.metadata?.topic && (
+                                  <span className="px-2 py-0.5 rounded-lg text-[9px] font-black bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 uppercase tracking-widest">
+                                    {q.metadata.topic}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 line-clamp-3 leading-relaxed font-medium">
+                                {q.content.replace(/<[^>]*>/g, '').replace(/:::MATRIX:::/g, '').trim()}
+                              </p>
+                            </div>
+                            <div className="flex flex-col gap-2 shrink-0">
+                              <button 
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedQuestion(q);
+                                  setIsMaximized(true);
+                                }}
+                                className="p-2 rounded-xl text-slate-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all active:scale-90 md:hidden border border-transparent hover:border-purple-100"
+                              >
+                                <Maximize2 size={18} />
+                              </button>
+                              <button 
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(q.id);
+                                }}
+                                className="p-2 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-500 hover:bg-rose-600 hover:text-white transition-all active:scale-90 shadow-sm border border-rose-100 dark:border-rose-900/40"
+                                title="Hapus Permanen"
+                              >
+                                <Trash size={18} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
-                </motion.div>
+                </div>
               ))
             )}
           </div>
@@ -553,6 +630,75 @@ export const BankSoalManager: React.FC<BankSoalManagerProps> = ({ onBack, showTo
           )}
         </div>
       </main>
+
+      {/* Confirmation Modals */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] max-w-sm w-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-slate-200 dark:border-slate-800 relative overflow-hidden"
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-6 text-red-600">
+                <Trash size={32} strokeWidth={2.5} />
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Hapus Soal?</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 font-medium">
+                Soal ini akan dihapus permanen dari Bank Soal.
+              </p>
+              <div className="flex flex-col gap-3 w-full">
+                <button 
+                  onClick={confirmDelete}
+                  className="w-full py-4 rounded-2xl bg-red-600 text-white font-black uppercase tracking-widest text-xs hover:bg-red-700 shadow-xl shadow-red-500/30"
+                >
+                  Hapus Permanen
+                </button>
+                <button 
+                  onClick={() => setShowDeleteConfirm(null)}
+                  className="w-full py-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 font-black uppercase tracking-widest text-xs text-slate-500"
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {isBulkDeleting && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] max-w-sm w-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-slate-200 dark:border-slate-800"
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-6 text-red-600">
+                <Trash size={32} strokeWidth={2.5} />
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Hapus {selectedIds.size} Soal?</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 font-medium">
+                Semua soal terpilih akan dihapus permanen.
+              </p>
+              <div className="flex flex-col gap-3 w-full">
+                <button 
+                  onClick={confirmBulkDelete}
+                  className="w-full py-4 rounded-2xl bg-red-600 text-white font-black uppercase tracking-widest text-xs hover:bg-red-700 shadow-xl shadow-red-500/30"
+                >
+                  Hapus Semua
+                </button>
+                <button 
+                  onClick={() => setIsBulkDeleting(false)}
+                  className="w-full py-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 font-black uppercase tracking-widest text-xs text-slate-500"
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* Maximized Detail Modal (for Mobile/Tablets) */}
       <AnimatePresence>

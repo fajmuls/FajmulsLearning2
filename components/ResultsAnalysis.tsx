@@ -21,7 +21,7 @@ interface ResultsProps {
 
 export const ResultsAnalysis: React.FC<ResultsProps> = ({ answers, questions, onHome, onRetry, onHistory, onRemedial, category, details, userProfile }) => {
     const correctCount = answers.filter(a => a.isCorrect).length;
-    let score = details?.total || details?.average || details?.iqScore || Math.round((correctCount / questions.length) * 100);
+    let score = details?.total ?? details?.average ?? details?.iqScore ?? Math.round((correctCount / (questions.length || 1)) * 100);
     
     // For General flexible scoring
     if (category === 'GENERAL' && !details) {
@@ -159,6 +159,37 @@ export const ResultsAnalysis: React.FC<ResultsProps> = ({ answers, questions, on
                         </div>
                     </div>
                 </div>
+
+                {/* SKD Subtest Breakdown if SKD */}
+                {category === 'SKD' && skdPassingStatus && (
+                    <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border-2 border-indigo-500/20 shadow-xl shadow-indigo-500/5 text-left mb-6 w-full">
+                        <h4 className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <Activity size={14} className="text-indigo-500" /> Performa per Subtes (Skills)
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                            {Object.entries(skdPassingStatus).map(([name, data]) => (
+                                <div key={name} className="relative">
+                                    <div className="flex justify-between items-end mb-2">
+                                        <div>
+                                            <div className="text-[10px] font-black text-slate-400 uppercase">{name}</div>
+                                            <div className="text-2xl font-black text-slate-900 dark:text-white">{data.score}</div>
+                                        </div>
+                                        <div className={`text-[10px] font-black px-2 py-0.5 rounded-full ${data.passed ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                                            {data.passed ? 'LULUS' : 'GAGAL'}
+                                        </div>
+                                    </div>
+                                    <div className="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                        <div 
+                                            className={`h-full transition-all duration-1000 ${data.passed ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`}
+                                            style={{ width: `${Math.min(100, (data.score / (name === 'TKP' ? 225 : 175)) * 100)}%` }}
+                                        />
+                                    </div>
+                                    <div className="mt-1 text-[9px] font-bold text-slate-400">Target: {data.min}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* DEEP STATS: Time Distribution & Consistency */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-6">

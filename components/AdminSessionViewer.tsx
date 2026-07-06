@@ -78,6 +78,26 @@ export const AdminSessionViewer: React.FC<{
               </p>
             </div>
           </div>
+
+          <button 
+            onClick={() => {
+              const toAdd = session.questions.filter(q => !addedIds.has(q.id));
+              if (toAdd.length === 0) {
+                showToast("Semua soal sudah ada di Bank Soal", "info");
+                return;
+              }
+              toAdd.forEach(q => Gemini.saveToBankSoal(session.category, q));
+              setAddedIds(prev => {
+                const next = new Set(prev);
+                toAdd.forEach(q => next.add(q.id));
+                return next;
+              });
+              showToast(`${toAdd.length} soal ditambahkan ke Bank Soal`, "success");
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl font-black text-[10px] uppercase shadow-lg shadow-purple-500/20 hover:bg-purple-700 transition-all active:scale-95"
+          >
+            <Sparkles size={14} /> Simpan Semua
+          </button>
         </div>
       </header>
 
@@ -91,8 +111,13 @@ export const AdminSessionViewer: React.FC<{
                     Soal No. {idx + 1}
                   </span>
                   {q.metadata?.subtest && (
-                    <span className="block text-[10px] font-bold text-indigo-500 uppercase tracking-tighter">
-                      Subtest: {q.metadata.subtest}
+                    <span className="inline-block px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-black rounded-lg uppercase tracking-widest mb-1 mr-2">
+                      {q.metadata.subtest}
+                    </span>
+                  )}
+                  {q.metadata?.topic && (
+                    <span className="inline-block px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-black rounded-lg uppercase tracking-widest mb-1">
+                      {q.metadata.topic}
                     </span>
                   )}
                 </div>

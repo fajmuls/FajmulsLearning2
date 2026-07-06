@@ -554,7 +554,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                                         className="w-full p-2.5 sm:p-3 border-2 border-slate-200 dark:border-slate-700 hover:border-amber-600 dark:hover:border-amber-500 rounded-lg sm:rounded-xl flex items-center gap-2 sm:gap-3 text-left transition group"
                                     >
                                         <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 group-hover:text-amber-600 transition shrink-0">
-                                            <ListOrdered size={14} className="sm:w-4 sm:h-4"/>
+                                            <ListOrdered size={14} className="sm:w-4 h-4"/>
                                         </div>
                                         <div>
                                             <span className="block font-bold text-xs sm:text-sm text-slate-800 dark:text-white">Full Tryout (110 Soal)</span>
@@ -627,78 +627,36 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
             )}
 
             <div className="max-w-4xl w-full">
-                <div className="flex flex-col gap-6 mb-8">
-                    {/* Centered Category Selector */}
-                    <div className="flex flex-col items-center gap-3">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Pilih Kategori Try Out</span>
-                        <div className="relative w-full max-w-sm">
-                            <button
-                                onClick={() => setActiveDropdown(activeDropdown === 'category' ? null : 'category')}
-                                className="w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm font-black text-slate-700 dark:text-slate-300 transition-all hover:border-indigo-500 shadow-md hover:shadow-lg"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
-                                        {CATEGORIES_DATA.find(c => c.id === category)?.icon && React.createElement(CATEGORIES_DATA.find(c => c.id === category)!.icon, { size: 20, className: "text-indigo-600 dark:text-indigo-400" })}
-                                    </div>
-                                    <span className="text-base">{CATEGORIES_DATA.find(c => c.id === category)?.label}</span>
-                                </div>
-                                <ChevronDown size={20} className={`text-slate-400 transition-transform ${activeDropdown === 'category' ? 'rotate-180' : ''}`} />
-                            </button>
-                            {activeDropdown === 'category' && (
-                                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden animate-fade-in-up border-t-4 border-t-indigo-500">
-                                    {CATEGORIES_DATA.map(cat => (
-                                        <button
-                                            key={cat.id}
-                                            onClick={() => { onCategoryChange?.(cat.id); setActiveDropdown(null); }}
-                                            className={`w-full text-left px-5 py-4 text-sm flex items-center gap-4 transition hover:bg-slate-50 dark:hover:bg-slate-700 border-b border-slate-50 dark:border-slate-700/50 last:border-none ${category === cat.id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-black' : 'text-slate-600 dark:text-slate-400 font-bold'}`}
-                                        >
-                                            <div className={`p-1.5 rounded-md ${category === cat.id ? 'bg-indigo-100 dark:bg-indigo-900/40' : 'bg-slate-100 dark:bg-slate-800'}`}>
-                                                {React.createElement(cat.icon, { size: 18 })}
-                                            </div>
-                                            {cat.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                <div className="flex justify-between items-center gap-2 mb-4">
+                    <button onClick={onBack} className="flex items-center gap-1.5 text-slate-500 hover:text-indigo-600 transition-colors font-bold text-[10px] sm:text-xs bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <ArrowLeft size={16}/> 
+                        <span>Kembali</span>
+                    </button>
 
-                    <div className="flex justify-between items-center gap-3">
-                        <button onClick={onBack} className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors font-bold text-sm bg-white dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                            <ArrowLeft size={20}/> 
-                            <span>Kembali</span>
+                    <div className="flex items-center gap-1.5">
+                        <h1 className="text-sm font-black text-slate-800 dark:text-white hidden lg:block mr-2 uppercase tracking-tight">{headerTitle}</h1>
+                        
+                        <button 
+                            onClick={() => {
+                                setIsSelectionMode(!isSelectionMode);
+                                setSelectedIds(new Set());
+                            }}
+                            className={`p-1.5 rounded-lg border transition-all ${isSelectionMode ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400'}`}
+                        >
+                            <CheckSquare size={16} />
                         </button>
-    
-                        <div className="flex items-center gap-2">
-                            <h1 className="text-xl font-bold text-slate-800 dark:text-white hidden lg:block mr-2">{headerTitle}</h1>
-                            
-                            {/* SELECTION MODE TOGGLE */}
-                            <button 
-                                onClick={() => {
-                                    setIsSelectionMode(!isSelectionMode);
-                                    setSelectedIds(new Set());
-                                }}
-                                className={`p-2.5 rounded-xl border transition-all ${isSelectionMode ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400'}`}
-                                title="Mode Seleksi"
-                            >
-                                <CheckSquare size={20} />
-                            </button>
 
                         <button 
                             onClick={handleManualRefresh} 
                             disabled={isLoading}
-                            className="p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:shadow-sm transition disabled:opacity-50"
-                            title="Refresh Paket Soal"
+                            className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition disabled:opacity-50"
                         >
-                            <RefreshCw size={20} className={isLoading ? "animate-spin" : ""} />
+                            <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
                         </button>
-
-
                     </div>
                 </div>
-            </div>
 
-            <h1 className="text-base sm:text-xl font-bold text-slate-800 dark:text-white mb-4 sm:hidden">{headerTitle}</h1>
+            <h1 className="text-sm font-black text-slate-800 dark:text-white mb-3 sm:hidden uppercase tracking-tight">{headerTitle}</h1>
 
                 {/* SELECTION ACTION BAR */}
                 {isSelectionMode && (
@@ -771,33 +729,33 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
 
                 {/* ADMIN ACTIONS PANEL */}
                 {isUserAdmin(userProfile) && (
-                    <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 mb-6 sm:mb-8">
-                         <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
-                             <h3 className="font-bold text-sm sm:text-lg text-slate-800 dark:text-white flex items-center gap-1.5 sm:gap-2">
-                                 <Lock size={16} className="text-slate-400 sm:w-[18px] sm:h-[18px]"/> Admin Zone
+                    <div className="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 mb-4">
+                         <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
+                             <h3 className="font-black text-[10px] sm:text-xs uppercase tracking-widest text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                                 <Lock size={12}/> Admin Control
                                  {(gapCount > 0 || duplicateCount > 0) && (
-                                     <span className="relative flex h-3 w-3 sm:h-3.5 sm:w-3.5 ml-1" title="Masalah urutan/duplikat terdeteksi">
+                                     <span className="relative flex h-2 w-2 ml-1">
                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                                         <span className="relative inline-flex rounded-full h-3 w-3 sm:h-3.5 sm:w-3.5 bg-rose-500"></span>
+                                         <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
                                      </span>
                                  )}
                              </h3>
                              
-                             <div className="flex gap-3 w-full sm:w-auto">
+                             <div className="flex gap-2 w-full sm:w-auto">
                                  <button 
                                     onClick={() => initiateAction('GENERATE')} 
                                     disabled={isGenerating} 
-                                     className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-indigo-600 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:bg-indigo-700 disabled:opacity-50 transition shadow-sm"
+                                     className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-tighter hover:bg-indigo-700 disabled:opacity-50 transition shadow-sm"
                                  >
-                                     {isGenerating ? <Loader2 className="animate-spin" size={14}/> : <Plus size={14} className="sm:w-[18px] sm:h-[18px]"/>}
-                                     <span>Buat Paket AI</span>
+                                     {isGenerating ? <Loader2 className="animate-spin" size={12}/> : <Zap size={12} className="fill-white"/>}
+                                     <span>Generate AI</span>
                                  </button>
     
                                  <button 
                                     onClick={() => initiateAction('IMPORT')} 
-                                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-white dark:bg-slate-700 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition shadow-sm"
+                                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-white dark:bg-slate-700 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 px-3 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-tighter hover:bg-slate-50 dark:hover:bg-slate-600 transition shadow-sm"
                                  >
-                                     <UploadIcon size={14} className="sm:w-[18px] sm:h-[18px]"/>
+                                     <UploadIcon size={12}/>
                                      <span>Import</span>
                                  </button>
                              </div>
@@ -822,34 +780,59 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
 
                 {/* SKD VIEW TABS */}
                 {category === 'SKD' && (
-                   <div className="flex bg-slate-100 dark:bg-slate-800 p-2 rounded-2xl mb-8 shadow-inner w-full font-black border-2 border-slate-200 dark:border-slate-700">
-                       <button 
-                           onClick={() => {
-                               SoundManager.play('click');
-                               setSkdViewMode('FULL');
-                           }}
-                           className={`flex-1 py-3.5 text-xs sm:text-sm rounded-xl transition-all duration-300 transform active:scale-95 ${
-                               skdViewMode === 'FULL' 
-                                   ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200 dark:shadow-indigo-900/40' 
-                                   : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                           }`}
-                       >
-                           SIMULASI FULL
-                       </button>
-                       <button 
-                           onClick={() => {
-                               SoundManager.play('click');
-                               setSkdViewMode('SUBTEST');
-                           }}
-                           className={`flex-1 py-3.5 text-xs sm:text-sm rounded-xl transition-all duration-300 transform active:scale-95 ${
-                               skdViewMode === 'SUBTEST' 
-                                   ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200 dark:shadow-indigo-900/40' 
-                                   : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                           }`}
-                       >
-                           LATIHAN SUBTES
-                       </button>
-                   </div>
+                    <div className="flex flex-col gap-4 mb-8">
+                        <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl shadow-inner w-full font-black border border-slate-200 dark:border-slate-700">
+                            <button 
+                                onClick={() => {
+                                    SoundManager.play('click');
+                                    setSkdViewMode('FULL');
+                                }}
+                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 ${
+                                    skdViewMode === 'FULL' 
+                                        ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-md' 
+                                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                }`}
+                            >
+                                <ListOrdered size={18} />
+                                <span className="text-xs sm:text-sm">SIMULASI FULL</span>
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    SoundManager.play('click');
+                                    setSkdViewMode('SUBTEST');
+                                }}
+                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 ${
+                                    skdViewMode === 'SUBTEST' 
+                                        ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-md' 
+                                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                }`}
+                            >
+                                <Zap size={18} />
+                                <span className="text-xs sm:text-sm">LATIHAN SUBTES</span>
+                            </button>
+                        </div>
+
+                        {skdViewMode === 'SUBTEST' && (
+                            <div className="flex flex-wrap justify-center gap-2 animate-fade-in">
+                                {['TWK', 'TIU', 'TKP'].map(sub => (
+                                    <button
+                                        key={sub}
+                                        onClick={() => {
+                                            SoundManager.play('click');
+                                            setSelectedSkdVariant(sub as any);
+                                        }}
+                                        className={`px-6 py-2 rounded-full text-[10px] font-black tracking-widest transition-all ${
+                                            selectedSkdVariant === sub 
+                                                ? 'bg-indigo-600 text-white shadow-lg' 
+                                                : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 hover:border-indigo-400'
+                                        }`}
+                                    >
+                                        {sub}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 )}
 
                 {/* PACKAGE LIST */}
@@ -865,7 +848,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                         <p className="text-xs mt-2">Gunakan tombol "Buat Paket AI" untuk generate soal baru.</p>
                     </div>
                 ) : (
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 w-full max-w-7xl mx-auto pb-32">
                         {/* Render active generation task inline if matched */}
                         {activeGenTask && 
                          activeGenTask.category === category && 
@@ -874,26 +857,29 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                          (category !== 'PELAJARAN' || activeGenTask.tkaLevel === tkaLevel) && 
                          (category !== 'TKA' || activeGenTask.tkaLevel === tkaLevel) && 
                          activeGenTask.status === 'generating' && (
-                             <div className="bg-white dark:bg-slate-800 p-3.5 sm:p-6 rounded-lg sm:rounded-2xl border-2 border-indigo-500/30 dark:border-indigo-500/20 bg-indigo-50/10 dark:bg-indigo-950/10 animate-pulse relative overflow-hidden w-full h-full flex flex-col justify-between">
-                                 <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-bl-lg">AI MERACIK</div>
+                             <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-xl border-2 border-indigo-500 shadow-lg shadow-indigo-500/5 animate-pulse relative overflow-hidden flex flex-col justify-between min-h-[140px] sm:min-h-[180px]">
+                                 <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[8px] font-black px-2 py-0.5 rounded-bl-lg uppercase tracking-widest">AI GEN</div>
                                  <div>
-                                     <div className="flex items-center gap-1.5 mb-1 pr-16">
-                                         <Loader2 size={16} className="animate-spin text-indigo-600"/>
-                                         <h4 className="text-[13px] sm:text-base md:text-lg font-bold text-indigo-900 dark:text-indigo-400 truncate w-full">{activeGenTask.title}</h4>
+                                     <div className="flex items-center gap-2 mb-2">
+                                         <div className="p-1.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                                            <Loader2 size={16} className="animate-spin text-indigo-600"/>
+                                         </div>
+                                         <h4 className="text-[11px] sm:text-sm font-black text-slate-800 dark:text-white truncate">{activeGenTask.title}</h4>
                                      </div>
-                                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Sedang meracik soal-soal berkualitas tinggi oleh AI ({activeGenTask.progress}%)...</p>
+                                     <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-tight">AI sedang meramu paket...</p>
                                  </div>
-                                 <div className="mt-4 space-y-1">
-                                     <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                                 <div className="mt-3 space-y-1.5">
+                                     <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
                                          <div className="h-full bg-indigo-600 transition-all duration-1000 ease-out" style={{ width: `${activeGenTask.progress}%` }}></div>
                                      </div>
-                                     <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium font-sans">Bisa ditinggal! AI terus memproses paket soal Anda meskipun Anda berpindah menu.</p>
+                                     <div className="flex justify-between items-center">
+                                        <span className="text-[8px] font-black text-indigo-500 uppercase">{activeGenTask.progress}%</span>
+                                     </div>
                                  </div>
                              </div>
-                        )}
+                         )}
                         
                         {filteredPackages.map(pkg => {
-                            // FIX: Pass both ID and Title for better matching
                             const stats = getStats(pkg.id, pkg.title);
                             
                             return (
@@ -901,87 +887,107 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                                     key={pkg.id} 
                                     onClick={() => {
                                         if (isSelectionMode) toggleSelection(pkg.id);
-                                        else onSelectPackage(pkg);
                                     }}
-                                    className={`bg-white dark:bg-slate-800 p-3.5 sm:p-6 rounded-lg sm:rounded-2xl border transition text-left group relative overflow-hidden w-full shadow-sm hover:shadow-md cursor-pointer ${
+                                    className={`bg-white dark:bg-slate-800 p-2 sm:p-2.5 rounded-lg sm:rounded-xl border transition-all text-left group relative overflow-hidden flex flex-col justify-between h-full min-h-[130px] sm:min-h-[150px] shadow-sm ${
                                         selectedIds.has(pkg.id) 
-                                            ? 'border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/10' 
-                                            : pkg.version === 'v4' 
-                                                ? 'border-cyan-200 dark:border-cyan-800 bg-cyan-50/30 dark:bg-cyan-900/10' 
-                                                : 'border-slate-200 dark:border-slate-700 hover:border-indigo-500'
+                                            ? 'border-indigo-600 ring-4 ring-indigo-500/5 bg-indigo-50/20 dark:bg-indigo-900/10 shadow-lg z-10' 
+                                            : 'border-slate-100 dark:border-slate-700 hover:border-indigo-300 hover:shadow-md hover:-translate-y-0.5'
                                     }`}
                                 >
                                     {/* Selection Checkbox Overlay */}
                                     {isSelectionMode && (
-                                        <div className="absolute top-2.5 left-2.5 z-20">
-                                            <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded border flex items-center justify-center transition ${selectedIds.has(pkg.id) ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600'}`}>
-                                                {selectedIds.has(pkg.id) && <CheckSquare size={12} />}
+                                        <div className="absolute top-2 left-2 z-20">
+                                            <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${selectedIds.has(pkg.id) ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600'}`}>
+                                                {selectedIds.has(pkg.id) && <CheckSquare size={10} strokeWidth={3} />}
                                             </div>
                                         </div>
                                     )}
 
-                                    {pkg.isAiGenerated && <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-bl-lg">AI</div>}
-                                    
-                                    <div className={`flex justify-between items-start ${isSelectionMode ? 'pl-6 sm:pl-8' : ''}`}>
-                                        <h4 className="text-[11px] sm:text-base md:text-lg font-bold text-slate-800 dark:text-white mb-0.5 group-hover:text-indigo-600 transition-colors pr-1.5 line-clamp-2 leading-tight">{pkg.title}</h4>
-                                        <div className="flex gap-0.5 sm:gap-1">
-                                            {!isSelectionMode && isUserAdmin(userProfile) && (
-                                                <div 
-                                                    onClick={(e) => { e.stopPropagation(); initiateAction('DELETE', pkg.id); }}
-                                                    className="p-1.5 sm:p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 bg-slate-50 dark:bg-slate-700/50 dark:hover:bg-slate-700 rounded-lg transition"
-                                                    title="Hapus Paket (Butuh Token)"
-                                                >
-                                                    <Trash2 size={14} className="sm:w-[18px] sm:h-[18px]" />
-                                                </div>
-                                            )}
+                                    {pkg.isAiGenerated && (
+                                        <div className="absolute top-0 right-0 bg-indigo-600/10 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 text-[7px] font-black px-1.5 py-0.5 rounded-bl-lg uppercase tracking-tight">
+                                            AI
                                         </div>
+                                    )}
+                                    
+                                    <div className={`flex justify-between items-start mb-1.5 ${isSelectionMode ? 'pl-5' : ''}`}>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="text-[9px] sm:text-[11px] font-black text-slate-900 dark:text-white leading-tight mb-1 group-hover:text-indigo-600 transition-colors line-clamp-2">
+                                                {pkg.title}
+                                            </h4>
+                                            <div className="flex flex-wrap gap-1">
+                                                <span className="flex items-center gap-0.5 px-1 py-0.5 bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 rounded-md text-[7px] font-bold">
+                                                    <Clock size={8} className="text-indigo-500" />
+                                                    {pkg.durationMinutes}m
+                                                </span>
+                                                <span className="flex items-center gap-0.5 px-1 py-0.5 bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 rounded-md text-[7px] font-bold">
+                                                    <FileText size={8} className="text-purple-500" />
+                                                    {pkg.questions.length}s
+                                                </span>
+                                                
+                                                {/* Version Badges */}
+                                                {pkg.version === 'v1' && <span className="px-1 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[7px] font-black uppercase">v1</span>}
+                                                {pkg.version === 'v2' && <span className="px-1 py-0.5 bg-blue-100 text-blue-600 rounded-md text-[7px] font-black uppercase">v2</span>}
+                                                {pkg.version === 'v3' && <span className="px-1 py-0.5 bg-amber-100 text-amber-600 rounded-md text-[7px] font-black uppercase">v3</span>}
+                                                {pkg.version === 'v4' && <span className="px-1 py-0.5 bg-cyan-100 text-cyan-600 rounded-md text-[7px] font-black uppercase">v4</span>}
+                                                {pkg.version === 'v5' && <span className="px-1 py-0.5 bg-emerald-100 text-emerald-600 rounded-md text-[7px] font-black uppercase">v5</span>}
+                                                {pkg.version === 'v6' && <span className="px-1 py-0.5 bg-indigo-600 text-white rounded-md text-[7px] font-black uppercase shadow-sm shadow-indigo-200">v6</span>}
+                                            </div>
+                                        </div>
+
+                                        {!isSelectionMode && isUserAdmin(userProfile) && (
+                                            <div className="flex flex-col gap-1 ml-1">
+                                                {onAdminViewPackage && (
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); onAdminViewPackage(pkg); }}
+                                                        className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-md transition"
+                                                        title="Preview"
+                                                    >
+                                                        <Eye size={12} />
+                                                    </button>
+                                                )}
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); initiateAction('DELETE', pkg.id); }}
+                                                    className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-md transition"
+                                                    title="Hapus"
+                                                >
+                                                    <Trash2 size={12} />
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
 
-                                    <div className={`flex gap-2 sm:gap-4 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-3 items-center flex-wrap ${isSelectionMode ? 'pl-6 sm:pl-8' : ''}`}>
-                                        <span className="flex items-center gap-0.5 sm:gap-1"><Clock size={10} className="sm:w-[12px] sm:h-[12px]"/> {pkg.durationMinutes}m</span>
-                                        <span className="flex items-center gap-0.5 sm:gap-1"><FileText size={10} className="sm:w-[12px] sm:h-[12px]"/> {pkg.questions.length} Soal</span>
-                                        <span className="flex items-center gap-0.5 sm:gap-1"><Calendar size={10} className="sm:w-[12px] sm:h-[12px]"/> {new Date(pkg.createdAt).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'})}</span>
-                                        {pkg.version === 'v2' && (
-                                            <span className="bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 font-bold px-1.5 py-0.2 rounded-full text-[9px] border border-purple-200 dark:border-purple-800">
-                                                v2
-                                            </span>
-                                        )}
-                                        {pkg.version === 'v3' && (
-                                            <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 font-bold px-1.5 py-0.2 rounded-full text-[9px] border border-amber-200 dark:border-amber-800 flex items-center gap-0.5">
-                                                <Box size={8}/> v3
-                                            </span>
-                                        )}
-                                        {pkg.version === 'v4' && (
-                                            <span className="bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300 font-bold px-1.5 py-0.2 rounded-full text-[9px] border border-cyan-200 dark:border-cyan-800 flex items-center gap-0.5">
-                                                <Zap size={8}/> v4
-                                            </span>
-                                        )}
-                                        {pkg.version === 'v5' && (
-                                            <span className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 font-bold px-1.5 py-0.2 rounded-full text-[9px] border border-emerald-200 dark:border-emerald-800 flex items-center gap-0.5">
-                                                <Type size={8}/> v5
-                                            </span>
-                                        )}
-                                    </div>
-                                    
-                                    {/* STATS SECTION */}
-                                    <div className={`bg-slate-50 dark:bg-slate-700/50 rounded-lg p-1.5 sm:p-3 grid grid-cols-3 gap-1 sm:gap-2 text-center ${isSelectionMode ? 'ml-6 sm:ml-8' : ''}`}>
-                                        <div>
-                                            <div className="text-[8px] sm:text-[10px] uppercase text-slate-400 font-bold">Coba</div>
-                                            <div className="text-[11px] sm:text-lg font-black text-slate-800 dark:text-white">{stats.attempts}x</div>
+                                    <div className="mt-auto space-y-1.5">
+                                        {/* STATS PREVIEW */}
+                                        <div className="grid grid-cols-3 gap-1">
+                                            <div className="bg-slate-50 dark:bg-slate-900/30 p-1 rounded-lg border border-slate-100 dark:border-slate-800 flex flex-col items-center">
+                                                <div className="text-[5px] font-black text-slate-400 uppercase tracking-tighter mb-0.5">Att</div>
+                                                <div className="text-[8px] font-black text-slate-700 dark:text-white leading-none">{stats.attempts}x</div>
+                                            </div>
+                                            <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-1 rounded-lg border border-emerald-100 dark:border-emerald-900/20 flex flex-col items-center">
+                                                <div className="text-[5px] font-black text-emerald-400 uppercase tracking-tighter mb-0.5">Top</div>
+                                                <div className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 leading-none">{stats.highScore}</div>
+                                            </div>
+                                            <div className="bg-indigo-50/50 dark:bg-indigo-900/10 p-1 rounded-lg border border-indigo-100 dark:border-indigo-900/20 flex flex-col items-center">
+                                                <div className="text-[5px] font-black text-indigo-400 uppercase tracking-tighter mb-0.5">Avg</div>
+                                                <div className="text-[8px] font-black text-indigo-600 dark:text-indigo-400 leading-none">{stats.avgScore}</div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <div className="text-[8px] sm:text-[10px] uppercase text-slate-400 font-bold">Top</div>
-                                            <div className="text-[11px] sm:text-lg font-black text-emerald-600 dark:text-emerald-400">{stats.highScore}</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-[8px] sm:text-[10px] uppercase text-slate-400 font-bold">Avg</div>
-                                            <div className="text-[11px] sm:text-lg font-black text-indigo-600 dark:text-indigo-400">{stats.avgScore}</div>
-                                        </div>
+
+                                        {!isSelectionMode && (
+                                            <button 
+                                                onClick={() => onSelectPackage(pkg)}
+                                                className="w-full py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-black text-[8px] uppercase tracking-wider shadow-md shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-1 group/btn"
+                                            >
+                                                <span>KERJAKAN</span>
+                                                <Zap size={8} className="fill-white" />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             );
                         })}
                     </div>
+
                 )}
             </div>
         </div>
