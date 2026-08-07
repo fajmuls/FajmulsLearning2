@@ -69,10 +69,10 @@ export const BankSoalManager: React.FC<BankSoalManagerProps> = ({ onBack, showTo
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
-  const fetchQuestions = () => {
+  const fetchQuestions = async () => {
     setLoading(true);
     try {
-      const data = Gemini.getBankSoal(category);
+      const data = await Gemini.getBankSoal(category);
       setQuestions(data);
       setSelectedIds(new Set());
     } catch (e) {
@@ -92,12 +92,12 @@ export const BankSoalManager: React.FC<BankSoalManagerProps> = ({ onBack, showTo
     setShowDeleteConfirm(questionId);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!showDeleteConfirm) return;
     const questionId = showDeleteConfirm;
     
     try {
-      Gemini.removeFromBankSoal(category, questionId);
+      await Gemini.removeFromBankSoal(category, questionId);
       setQuestions(prev => prev.filter(q => q.id !== questionId));
       if (selectedQuestion?.id === questionId) {
         setSelectedQuestion(null);
@@ -121,9 +121,9 @@ export const BankSoalManager: React.FC<BankSoalManagerProps> = ({ onBack, showTo
     setIsBulkDeleting(true);
   };
 
-  const confirmBulkDelete = () => {
+  const confirmBulkDelete = async () => {
     try {
-      selectedIds.forEach(id => Gemini.removeFromBankSoal(category, id));
+      await Promise.all(Array.from(selectedIds).map(id => Gemini.removeFromBankSoal(category, id)));
       setQuestions(prev => prev.filter(q => !selectedIds.has(q.id)));
       if (selectedQuestion && selectedIds.has(selectedQuestion.id)) {
         setSelectedQuestion(null);
@@ -138,10 +138,10 @@ export const BankSoalManager: React.FC<BankSoalManagerProps> = ({ onBack, showTo
     }
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editData) return;
     try {
-      Gemini.updateBankSoal(category, editData);
+      await Gemini.updateBankSoal(category, editData);
       setQuestions(prev => prev.map(q => q.id === editData.id ? editData : q));
       setSelectedQuestion(editData);
       setIsEditing(false);

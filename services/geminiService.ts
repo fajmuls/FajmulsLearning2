@@ -1,4 +1,6 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
+import { db } from './firebase';
+import { collection, doc, setDoc, getDocs, deleteDoc, query, where } from 'firebase/firestore';
 import {
   StudyMode,
   CategoryType,
@@ -39,56 +41,58 @@ function shuffleArray<T>(array: T[]): T[] {
 }
 
 // HYBRID BANK SOAL HELPERS
-export function getBankSoal(category: CategoryType, topic?: string): Question[] {
+export async function getBankSoal(category: CategoryType, topic?: string): Promise<Question[]> {
     if (typeof window === 'undefined') return [];
     try {
-        const stored = localStorage.getItem(`bank_soal_${category}`);
-        if (!stored) return [];
-        const all: Question[] = JSON.parse(stored);
+        const q = query(collection(db, 'bank_soal'), where('category', '==', category));
+        const snapshot = await getDocs(q);
+        const all: Question[] = [];
+        snapshot.forEach(d => {
+            all.push(d.data().question as Question);
+        });
+        
         if (topic) {
             const upperTopic = topic.toUpperCase();
             return all.filter(q => 
-                (q.metadata.topic && q.metadata.topic.toUpperCase() === upperTopic) || 
-                (q.metadata.subtest && q.metadata.subtest.toUpperCase() === upperTopic)
+                (q.metadata?.topic && q.metadata.topic.toUpperCase() === upperTopic) || 
+                (q.metadata?.subtest && q.metadata.subtest.toUpperCase() === upperTopic)
             );
         }
         return all;
     } catch (e) {
+        console.error("Failed to get bank soal", e);
         return [];
     }
 }
 
-export function saveToBankSoal(category: CategoryType, question: Question) {
+export async function saveToBankSoal(category: CategoryType, question: Question) {
     if (typeof window === 'undefined') return;
     try {
-        const current = getBankSoal(category);
-        // Avoid exact duplicates by content
-        if (current.some(q => q.content === question.content)) return;
-        
-        const updated = [...current, question];
-        localStorage.setItem(`bank_soal_${category}`, JSON.stringify(updated));
+        await setDoc(doc(db, 'bank_soal', question.id), {
+            category,
+            question
+        });
     } catch (e) {
         console.error("Failed to save to bank soal", e);
     }
 }
 
-export function removeFromBankSoal(category: CategoryType, questionId: string) {
+export async function removeFromBankSoal(category: CategoryType, questionId: string) {
     if (typeof window === 'undefined') return;
     try {
-        const current = getBankSoal(category);
-        const updated = current.filter(q => q.id !== questionId);
-        localStorage.setItem(`bank_soal_${category}`, JSON.stringify(updated));
+        await deleteDoc(doc(db, 'bank_soal', questionId));
     } catch (e) {
         console.error("Failed to remove from bank soal", e);
     }
 }
 
-export function updateBankSoal(category: CategoryType, updatedQuestion: Question) {
+export async function updateBankSoal(category: CategoryType, updatedQuestion: Question) {
     if (typeof window === 'undefined') return;
     try {
-        const current = getBankSoal(category);
-        const updated = current.map(q => q.id === updatedQuestion.id ? updatedQuestion : q);
-        localStorage.setItem(`bank_soal_${category}`, JSON.stringify(updated));
+        await setDoc(doc(db, 'bank_soal', updatedQuestion.id), {
+            category,
+            question: updatedQuestion
+        });
     } catch (e) {
         console.error("Failed to update bank soal", e);
     }
@@ -684,7 +688,7 @@ function sanitizeQuestion(q: Question): Question {
   return q;
 }
 
-export const buildQuestionPrompt = (
+export const buildQuestionPrompt = async (
   mode: StudyMode,
   category: CategoryType,
   context: string | GeneralMaterialInput,
@@ -694,7 +698,7 @@ export const buildQuestionPrompt = (
   generalMethod?: GeneralStudyMethod,
   difficultyOverride?: string,
   utbkVariant?: 'ONLY_MC' | 'MIXED'
-): { prompt: string, base64Pdf: string | undefined, schema: Schema } => {
+): Promise<{ prompt: string, base64Pdf: string | undefined, schema: Schema }> => {
   let prompt = "";
   let base64Pdf: string | undefined = undefined;
 
@@ -1291,7 +1295,7 @@ export const buildQuestionPrompt = (
   }
 
   // HYBRID CONTEXT: Pull from Bank Soal
-  const bankQuestions = getBankSoal(category, typeof context === 'string' ? context : undefined);
+  const bankQuestions = await getBankSoal(category, typeof context === 'string' ? context : undefined);
   if (bankQuestions.length > 0) {
       const examples = shuffleArray(bankQuestions).slice(0, 5);
       const hybridInstruction = `
@@ -1326,7 +1330,7 @@ export const generateQuestionsStream = async function*(
   difficultyOverride?: string,
   utbkVariant?: 'ONLY_MC' | 'MIXED'
 ): AsyncGenerator<Question[], void, unknown> {
-  const { prompt, base64Pdf, schema } = buildQuestionPrompt(mode, category, context, count, weakTopics, skdStream, generalMethod, difficultyOverride, utbkVariant);
+  const { prompt, base64Pdf, schema } = await buildQuestionPrompt(mode, category, context, count, weakTopics, skdStream, generalMethod, difficultyOverride, utbkVariant);
   
   const stream = callGeminiStream(prompt, schema, base64Pdf);
   for await (const chunk of stream) {
@@ -1355,7 +1359,7 @@ export const generateQuestions = async (
   difficultyOverride?: string,
   utbkVariant?: 'ONLY_MC' | 'MIXED'
 ): Promise<Question[]> => {
-  const { prompt, base64Pdf, schema } = buildQuestionPrompt(mode, category, context, count, weakTopics, skdStream, generalMethod, difficultyOverride, utbkVariant);
+  const { prompt, base64Pdf, schema } = await buildQuestionPrompt(mode, category, context, count, weakTopics, skdStream, generalMethod, difficultyOverride, utbkVariant);
 
   const res = await callGemini<{questions: Question[]}>(prompt, schema, base64Pdf);
   const rawQuestions = res.questions || [];

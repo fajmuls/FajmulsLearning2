@@ -574,7 +574,16 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
     const [showAdminModal, setShowAdminModal] = useState(false);
     const [adminToken, setAdminToken] = useState('');
     const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
-     const [finishStats, setFinishStats] = useState({ unanswered: 0, doubtful: 0, total: 0 });
+    const [bankSoalIds, setBankSoalIds] = useState<Set<string>>(new Set());
+    const [finishStats, setFinishStats] = useState({ unanswered: 0, doubtful: 0, total: 0 });
+
+    useEffect(() => {
+        if (isAdminAuthenticated) {
+            Gemini.getBankSoal(category).then(bank => {
+                setBankSoalIds(new Set(bank.map(q => q.id)));
+            }).catch(console.error);
+        }
+    }, [isAdminAuthenticated, category]);
 
     useEffect(() => {
         if (showAdminModal && !isAdminAuthenticated) {
@@ -1146,9 +1155,24 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
         const currentQ = activeQuestions[currentIndex];
         if (!currentQ) return;
         try {
-            await Gemini.saveToBankSoal(category, currentQ);
-            showToast("Soal berhasil disimpan ke Bank Soal!", "success");
-            SoundManager.play('success');
+            if (bankSoalIds.has(currentQ.id)) {
+                await Gemini.removeFromBankSoal(category, currentQ.id);
+                setBankSoalIds(prev => {
+                    const next = new Set(prev);
+                    next.delete(currentQ.id);
+                    return next;
+                });
+                showToast("Soal dihapus dari Bank Soal", "info");
+            } else {
+                await Gemini.saveToBankSoal(category, currentQ);
+                setBankSoalIds(prev => {
+                    const next = new Set(prev);
+                    next.add(currentQ.id);
+                    return next;
+                });
+                showToast("Soal berhasil disimpan ke Bank Soal!", "success");
+                SoundManager.play('success');
+            }
         } catch (err) {
             console.error(err);
             showToast("Gagal menyimpan ke Bank Soal", "error");
@@ -2028,13 +2052,21 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                             <button onClick={toggleDoubtful} className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-3 py-1 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs md:text-sm border transition shrink-0 ${currentAns?.isDoubtful ? 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700' : 'bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600'}`}>
                                 <input type="checkbox" checked={currentAns?.isDoubtful || false} readOnly className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 accent-amber-500 cursor-pointer shrink-0"/><span className="hidden sm:inline ml-1 font-bold">Ragu-ragu</span><span className="inline sm:hidden font-medium ml-1">Ragu</span>
                             </button>
-                            {isAdminAuthenticated && (
+                            {isAdminAuthenticated && currentQ && (
                                 <button 
                                     onClick={handleSaveToBank}
-                                    className="flex items-center gap-1.5 px-1.5 sm:px-3 py-1 sm:py-2 rounded-lg font-bold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800 hover:bg-purple-200 dark:hover:bg-purple-800/50 text-[10px] sm:text-xs md:text-sm shrink-0 transition-colors"
+                                    className={`flex items-center gap-1.5 px-1.5 sm:px-3 py-1 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs md:text-sm shrink-0 transition-colors border ${
+                                        bankSoalIds.has(currentQ.id)
+                                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-200'
+                                            : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800 hover:bg-purple-200'
+                                    }`}
                                     title="Simpan ke Bank Soal (Admin)"
                                 >
-                                    <Bookmark size={12} className="sm:w-4 sm:h-4 shrink-0"/>
+                                    {bankSoalIds.has(currentQ.id) ? (
+                                        <CheckCircle size={12} className="sm:w-4 sm:h-4 shrink-0"/>
+                                    ) : (
+                                        <Bookmark size={12} className="sm:w-4 sm:h-4 shrink-0"/>
+                                    )}
                                     <span className="hidden sm:inline">Bank</span>
                                 </button>
                             )}

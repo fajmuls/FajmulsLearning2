@@ -36,6 +36,7 @@ import { TkaSelection } from "./components/TkaSelection";
 import { SubjectSelection } from "./components/SubjectSelection";
 import { BankSoalManager } from "./components/BankSoalManager";
 import { AdminSessionViewer } from "./components/AdminSessionViewer";
+import { AdminDashboard } from "./components/AdminDashboard";
 import { GenerationProgressBox } from "./components/GenerationProgressBox";
 import {
   CATEGORIES,
@@ -2060,6 +2061,7 @@ function App() {
     | "MARKED_QUESTIONS"
     | "BANK_SOAL"
     | "ADMIN_SESSION_VIEW"
+    | "ADMIN_DASHBOARD"
   >("SPLASH");
   const [selectedCategory, setSelectedCategory] = useState<CategoryType | null>(
     null,
@@ -4638,19 +4640,34 @@ function App() {
                       Rank
                     </button>
                     {userProfile && (FirebaseService.isUserAdmin(userProfile) || userProfile.email?.endsWith('@fajmuls.com')) && (
-                      <button
-                        onClick={() => {
-                          SoundManager.play("click");
-                          setCurrentView("BANK_SOAL");
-                        }}
-                        className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 text-xs sm:text-base sm:px-5 sm:py-3 rounded-xl shadow-sm border font-bold transition ${settings.theme === "fajmuls" ? "bg-white/80 backdrop-blur text-purple-700 border-purple-200 hover:bg-purple-50" : "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40"}`}
-                      >
-                        <Database
-                          size={18}
-                          className="text-purple-500 w-3.5 h-3.5 sm:w-4.5 sm:h-4.5"
-                        />{" "}
-                        Bank Soal
-                      </button>
+                      <>
+                        <button
+                          onClick={() => {
+                            SoundManager.play("click");
+                            setCurrentView("BANK_SOAL");
+                          }}
+                          className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 text-xs sm:text-base sm:px-5 sm:py-3 rounded-xl shadow-sm border font-bold transition ${settings.theme === "fajmuls" ? "bg-white/80 backdrop-blur text-purple-700 border-purple-200 hover:bg-purple-50" : "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40"}`}
+                        >
+                          <Database
+                            size={18}
+                            className="text-purple-500 w-3.5 h-3.5 sm:w-4.5 sm:h-4.5"
+                          />{" "}
+                          Bank Soal
+                        </button>
+                        <button
+                          onClick={() => {
+                            SoundManager.play("click");
+                            setCurrentView("ADMIN_DASHBOARD");
+                          }}
+                          className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 text-xs sm:text-base sm:px-5 sm:py-3 rounded-xl shadow-sm border font-bold transition ${settings.theme === "fajmuls" ? "bg-white/80 backdrop-blur text-blue-700 border-blue-200 hover:bg-blue-50" : "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40"}`}
+                        >
+                          <Activity
+                            size={18}
+                            className="text-blue-500 w-3.5 h-3.5 sm:w-4.5 sm:h-4.5"
+                          />{" "}
+                          Version v1.3.0
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -5308,6 +5325,12 @@ function App() {
                 setCurrentView(adminViewerSource);
               }}
               showToast={showToast}
+            />
+          )}
+
+          {currentView === "ADMIN_DASHBOARD" && (
+            <AdminDashboard
+              onBack={() => setCurrentView("HOME")}
             />
           )}
       </div>

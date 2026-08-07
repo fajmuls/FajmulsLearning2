@@ -13,13 +13,10 @@ export const AdminSessionViewer: React.FC<{
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    try {
-      const bank = Gemini.getBankSoal(session.category);
+    Gemini.getBankSoal(session.category).then(bank => {
       const bankIds = new Set(bank.map(q => q.id));
       setAddedIds(bankIds);
-    } catch (e) {
-      console.error(e);
-    }
+    }).catch(console.error);
   }, [session.category]);
 
   const handleToggleBank = (q: Question) => {

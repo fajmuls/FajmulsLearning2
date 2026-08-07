@@ -684,4 +684,4 @@ export const saveChatHistory = async (uid: string, chatData: any) => {
     await addDoc(chatCol, cleanData);
 };
 
-export { auth };
+export { auth, db };
