@@ -48,7 +48,19 @@ export async function getBankSoal(category: CategoryType, topic?: string): Promi
         const snapshot = await getDocs(q);
         const all: Question[] = [];
         snapshot.forEach(d => {
-            all.push(d.data().question as Question);
+            const qData = d.data().question as Question;
+            if (qData.metadata) {
+                if (qData.metadata.subtest && qData.metadata.subtest.includes(' - ')) {
+                    const parts = qData.metadata.subtest.split(' - ');
+                    qData.metadata.subtest = parts[0].trim();
+                    qData.metadata.topic = parts.slice(1).join(' - ').trim();
+                } else if (qData.metadata.topic === 'TWK' || qData.metadata.topic === 'TIU' || qData.metadata.topic === 'TKP') {
+                    const temp = qData.metadata.topic;
+                    qData.metadata.topic = qData.metadata.subtest || '';
+                    qData.metadata.subtest = temp;
+                }
+            }
+            all.push(qData);
         });
         
         if (topic) {
@@ -1576,8 +1588,8 @@ export const generateSkdSimulation = async (stream: SkdStreamType, variant: 'FUL
             // AFTER taking 'taken' questions:
             taken.forEach(q => {
                 if (q.metadata) {
-                    q.metadata.topic = topic; // 'TWK', 'TIU', or 'TKP'
-                    q.metadata.subtest = subtestStr; // The standardized subtest string
+                    q.metadata.subtest = topic; // 'TWK', 'TIU', or 'TKP'
+                    q.metadata.topic = subtestStr.split(' - ').slice(1).join(' - ') || subtestStr;
                 }
             });
 
