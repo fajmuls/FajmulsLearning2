@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Timer, Zap, CheckCircle, XCircle, ChevronRight, Lightbulb, Pause, Play, Grid, Loader2, ArrowLeft, ArrowRight, Save, CloudUpload, AlertTriangle, Flag, Type, Plus, Minus, Copy, Bookmark, Mic, MicOff, Settings, Keyboard, Lock, Bot, Sparkles, RotateCcw } from 'lucide-react';
+import { Timer, Zap, CheckCircle, XCircle, ChevronRight, Lightbulb, Pause, Play, Grid, Loader2, ArrowLeft, ArrowRight, Save, CloudUpload, AlertTriangle, Flag, Type, Plus, Minus, Copy, Bookmark, Mic, MicOff, Settings, Keyboard, Lock, Bot, Sparkles, RotateCcw, Shuffle } from 'lucide-react';
 import { StudyMode, Question, UserAnswer, CategoryType, DrillMaterial, TestHistoryItem, SavedSessionState, AppFontSize, MarkedQuestion } from '../types';
 import { SoundManager } from '../services/soundService';
 import * as Gemini from '../services/geminiService';
@@ -787,12 +787,23 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
         localStorage.removeItem('fajmuls_active_session');
     };
 
+    const [sessionQuestions, setSessionQuestions] = useState<Question[]>(questions);
+    useEffect(() => {
+        setSessionQuestions(questions);
+    }, [questions]);
+
+    const handleShuffleQuestions = () => {
+        SoundManager.play('click');
+        setSessionQuestions(prev => [...prev].sort(() => Math.random() - 0.5));
+        showToast("Urutan soal berhasil diacak", "info");
+    };
+
     // Filter questions for current UTBK subtest
     const activeQuestions = useMemo(() => {
-        let filteredQuestions = questions;
+        let filteredQuestions = sessionQuestions;
         if (isUtbkSimulation) {
             const currentSubtestName = UTBK_EXAM_CONFIG[utbkSubtestIndex].name;
-            filteredQuestions = questions.filter(q => 
+            filteredQuestions = sessionQuestions.filter(q => 
                 q.metadata?.subtest?.includes(currentSubtestName) || 
                 q.metadata?.subtest?.includes(currentSubtestName.replace(' & ', ' dan '))
             );
@@ -806,7 +817,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
         );
         
         return uniqueQuestions;
-    }, [questions, isUtbkSimulation, utbkSubtestIndex]);
+    }, [sessionQuestions, isUtbkSimulation, utbkSubtestIndex]);
 
     const currentQ = activeQuestions[currentIndex];
 
@@ -1686,19 +1697,8 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                 <Play size={18}/> Lanjutkan
                             </button>
                             
-                            {!userId?.startsWith('guest-') && (
-                                <button 
-                                    onClick={handleSaveToCloud} 
-                                    disabled={isSavingToCloud}
-                                    className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-emerald-600 text-white rounded-xl text-xs sm:text-base font-bold hover:bg-emerald-700 flex items-center justify-center gap-2 disabled:opacity-50"
-                                >
-                                    {isSavingToCloud ? <Loader2 className="animate-spin size-4 sm:size-5"/> : <CloudUpload className="size-4 sm:size-5"/>}
-                                    Simpan & Lanjut Nanti
-                                </button>
-                            )}
-
                             <button onClick={() => setShowExitModal(true)} className="w-full px-4 sm:px-6 py-2.5 sm:py-3 border-2 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl text-sm sm:text-base font-bold hover:bg-slate-50 dark:hover:bg-slate-700">
-                                Keluar (Simpan Lokal)
+                                Akhiri Ujian / Keluar
                             </button>
                         </div>
                     </div>
@@ -1740,8 +1740,8 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                 </button>
                             </>
                          )}
-                        <button onClick={() => setIsMobileGridOpen(!isMobileGridOpen)} className="p-1.5 bg-indigo-50 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 rounded transition-transform hover:scale-110 active:scale-95"><Grid size={18} /></button>
-                        <button onClick={() => onOpenSettings?.()} className="p-1.5 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 rounded transition-transform hover:scale-110 active:scale-95"><Settings size={18} /></button>
+                        <button onClick={() => setIsMobileGridOpen(!isMobileGridOpen)} className="p-1.5 bg-indigo-50 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 rounded transition-transform hover:scale-110 active:scale-95" title="Grid Soal"><Grid size={18} /></button>
+                        <button onClick={() => onOpenSettings?.()} className="p-1.5 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 rounded transition-transform hover:scale-110 active:scale-95" title="Pengaturan"><Settings size={18} /></button>
                     </div>
                 </div>
 

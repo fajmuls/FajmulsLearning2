@@ -281,6 +281,7 @@ export interface StaticTestPackage {
     createdAt: string;
     questions: Question[];
     version?: string;
+    patchNotes?: string[];
 }
 
 export interface AppSettings {

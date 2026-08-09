@@ -3517,6 +3517,61 @@ function App() {
     SoundManager.play("click");
   };
 
+  const handleCombinePackages = async (ids: string[], title: string) => {
+    SoundManager.play("click");
+    // Find the packages
+    const pkgsToCombine = availablePackages.filter(p => ids.includes(p.id));
+    if (pkgsToCombine.length === 0) return;
+    
+    // Combine questions and re-index
+    const combinedQuestions: Question[] = [];
+    let currentNo = 1;
+    pkgsToCombine.forEach(p => {
+        p.questions.forEach(q => {
+            combinedQuestions.push({
+                ...q,
+                id: `${q.id}-comb-${currentNo}`,
+                metadata: {
+                    ...q.metadata
+                }
+            });
+            currentNo++;
+        });
+    });
+    
+    // Determine category based on first package
+    const basePkg = pkgsToCombine[0];
+    const duration = basePkg.category === 'SKD' ? 100 : pkgsToCombine.reduce((acc, p) => acc + p.durationMinutes, 0);
+    
+    let generatedTitle = `Gabungan ${pkgsToCombine.length} Paket`;
+    if (basePkg.category === 'SKD') {
+        const streamName = basePkg.skdStream === 'CPNS' ? 'CPNS' : 'Kedinasan';
+        // Count existing combined packages for numbering
+        const existingCombinedCount = availablePackages.filter(p => p.category === 'SKD' && p.title.includes('TO SKD') && p.title.includes('Gabungan')).length;
+        generatedTitle = `TO SKD ${streamName} Gabungan ${existingCombinedCount + 1}`;
+    }
+    
+    const newPkg: StaticTestPackage = {
+      id: `gen-combined-${Date.now()}`,
+      title: title || generatedTitle,
+      durationMinutes: duration,
+      category: basePkg.category,
+      skdStream: basePkg.skdStream,
+      tpaStream: basePkg.tpaStream,
+      tkaLevel: basePkg.tkaLevel,
+      questions: combinedQuestions,
+      isAiGenerated: true,
+      createdAt: new Date().toISOString()
+    };
+    
+    setAvailablePackages(prev => [newPkg, ...prev]);
+    showToast(`Berhasil menggabungkan ${pkgsToCombine.length} paket menjadi 1`, "success");
+    
+    if (userProfile && !userProfile.isGuest) {
+      FirebaseService.saveTestPackage(newPkg).catch(e => console.error("Failed saving combined pkg to cloud", e));
+    }
+  };
+
   const handleDeleteMultiplePackages = async (ids: string[]) => {
     setAvailablePackages((prev) => prev.filter((p) => !ids.includes(p.id)));
     let cloudCount = 0;
@@ -3626,6 +3681,24 @@ function App() {
     };
     reader.readAsText(file);
   };
+  const handleUpdatePackage = async (updatedPkg: StaticTestPackage) => {
+    setAvailablePackages(prev => prev.map(p => p.id === updatedPkg.id ? updatedPkg : p));
+    showToast("Paket berhasil diperbarui", "success");
+    
+    if (userProfile && !userProfile.isGuest) {
+      FirebaseService.saveTestPackage(updatedPkg).catch(e => console.error("Failed updating pkg in cloud", e));
+    }
+  };
+
+  const handleSaveAsNewPackage = async (newPkg: StaticTestPackage) => {
+    setAvailablePackages(prev => [newPkg, ...prev]);
+    showToast("Berhasil menyimpan sebagai paket baru", "success");
+    
+    if (userProfile && !userProfile.isGuest) {
+      FirebaseService.saveTestPackage(newPkg).catch(e => console.error("Failed saving new pkg to cloud", e));
+    }
+  };
+
   const handlePackageSelect = (pkg: StaticTestPackage) => {
     setQuestions(pkg.questions);
     setSessionMode(StudyMode.SIMULATION);
@@ -3652,6 +3725,7 @@ function App() {
 
     // Determine package numbering and prefix beforehand
     const currentPackages = availablePackages.filter((p) => {
+      if (p.id.includes('gen-combined-')) return false; // Exclude combined
       if (p.category !== selectedCategory) return false;
       if (selectedCategory === "SKD") {
         if (p.skdStream !== skdStream) return false;
@@ -3948,6 +4022,7 @@ function App() {
     setPackagesLoading(true);
     try {
       const currentPackages = availablePackages.filter((p) => {
+        if (p.id.includes('gen-combined-')) return false; // Exclude combined packages from re-indexing
         if (p.category !== selectedCategory) return false;
         if (selectedCategory === "SKD") return p.skdStream === skdStream;
         if (selectedCategory === "TPA") return p.tpaStream === tpaStream;
@@ -4039,6 +4114,26 @@ function App() {
             updates.push(FirebaseService.saveTestPackage(updatedPkg));
             const listIdx = newPackagesList.findIndex((p) => p.id === pkg.id);
             if (listIdx !== -1) newPackagesList[listIdx] = updatedPkg;
+            
+            // Sync history
+            setTestHistory(prevHistory => {
+              let changed = false;
+              const newHistory = prevHistory.map(h => {
+                if (h.packageId === pkg.id && h.packageTitle !== newTitle) {
+                  changed = true;
+                  const updatedH = { ...h, packageTitle: newTitle };
+                  if (userProfile && !userProfile.isGuest) {
+                    FirebaseService.saveHistoryToCloud(userProfile.uid, updatedH).catch(console.error);
+                  }
+                  return updatedH;
+                }
+                return h;
+              });
+              if (changed && userProfile?.isGuest) {
+                 safeLocalStorageSet("fajmuls_guest_history", newHistory, true);
+              }
+              return changed ? newHistory : prevHistory;
+            });
             renamedCount++;
           }
         });
@@ -4273,6 +4368,7 @@ function App() {
         onUpdate={setSettings}
         userProfile={userProfile}
         onUpdateProfile={handleUpdateProfile}
+        onOpenAdminDashboard={ (userProfile && (FirebaseService.isUserAdmin(userProfile) || userProfile.email?.endsWith('@fajmuls.com'))) ? () => setCurrentView('ADMIN_DASHBOARD') : undefined }
       />
 
       {/* TOP BAR WITH SEARCH & GAMIFICATION */}
@@ -4640,34 +4736,19 @@ function App() {
                       Rank
                     </button>
                     {userProfile && (FirebaseService.isUserAdmin(userProfile) || userProfile.email?.endsWith('@fajmuls.com')) && (
-                      <>
-                        <button
-                          onClick={() => {
-                            SoundManager.play("click");
-                            setCurrentView("BANK_SOAL");
-                          }}
-                          className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 text-xs sm:text-base sm:px-5 sm:py-3 rounded-xl shadow-sm border font-bold transition ${settings.theme === "fajmuls" ? "bg-white/80 backdrop-blur text-purple-700 border-purple-200 hover:bg-purple-50" : "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40"}`}
-                        >
-                          <Database
-                            size={18}
-                            className="text-purple-500 w-3.5 h-3.5 sm:w-4.5 sm:h-4.5"
-                          />{" "}
-                          Bank Soal
-                        </button>
-                        <button
-                          onClick={() => {
-                            SoundManager.play("click");
-                            setCurrentView("ADMIN_DASHBOARD");
-                          }}
-                          className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 text-xs sm:text-base sm:px-5 sm:py-3 rounded-xl shadow-sm border font-bold transition ${settings.theme === "fajmuls" ? "bg-white/80 backdrop-blur text-blue-700 border-blue-200 hover:bg-blue-50" : "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40"}`}
-                        >
-                          <Activity
-                            size={18}
-                            className="text-blue-500 w-3.5 h-3.5 sm:w-4.5 sm:h-4.5"
-                          />{" "}
-                          Version v1.3.0
-                        </button>
-                      </>
+                      <button
+                        onClick={() => {
+                          SoundManager.play("click");
+                          setCurrentView("BANK_SOAL");
+                        }}
+                        className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 text-xs sm:text-base sm:px-5 sm:py-3 rounded-xl shadow-sm border font-bold transition ${settings.theme === "fajmuls" ? "bg-white/80 backdrop-blur text-purple-700 border-purple-200 hover:bg-purple-50" : "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40"}`}
+                      >
+                        <Database
+                          size={18}
+                          className="text-purple-500 w-3.5 h-3.5 sm:w-4.5 sm:h-4.5"
+                        />{" "}
+                        Bank Soal
+                      </button>
                     )}
                   </div>
                 </div>
@@ -4776,6 +4857,7 @@ function App() {
                 }}
                 onGenerateNew={handleGenerateNewPackage}
                 onDeletePackage={handleDeletePackage}
+                onCombinePackages={(userProfile && (FirebaseService.isUserAdmin(userProfile) || userProfile.email?.endsWith('@fajmuls.com'))) ? handleCombinePackages : undefined}
                 onDeleteMultiplePackages={handleDeleteMultiplePackages}
                 onImportPackage={handlePackageImport}
                 onFixDuplicates={handleFixDuplicates}
@@ -5324,6 +5406,8 @@ function App() {
                 setAdminSessionToView(null);
                 setCurrentView(adminViewerSource);
               }}
+              onUpdatePackage={handleUpdatePackage}
+              onSaveAsNewPackage={handleSaveAsNewPackage}
               showToast={showToast}
             />
           )}

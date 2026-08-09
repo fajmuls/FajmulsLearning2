@@ -15,9 +15,10 @@ interface SettingsModalProps {
     onUpdate: (s: AppSettings) => void;
     userProfile: UserProfile | null;
     onUpdateProfile: (data: { username?: string, photoURL?: string }) => Promise<void>;
+    onOpenAdminDashboard?: () => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onUpdate, userProfile, onUpdateProfile }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onUpdate, userProfile, onUpdateProfile, onOpenAdminDashboard }) => {
     const [activeTab, setActiveTab] = useState<'display' | 'system'>('display');
 
     const toggle = (key: keyof AppSettings) => {
@@ -315,6 +316,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                                         <ToggleItem icon={<Timer size={12}/>} label="Timer Fokus" checked={settings.enableTimer !== false} onChange={() => toggle('enableTimer')} color="rose" />
                                     </div>
                                 </div>
+                                {onOpenAdminDashboard && (
+                                    <div className="space-y-1.5 pt-2">
+                                        <button
+                                            onClick={() => {
+                                                onClose();
+                                                onOpenAdminDashboard();
+                                            }}
+                                            className="w-full flex items-center justify-between p-3 px-4 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer group bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-slate-100/50 dark:border-slate-800/50"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-1.5 rounded-lg bg-blue-100 text-blue-600 transition-all group-active:scale-90">
+                                                    <Database size={12}/>
+                                                </div>
+                                                <span className="text-[9px] font-bold text-slate-700 dark:text-slate-200">Admin Dashboard (Version v2.0.0)</span>
+                                            </div>
+                                        </button>
+                                    </div>
+                                )}
                             </motion.div>
                         )}
                     </div>

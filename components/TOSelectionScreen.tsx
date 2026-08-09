@@ -1,7 +1,8 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ArrowLeft, Upload as UploadIcon, Zap, Lock, Loader2, Download, Trash2, Clock, FileText, Plus, ShieldCheck, RefreshCw, Box, AlertTriangle, PenTool, ListOrdered, Calendar, CheckSquare, Square, Type, Eye, Settings, ChevronDown, BookOpen, Award, Brain } from 'lucide-react';
+import { ArrowLeft, Upload as UploadIcon, Zap, Lock, Loader2, Download, Trash2, Clock, FileText, Plus, ShieldCheck, RefreshCw, Box, AlertTriangle, PenTool, ListOrdered, Calendar, CheckSquare, Square, Type, Eye, Settings, ChevronDown, BookOpen, Award, Brain, Hexagon, Layers, Flame, Activity, Cpu, X } from 'lucide-react';
 import { CategoryType, SkdStreamType, StaticTestPackage, TestHistoryItem, UserPackageStats, TpaStreamType, TkaLevelType, BackgroundGenTask, UserProfile } from '../types';
+import { motion, AnimatePresence } from 'motion/react';
 import { SoundManager } from '../services/soundService';
 import { ADMIN_TOKEN_HASH } from '../constants';
 import { verifyToken } from '../src/utils/security';
@@ -15,13 +16,14 @@ interface TOSelectionProps {
     availablePackages: StaticTestPackage[];
     history: TestHistoryItem[];
     userProfile?: UserProfile | null;
-    onSelectPackage: (pkg: StaticTestPackage) => void;
+    onSelectPackage: (pkg: StaticTestPackage, options?: { shuffle?: boolean }) => void;
     onAdminViewPackage?: (pkg: StaticTestPackage) => void;
     onOpenSettings?: () => void;
     onGenerateNew: (token: string, options?: { utbkVariant?: 'ONLY_MC' | 'MIXED', skdVariant?: 'FULL' | 'TWK' | 'TIU' | 'TKP' }) => Promise<void>;
     onImportPackage: (files: FileList) => void;
     onDeletePackage: (id: string) => void;
     onDeleteMultiplePackages?: (ids: string[]) => void;
+    onCombinePackages?: (ids: string[], title: string) => Promise<void>;
     onFixDuplicates?: () => Promise<void>; 
     onFixGaps?: () => Promise<void>; // New prop for Gap Fixing
     onBack: () => void;
@@ -38,7 +40,7 @@ interface TOSelectionProps {
 
 export const TOSelectionScreen: React.FC<TOSelectionProps> = ({ 
     category, skdStream, tpaStream, tkaLevel, availablePackages, history, userProfile,
-    onSelectPackage, onAdminViewPackage, onOpenSettings, onGenerateNew, onImportPackage, onDeletePackage, onDeleteMultiplePackages, onFixDuplicates, onFixGaps, onBack, showToast, confirmEnabled,
+    onSelectPackage, onAdminViewPackage, onOpenSettings, onGenerateNew, onImportPackage, onDeletePackage, onDeleteMultiplePackages, onCombinePackages, onFixDuplicates, onFixGaps, onBack, showToast, confirmEnabled,
     onRefresh, isLoading, activeGenTask, onCategoryChange
 }) => {
     
@@ -58,6 +60,8 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showCombineModal, setShowCombineModal] = useState(false);
+    const [combineTitle, setCombineTitle] = useState('');
 
     // Auth State
     const [tokenInput, setTokenInput] = useState('');
@@ -70,8 +74,19 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
     const [showSkdVariantModal, setShowSkdVariantModal] = useState(false);
     const [skdMenuMode, setSkdMenuMode] = useState<'MAIN' | 'SUBTEST'>('MAIN');
     const [selectedSkdVariant, setSelectedSkdVariant] = useState<'FULL' | 'TWK' | 'TIU' | 'TKP'>('FULL');
+    const [skdSubtestFilter, setSkdSubtestFilter] = useState<'SEMUA' | 'TWK' | 'TIU' | 'TKP'>('SEMUA');
+    const [pendingPackage, setPendingPackage] = useState<StaticTestPackage | null>(null);
+    
+    const handleStartWithOption = (shuffle: boolean) => {
+        if (pendingPackage) {
+            onSelectPackage(pendingPackage, { shuffle });
+            setPendingPackage(null);
+            SoundManager.play('click');
+        }
+    };
     const [skdViewMode, setSkdViewMode] = useState<'FULL' | 'SUBTEST'>('FULL');
     const [activeGenTaskInfo, setActiveGenTaskInfo] = useState<BackgroundGenTask | null>(null);
+    const [shuffleQuestions, setShuffleQuestions] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState<'category' | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -284,8 +299,14 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
             if (category === 'SKD' && skdStream) {
                 if (p.skdStream !== skdStream) return false;
                 const isSubtest = p.id.includes('-twk-') || p.id.includes('-tiu-') || p.id.includes('-tkp-');
+                
                 if (skdViewMode === 'FULL' && isSubtest) return false;
-                if (skdViewMode === 'SUBTEST' && !isSubtest) return false;
+                if (skdViewMode === 'SUBTEST') {
+                    if (!isSubtest) return false;
+                    if (skdSubtestFilter === 'TWK' && !p.id.includes('-twk-')) return false;
+                    if (skdSubtestFilter === 'TIU' && !p.id.includes('-tiu-')) return false;
+                    if (skdSubtestFilter === 'TKP' && !p.id.includes('-tkp-')) return false;
+                }
                 return true;
             }
 
@@ -313,12 +334,70 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
 
             return true;
         })
-        .sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
+        .sort((a, b) => {
+            // Grouping: Combined first, then AI Generated, then others
+            const isCombinedA = a.id.includes('combined');
+            const isCombinedB = b.id.includes('combined');
+            if (isCombinedA && !isCombinedB) return -1;
+            if (!isCombinedA && isCombinedB) return 1;
+
+            const isAiA = a.isAiGenerated;
+            const isAiB = b.isAiGenerated;
+            if (isAiA && !isAiB) return -1;
+            if (!isAiA && isAiB) return 1;
+
+            return a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' });
+        });
 
     const toggleSelection = (id: string) => {
+        const pkg = availablePackages.find(p => p.id === id);
+        if (!pkg) return;
+
+        const isCombinedPkg = pkg.id.includes('gen-combined-');
+        
+        if (selectedIds.has(id)) {
+            const newSet = new Set(selectedIds);
+            newSet.delete(id);
+            setSelectedIds(newSet);
+            return;
+        }
+
+        // Constraints for SKD
+        if (category === 'SKD') {
+            if (isCombinedPkg) {
+                showToast("Paket gabungan tidak dapat digabung lagi.", "error");
+                return;
+            }
+
+            const currentSelected = availablePackages.filter(p => selectedIds.has(p.id));
+            
+            const isTwk = pkg.id.includes('-twk-');
+            const isTiu = pkg.id.includes('-tiu-');
+            const isTkp = pkg.id.includes('-tkp-');
+            const isFull = !isTwk && !isTiu && !isTkp;
+
+            if (isFull) {
+                showToast("Pilih subtes (TWK/TIU/TKP) untuk digabung.", "error");
+                return;
+            }
+
+            // Check if subtest already selected
+            if (isTwk && currentSelected.some(p => p.id.includes('-twk-'))) {
+                showToast("Hanya boleh satu paket TWK.", "error");
+                return;
+            }
+            if (isTiu && currentSelected.some(p => p.id.includes('-tiu-'))) {
+                showToast("Hanya boleh satu paket TIU.", "error");
+                return;
+            }
+            if (isTkp && currentSelected.some(p => p.id.includes('-tkp-'))) {
+                showToast("Hanya boleh satu paket TKP.", "error");
+                return;
+            }
+        }
+
         const newSet = new Set(selectedIds);
-        if (newSet.has(id)) newSet.delete(id);
-        else newSet.add(id);
+        newSet.add(id);
         setSelectedIds(newSet);
     };
 
@@ -657,7 +736,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                 </div>
 
             <h1 className="text-sm font-black text-slate-800 dark:text-white mb-3 sm:hidden uppercase tracking-tight">{headerTitle}</h1>
-
+                
                 {/* SELECTION ACTION BAR */}
                 {isSelectionMode && (
                     <div className="mb-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 p-3 rounded-xl flex items-center justify-between animate-fade-in-down sticky top-0 z-30 shadow-md">
@@ -669,13 +748,28 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                                 {selectedIds.size} terpilih
                             </span>
                         </div>
-                        <button 
-                            onClick={() => initiateAction('DELETE_MULTIPLE', Array.from(selectedIds))}
-                            disabled={selectedIds.size === 0}
-                            className="px-4 py-2 bg-rose-600 text-white rounded-lg font-bold text-xs hover:bg-rose-700 transition shadow-sm disabled:opacity-50 flex items-center gap-2"
-                        >
-                            <Trash2 size={14}/> Hapus Terpilih
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {onCombinePackages && (
+                                <button 
+                                    onClick={() => {
+                                        SoundManager.play('click');
+                                        setCombineTitle('');
+                                        setShowCombineModal(true);
+                                    }}
+                                    disabled={selectedIds.size < 2}
+                                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold text-xs hover:bg-indigo-700 transition shadow-sm disabled:opacity-50 flex items-center gap-2"
+                                >
+                                    <ListOrdered size={14}/> Gabungkan
+                                </button>
+                            )}
+                            <button 
+                                onClick={() => initiateAction('DELETE_MULTIPLE', Array.from(selectedIds))}
+                                disabled={selectedIds.size === 0}
+                                className="px-4 py-2 bg-rose-600 text-white rounded-lg font-bold text-xs hover:bg-rose-700 transition shadow-sm disabled:opacity-50 flex items-center gap-2"
+                            >
+                                <Trash2 size={14}/> Hapus
+                            </button>
+                        </div>
                     </div>
                 )}
 
@@ -814,15 +908,15 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
 
                         {skdViewMode === 'SUBTEST' && (
                             <div className="flex flex-wrap justify-center gap-2 animate-fade-in">
-                                {['TWK', 'TIU', 'TKP'].map(sub => (
+                                {['SEMUA', 'TWK', 'TIU', 'TKP'].map(sub => (
                                     <button
                                         key={sub}
                                         onClick={() => {
                                             SoundManager.play('click');
-                                            setSelectedSkdVariant(sub as any);
+                                            setSkdSubtestFilter(sub as any);
                                         }}
                                         className={`px-6 py-2 rounded-full text-[10px] font-black tracking-widest transition-all ${
-                                            selectedSkdVariant === sub 
+                                            skdSubtestFilter === sub 
                                                 ? 'bg-indigo-600 text-white shadow-lg' 
                                                 : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 hover:border-indigo-400'
                                         }`}
@@ -848,7 +942,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                         <p className="text-xs mt-2">Gunakan tombol "Buat Paket AI" untuk generate soal baru.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 w-full max-w-7xl mx-auto pb-32">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 w-full max-w-7xl mx-auto pb-32">
                         {/* Render active generation task inline if matched */}
                         {activeGenTask && 
                          activeGenTask.category === category && 
@@ -881,6 +975,18 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                         
                         {filteredPackages.map(pkg => {
                             const stats = getStats(pkg.id, pkg.title);
+                            const isCombined = pkg.id.includes('combined');
+                            const IconCmp = pkg.id.includes('-twk-') ? ShieldCheck : 
+                                            pkg.id.includes('-tiu-') ? Brain : 
+                                            pkg.id.includes('-tkp-') ? Award : 
+                                            isCombined ? Layers : 
+                                            pkg.isAiGenerated ? Zap : Box;
+                            
+                            const iconColor = pkg.id.includes('-twk-') ? 'text-rose-500 bg-rose-50 dark:bg-rose-950/30' : 
+                                            pkg.id.includes('-tiu-') ? 'text-blue-500 bg-blue-50 dark:bg-blue-950/30' : 
+                                            pkg.id.includes('-tkp-') ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30' : 
+                                            isCombined ? 'text-purple-500 bg-purple-50 dark:bg-purple-950/30' : 
+                                            pkg.isAiGenerated ? 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950/30' : 'text-slate-500 bg-slate-50 dark:bg-slate-800';
                             
                             return (
                                 <div 
@@ -888,43 +994,54 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                                     onClick={() => {
                                         if (isSelectionMode) toggleSelection(pkg.id);
                                     }}
-                                    className={`bg-white dark:bg-slate-800 p-2 sm:p-2.5 rounded-lg sm:rounded-xl border transition-all text-left group relative overflow-hidden flex flex-col justify-between h-full min-h-[130px] sm:min-h-[150px] shadow-sm ${
+                                    className={`bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-xl sm:rounded-2xl border transition-all text-left group relative overflow-hidden flex flex-col justify-between h-full min-h-[140px] sm:min-h-[160px] shadow-sm ${
                                         selectedIds.has(pkg.id) 
                                             ? 'border-indigo-600 ring-4 ring-indigo-500/5 bg-indigo-50/20 dark:bg-indigo-900/10 shadow-lg z-10' 
-                                            : 'border-slate-100 dark:border-slate-700 hover:border-indigo-300 hover:shadow-md hover:-translate-y-0.5'
+                                            : 'border-slate-100 dark:border-slate-700 hover:border-indigo-300 hover:shadow-md hover:-translate-y-1'
                                     }`}
                                 >
                                     {/* Selection Checkbox Overlay */}
                                     {isSelectionMode && (
-                                        <div className="absolute top-2 left-2 z-20">
+                                        <div className="absolute top-3 left-3 z-20">
                                             <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${selectedIds.has(pkg.id) ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600'}`}>
                                                 {selectedIds.has(pkg.id) && <CheckSquare size={10} strokeWidth={3} />}
                                             </div>
                                         </div>
                                     )}
-
-                                    {pkg.isAiGenerated && (
-                                        <div className="absolute top-0 right-0 bg-indigo-600/10 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 text-[7px] font-black px-1.5 py-0.5 rounded-bl-lg uppercase tracking-tight">
-                                            AI
-                                        </div>
-                                    )}
+                                    {/* Badges Container */}
+                                    <div className="absolute top-0 right-0 flex items-center p-0.5 gap-0.5">
+                                        {pkg.isAiGenerated && (
+                                            <div className="bg-indigo-600/10 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 text-[7px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tight border border-indigo-200/50 dark:border-indigo-800/50">
+                                                AI
+                                            </div>
+                                        )}
+                                        {isCombined && (
+                                            <div className="bg-purple-600/10 dark:bg-purple-600/20 text-purple-600 dark:text-purple-400 text-[7px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tight border border-purple-200/50 dark:border-purple-800/50">
+                                                MIX
+                                            </div>
+                                        )}
+                                    </div>
                                     
-                                    <div className={`flex justify-between items-start mb-1.5 ${isSelectionMode ? 'pl-5' : ''}`}>
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="text-[9px] sm:text-[11px] font-black text-slate-900 dark:text-white leading-tight mb-1 group-hover:text-indigo-600 transition-colors line-clamp-2">
-                                                {pkg.title}
-                                            </h4>
-                                            <div className="flex flex-wrap gap-1">
-                                                <span className="flex items-center gap-0.5 px-1 py-0.5 bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 rounded-md text-[7px] font-bold">
-                                                    <Clock size={8} className="text-indigo-500" />
-                                                    {pkg.durationMinutes}m
-                                                </span>
-                                                <span className="flex items-center gap-0.5 px-1 py-0.5 bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 rounded-md text-[7px] font-bold">
-                                                    <FileText size={8} className="text-purple-500" />
-                                                    {pkg.questions.length}s
-                                                </span>
-                                                
-                                                {/* Version Badges */}
+                                    <div className={`flex flex-col gap-2 mb-2 ${isSelectionMode ? 'pl-6' : ''}`}>
+                                        <div className="flex items-start gap-2.5">
+                                            <div className={`p-2 rounded-xl shrink-0 ${iconColor}`}>
+                                                <IconCmp size={16} />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="text-sm font-bold text-slate-800 dark:text-white leading-tight group-hover:text-indigo-600 transition-colors">
+                                                    {pkg.title}
+                                                </h4>
+                                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                                    <span className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 rounded-md text-[10px] font-semibold border border-slate-200 dark:border-slate-600">
+                                                        <Clock size={10} className="text-indigo-500" />
+                                                        {pkg.durationMinutes}m
+                                                    </span>
+                                                    <span className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 rounded-md text-[10px] font-semibold border border-slate-200 dark:border-slate-600">
+                                                        <FileText size={10} className="text-purple-500" />
+                                                        {pkg.questions.length}s
+                                                    </span>
+                                                    
+                                                    {/* Version Badges */}
                                                 {pkg.version === 'v1' && <span className="px-1 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[7px] font-black uppercase">v1</span>}
                                                 {pkg.version === 'v2' && <span className="px-1 py-0.5 bg-blue-100 text-blue-600 rounded-md text-[7px] font-black uppercase">v2</span>}
                                                 {pkg.version === 'v3' && <span className="px-1 py-0.5 bg-amber-100 text-amber-600 rounded-md text-[7px] font-black uppercase">v3</span>}
@@ -954,32 +1071,40 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                                                 </button>
                                             </div>
                                         )}
+                                        </div>
                                     </div>
 
-                                    <div className="mt-auto space-y-1.5">
+                                    <div className="mt-auto space-y-2 pt-2">
                                         {/* STATS PREVIEW */}
-                                        <div className="grid grid-cols-3 gap-1">
-                                            <div className="bg-slate-50 dark:bg-slate-900/30 p-1 rounded-lg border border-slate-100 dark:border-slate-800 flex flex-col items-center">
-                                                <div className="text-[5px] font-black text-slate-400 uppercase tracking-tighter mb-0.5">Att</div>
-                                                <div className="text-[8px] font-black text-slate-700 dark:text-white leading-none">{stats.attempts}x</div>
+                                        <div className="grid grid-cols-3 gap-1.5">
+                                            <div className="bg-slate-50 dark:bg-slate-900/30 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800 flex flex-col items-center">
+                                                <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Attempt</div>
+                                                <div className="text-[11px] font-bold text-slate-700 dark:text-white leading-none">{stats.attempts}x</div>
                                             </div>
-                                            <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-1 rounded-lg border border-emerald-100 dark:border-emerald-900/20 flex flex-col items-center">
-                                                <div className="text-[5px] font-black text-emerald-400 uppercase tracking-tighter mb-0.5">Top</div>
-                                                <div className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 leading-none">{stats.highScore}</div>
+                                            <div className="bg-emerald-50/50 dark:bg-emerald-900/10 py-1.5 rounded-lg border border-emerald-100 dark:border-emerald-900/20 flex flex-col items-center">
+                                                <div className="text-[8px] font-bold text-emerald-500 uppercase tracking-wider mb-0.5">Top</div>
+                                                <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 leading-none">{stats.highScore}</div>
                                             </div>
-                                            <div className="bg-indigo-50/50 dark:bg-indigo-900/10 p-1 rounded-lg border border-indigo-100 dark:border-indigo-900/20 flex flex-col items-center">
-                                                <div className="text-[5px] font-black text-indigo-400 uppercase tracking-tighter mb-0.5">Avg</div>
-                                                <div className="text-[8px] font-black text-indigo-600 dark:text-indigo-400 leading-none">{stats.avgScore}</div>
+                                            <div className="bg-indigo-50/50 dark:bg-indigo-900/10 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-900/20 flex flex-col items-center">
+                                                <div className="text-[8px] font-bold text-indigo-500 uppercase tracking-wider mb-0.5">Avg</div>
+                                                <div className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 leading-none">{stats.avgScore}</div>
                                             </div>
                                         </div>
 
                                         {!isSelectionMode && (
                                             <button 
-                                                onClick={() => onSelectPackage(pkg)}
-                                                className="w-full py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-black text-[8px] uppercase tracking-wider shadow-md shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-1 group/btn"
+                                                onClick={() => {
+                                                    SoundManager.play('click');
+                                                    setPendingPackage(pkg);
+                                                }}
+                                                className={`w-full py-1.5 rounded-md font-black text-[9px] uppercase tracking-wider shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5 group/btn ${
+                                                    stats.attempts > 0
+                                                        ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20'
+                                                        : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/20'
+                                                }`}
                                             >
-                                                <span>KERJAKAN</span>
-                                                <Zap size={8} className="fill-white" />
+                                                <span>{stats.attempts > 0 ? 'KERJAKAN ULANG' : 'KERJAKAN'}</span>
+                                                <Zap size={10} className="fill-white" />
                                             </button>
                                         )}
                                     </div>
@@ -990,6 +1115,129 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
 
                 )}
             </div>
+
+            {/* Combine Packages Modal */}
+            <AnimatePresence>
+                {showCombineModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }} 
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                            onClick={() => setShowCombineModal(false)}
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden z-10 border border-slate-100 dark:border-slate-700 relative"
+                        >
+                            <div className="p-5">
+                                <h3 className="text-sm font-black text-slate-800 dark:text-white mb-2">Gabungkan Paket</h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                                    Masukkan judul untuk paket gabungan baru yang berisi {selectedIds.size} subtes.
+                                </p>
+                                
+                                <input 
+                                    type="text" 
+                                    value={combineTitle}
+                                    onChange={(e) => setCombineTitle(e.target.value)}
+                                    placeholder={`Gabungan ${selectedIds.size} Paket`}
+                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm mb-4 outline-none focus:border-indigo-500 transition"
+                                />
+
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={() => setShowCombineModal(false)}
+                                        className="flex-1 py-2 rounded-lg font-bold text-xs bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 transition"
+                                    >
+                                        Batal
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            if (onCombinePackages) {
+                                                onCombinePackages(Array.from(selectedIds), combineTitle);
+                                            }
+                                            setShowCombineModal(false);
+                                            setIsSelectionMode(false);
+                                            setSelectedIds(new Set());
+                                        }}
+                                        className="flex-1 py-2 rounded-lg font-bold text-xs bg-indigo-600 text-white hover:bg-indigo-700 transition"
+                                    >
+                                        Gabungkan
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* START OPTION MODAL */}
+            <AnimatePresence>
+                {pendingPackage && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 overflow-hidden relative"
+                        >
+                            <div className="absolute top-0 right-0 p-4">
+                                <button onClick={() => setPendingPackage(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="text-center mb-6">
+                                <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/40 rounded-2xl flex items-center justify-center mx-auto mb-4 text-indigo-600 dark:text-indigo-400">
+                                    <Zap size={32} />
+                                </div>
+                                <h2 className="text-lg font-black text-slate-900 dark:text-white mb-2 leading-tight">Konfigurasi Sesi</h2>
+                                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 px-4">
+                                    Pilih urutan soal untuk paket <span className="text-indigo-600 font-bold">"{pendingPackage.title}"</span>
+                                </p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <button 
+                                    onClick={() => handleStartWithOption(false)}
+                                    className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 transition-all group active:scale-95 bg-white dark:bg-slate-800"
+                                >
+                                    <div className="p-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg group-hover:scale-110 transition-transform">
+                                        <ListOrdered size={20} />
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="text-sm font-black text-slate-800 dark:text-white">Urutan Normal</div>
+                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Sesuai nomor soal asli</div>
+                                    </div>
+                                </button>
+
+                                <button 
+                                    onClick={() => handleStartWithOption(true)}
+                                    className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all group active:scale-95 bg-white dark:bg-slate-800"
+                                >
+                                    <div className="p-2 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-lg group-hover:scale-110 transition-transform">
+                                        <RefreshCw size={20} />
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="text-sm font-black text-slate-800 dark:text-white">Urutan Acak</div>
+                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Acak nomor soal (Shuffle)</div>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <button 
+                                onClick={() => setPendingPackage(null)}
+                                className="w-full mt-6 py-2 text-slate-500 dark:text-slate-400 text-xs font-black uppercase tracking-widest hover:text-slate-800 dark:hover:text-white transition-colors"
+                            >
+                                Batal
+                            </button>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

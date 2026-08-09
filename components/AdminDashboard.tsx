@@ -7,6 +7,53 @@ interface AdminDashboardProps {
 
 const PATCH_NOTES = [
   {
+    version: "v2.1.2",
+    date: "2026-08-10",
+    type: "Feature",
+    description: "Konfigurasi Urutan Soal Sebelum Mulai",
+    details: [
+      "Opsi Urutan Soal: Kini Anda dapat memilih antara 'Urutan Normal' atau 'Urutan Acak' sesaat sebelum memulai sesi pengerjaan paket soal.",
+      "Kontrol Manual: Menghapus sistem pengacakan otomatis pada pengerjaan ulang (Attempts > 0) dan memberikan kontrol penuh kepada pengguna.",
+      "Kunci Urutan: Setelah sesi dimulai, urutan soal tidak dapat diubah lagi untuk menjaga konsistensi pengerjaan."
+    ]
+  },
+  {
+    version: "v2.1.1",
+    date: "2026-08-10",
+    type: "Patch",
+    description: "Perbaikan Navigasi & Auto-Shuffle",
+    details: [
+      "Restorasi Navigasi SKD: Mengembalikan tab navigasi Simulasi Full dan Latihan Subtes untuk mempermudah pemisahan jenis paket.",
+      "Auto-Shuffle Cerdas: Fitur acak urutan soal kini bekerja otomatis. Paket yang sudah pernah dikerjakan (Attempts > 0) akan otomatis teracak saat dikerjakan ulang, sedangkan paket baru tetap mengikuti urutan asli.",
+      "Penyederhanaan UI: Menghapus opsi acak manual untuk pengalaman pengguna yang lebih bersih dan efisien."
+    ]
+  },
+  {
+    version: "v2.1.0",
+    date: "2026-08-10",
+    type: "Feature",
+    description: "Peningkatan Sistem Admin & Gabungan Paket",
+    details: [
+      "Sistem Admin Baru: Admin sekarang dapat mengacak urutan soal secara permanen dan menyimpan perubahan (Resave) atau menyimpannya sebagai paket baru (Copy).",
+      "Validasi Gabungan Paket: Pengetatan aturan penggabungan paket SKD (Max 1 TWK, 1 TIU, 1 TKP) dan pencegahan penggabungan paket yang sudah digabung.",
+      "Filter Satu Lapis: Penyederhanaan filter subtes pada menu pemilihan paket soal menjadi satu baris navigasi yang lebih intuitif.",
+      "Penomoran TO Gabungan: Sistem penomoran otomatis yang lebih rapi untuk paket-paket gabungan (Contoh: TO SKD Kedinasan Gabungan 1).",
+      "Perbaikan UI Badge: Perbaikan layout indikator 'AI' dan 'MIX' agar tidak saling tumpang tindih."
+    ]
+  },
+  {
+    version: "v2.0.0",
+    date: "2026-08-09",
+    type: "Major",
+    description: "Fitur Penggabungan Paket & Shuffle Soal",
+    details: [
+      "Fitur penggabungan subtes: Pengguna dapat memilih beberapa paket subtes (misal: TWK, TIU, TKP) dan menggabungkannya menjadi satu paket SKD utuh.",
+      "Fitur Shuffle (Acak Soal): Pengguna sekarang dapat mengacak urutan soal kapan saja saat mengerjakan tes.",
+      "Perbaikan Filter Subtes: Tombol filter TWK, TIU, TKP pada mode subtes sekarang berfungsi penuh.",
+      "Peningkatan UI/UX: Desain kartu paket soal diperbarui menjadi lebih bersih, elegan, dan interaktif dengan tambahan ikon SVG khusus."
+    ]
+  },
+  {
     version: "v1.3.0",
     date: "2026-08-06",
     type: "Feature",

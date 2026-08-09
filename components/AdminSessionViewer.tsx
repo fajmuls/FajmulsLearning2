@@ -1,16 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { SavedSessionState, Question } from '../types';
-import { ArrowLeft, Bookmark, BookmarkMinus, CheckCircle, Database, Sparkles } from 'lucide-react';
+import { SavedSessionState, Question, StaticTestPackage } from '../types';
+import { ArrowLeft, Bookmark, BookmarkMinus, CheckCircle, Database, Sparkles, RefreshCw, Save, Plus } from 'lucide-react';
 import { SimpleMarkdown, MatrixQuestionRenderer } from './QuestionRenderer';
 import * as Gemini from '../services/geminiService';
+import { SoundManager } from '../services/soundService';
 
 export const AdminSessionViewer: React.FC<{
-  session: SavedSessionState | { category: any, questions: Question[] };
+  session: SavedSessionState | StaticTestPackage;
   onBack: () => void;
+  onUpdatePackage?: (pkg: StaticTestPackage) => void;
+  onSaveAsNewPackage?: (pkg: StaticTestPackage) => void;
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
   fontSize: string;
-}> = ({ session, onBack, showToast, fontSize }) => {
+}> = ({ session, onBack, onUpdatePackage, onSaveAsNewPackage, showToast, fontSize }) => {
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+  const [localQuestions, setLocalQuestions] = useState<Question[]>(session.questions);
+
+  const isFullPackage = 'id' in session && 'title' in session;
 
   useEffect(() => {
     Gemini.getBankSoal(session.category).then(bank => {
@@ -39,6 +45,36 @@ export const AdminSessionViewer: React.FC<{
     }
   };
 
+  const handleReshuffle = () => {
+    SoundManager.play('click');
+    const shuffled = [...localQuestions].sort(() => Math.random() - 0.5);
+    setLocalQuestions(shuffled);
+    showToast("Urutan soal berhasil diacak", "info");
+  };
+
+  const handleResave = () => {
+    if (!isFullPackage || !onUpdatePackage) return;
+    const updated = { ...session as StaticTestPackage, questions: localQuestions };
+    onUpdatePackage(updated);
+  };
+
+  const handleSaveAsNew = () => {
+    if (!onSaveAsNewPackage) return;
+    const newTitle = `(Copy) ${('title' in session) ? session.title : 'New Package'}`;
+    const newPkg: StaticTestPackage = {
+        ...('id' in session ? (session as StaticTestPackage) : {
+            category: session.category,
+            durationMinutes: 60,
+            isAiGenerated: false
+        } as any),
+        id: `gen-manual-${Date.now()}`,
+        title: newTitle,
+        questions: localQuestions,
+        createdAt: new Date().toISOString()
+    };
+    onSaveAsNewPackage(newPkg);
+  };
+
   const getFontSizeClass = (size: string) => {
     switch (size) {
       case 'xs': return 'text-[10px]';
@@ -64,43 +100,73 @@ export const AdminSessionViewer: React.FC<{
               <ArrowLeft size={18} />
             </button>
             <div className="truncate">
-              <h1 className="text-sm sm:text-xl font-black text-slate-900 dark:text-white flex items-center gap-2 truncate">
+              <h1 className="text-sm sm:text-base font-black text-slate-900 dark:text-white flex items-center gap-2 truncate">
                 <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg shrink-0">
                   <Database className="text-purple-500" size={16} />
                 </div>
-                <span className="truncate">Admin: {session.category}</span>
+                <span className="truncate">Admin: {('title' in session) ? session.title : session.category}</span>
               </h1>
               <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-tight">
-                {session.questions.length} Soal Paket
+                {localQuestions.length} Soal Paket
               </p>
             </div>
           </div>
 
-          <button 
-            onClick={() => {
-              const toAdd = session.questions.filter(q => !addedIds.has(q.id));
-              if (toAdd.length === 0) {
-                showToast("Semua soal sudah ada di Bank Soal", "info");
-                return;
-              }
-              toAdd.forEach(q => Gemini.saveToBankSoal(session.category, q));
-              setAddedIds(prev => {
-                const next = new Set(prev);
-                toAdd.forEach(q => next.add(q.id));
-                return next;
-              });
-              showToast(`${toAdd.length} soal ditambahkan ke Bank Soal`, "success");
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl font-black text-[10px] uppercase shadow-lg shadow-purple-500/20 hover:bg-purple-700 transition-all active:scale-95"
-          >
-            <Sparkles size={14} /> Simpan Semua
-          </button>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
+            <button 
+                onClick={handleReshuffle}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-700 font-bold text-[10px] uppercase transition-all hover:border-indigo-400 shrink-0"
+                title="Acak Urutan Soal"
+            >
+                <RefreshCw size={14} /> Acak
+            </button>
+
+            {isFullPackage && onUpdatePackage && (
+                <button 
+                    onClick={handleResave}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg font-bold text-[10px] uppercase shadow-md shadow-indigo-500/20 hover:bg-indigo-700 transition-all shrink-0"
+                    title="Simpan Perubahan ke Paket Ini"
+                >
+                    <Save size={14} /> Simpan
+                </button>
+            )}
+
+            {onSaveAsNewPackage && (
+                <button 
+                    onClick={handleSaveAsNew}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-bold text-[10px] uppercase shadow-md shadow-emerald-500/20 hover:bg-emerald-700 transition-all shrink-0"
+                    title="Simpan Sebagai Paket Baru"
+                >
+                    <Plus size={14} /> Copy
+                </button>
+            )}
+
+            <button 
+                onClick={() => {
+                const toAdd = localQuestions.filter(q => !addedIds.has(q.id));
+                if (toAdd.length === 0) {
+                    showToast("Semua soal sudah ada di Bank Soal", "info");
+                    return;
+                }
+                toAdd.forEach(q => Gemini.saveToBankSoal(session.category, q));
+                setAddedIds(prev => {
+                    const next = new Set(prev);
+                    toAdd.forEach(q => next.add(q.id));
+                    return next;
+                });
+                showToast(`${toAdd.length} soal ditambahkan ke Bank Soal`, "success");
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white rounded-lg font-bold text-[10px] uppercase shadow-md shadow-purple-500/20 hover:bg-purple-700 transition-all shrink-0"
+            >
+                <Sparkles size={14} /> Ke Bank
+            </button>
+          </div>
         </div>
       </header>
 
       <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
         <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
-          {session.questions.map((q, idx) => (
+          {localQuestions.map((q, idx) => (
             <div key={q.id} className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
                 <div>

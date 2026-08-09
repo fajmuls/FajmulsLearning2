@@ -338,17 +338,19 @@ export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean; isO
 export const formatTopic = (subtest: string | undefined, topic: string | undefined) => {
     if (!subtest && !topic) return null;
     
-    let raw = subtest || topic || '';
-    if (subtest && subtest.includes(' - ')) {
-        const parts = subtest.split(' - ');
-        raw = parts.slice(1).join(' - ').trim();
-    } else if (subtest && subtest !== topic) {
-        raw = subtest;
-    } else if (topic && topic.includes(' - ')) {
+    let raw = topic || subtest || '';
+    if (topic && topic.includes(' - ')) {
         const parts = topic.split(' - ');
         raw = parts.slice(1).join(' - ').trim();
+    } else if (topic && !['TWK', 'TIU', 'TKP'].includes(topic)) {
+        raw = topic;
+    } else if (subtest && subtest.includes(' - ')) {
+        const parts = subtest.split(' - ');
+        raw = parts.slice(1).join(' - ').trim();
+    } else if (subtest && !['TWK', 'TIU', 'TKP'].includes(subtest)) {
+        raw = subtest;
     } else {
-        raw = topic || '';
+        return null; // Return null if there's no actual subtopic
     }
     
     const lowerRaw = raw.toLowerCase();
