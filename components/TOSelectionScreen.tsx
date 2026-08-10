@@ -74,7 +74,8 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
     const [showSkdVariantModal, setShowSkdVariantModal] = useState(false);
     const [skdMenuMode, setSkdMenuMode] = useState<'MAIN' | 'SUBTEST'>('MAIN');
     const [selectedSkdVariant, setSelectedSkdVariant] = useState<'FULL' | 'TWK' | 'TIU' | 'TKP'>('FULL');
-    const [skdSubtestFilter, setSkdSubtestFilter] = useState<'SEMUA' | 'TWK' | 'TIU' | 'TKP'>('SEMUA');
+    const [skdSubtestFilter, setSkdSubtestFilter] = useState<'SEMUA' | 'FULL' | 'TWK' | 'TIU' | 'TKP'>('FULL');
+    const [expandedPackageId, setExpandedPackageId] = useState<string | null>(null);
     const [pendingPackage, setPendingPackage] = useState<StaticTestPackage | null>(null);
     
     const handleStartWithOption = (shuffle: boolean) => {
@@ -84,7 +85,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
             SoundManager.play('click');
         }
     };
-    const [skdViewMode, setSkdViewMode] = useState<'FULL' | 'SUBTEST'>('FULL');
+    const [statusFilter, setStatusFilter] = useState<'ALL' | 'DONE' | 'NOT_DONE'>('ALL');
     const [activeGenTaskInfo, setActiveGenTaskInfo] = useState<BackgroundGenTask | null>(null);
     const [shuffleQuestions, setShuffleQuestions] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState<'category' | null>(null);
@@ -95,7 +96,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
         const attempts = history.filter(h => 
             h.packageId === pkgId || 
             (h.packageTitle && h.packageTitle.trim() === pkgTitle.trim())
-        );
+        ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // sort by newest
 
         if (attempts.length === 0) return { attempts: 0, highScore: 0, avgScore: 0, lastAttemptDate: "" };
         
@@ -104,7 +105,8 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
             attempts: attempts.length,
             highScore: Math.max(...scores),
             avgScore: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length),
-            lastAttemptDate: attempts[0].date
+            lastAttemptDate: attempts[0].date,
+            attemptsDetails: attempts
         };
     };
 
@@ -120,7 +122,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
         }
 
         if (type === 'GENERATE' && category === 'SKD') {
-            setSkdMenuMode(skdViewMode === 'SUBTEST' ? 'SUBTEST' : 'MAIN');
+            setSkdMenuMode(skdSubtestFilter !== 'FULL' ? 'SUBTEST' : 'MAIN');
             setShowSkdVariantModal(true);
             return;
         }
@@ -291,6 +293,16 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
     };
 
     // Filter dan Sortir Paket
+    const usedPackageIds = useMemo(() => {
+        const used = new Set<string>();
+        availablePackages.forEach(p => {
+            if (p.combinedSourceIds) {
+                p.combinedSourceIds.forEach(id => used.add(id));
+            }
+        });
+        return used;
+    }, [availablePackages]);
+
     const filteredPackages = availablePackages
         .filter(p => {
             if (p.category !== category) return false;
@@ -300,13 +312,11 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                 if (p.skdStream !== skdStream) return false;
                 const isSubtest = p.id.includes('-twk-') || p.id.includes('-tiu-') || p.id.includes('-tkp-');
                 
-                if (skdViewMode === 'FULL' && isSubtest) return false;
-                if (skdViewMode === 'SUBTEST') {
-                    if (!isSubtest) return false;
-                    if (skdSubtestFilter === 'TWK' && !p.id.includes('-twk-')) return false;
-                    if (skdSubtestFilter === 'TIU' && !p.id.includes('-tiu-')) return false;
-                    if (skdSubtestFilter === 'TKP' && !p.id.includes('-tkp-')) return false;
-                }
+                if (skdSubtestFilter === 'FULL' && isSubtest) return false;
+                if (skdSubtestFilter === 'TWK' && !p.id.includes('-twk-')) return false;
+                if (skdSubtestFilter === 'TIU' && !p.id.includes('-tiu-')) return false;
+                if (skdSubtestFilter === 'TKP' && !p.id.includes('-tkp-')) return false;
+                
                 return true;
             }
 
@@ -334,6 +344,13 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
 
             return true;
         })
+        .filter(p => {
+            if (statusFilter === 'ALL') return true;
+            const stats = getStats(p.id, p.title);
+            if (statusFilter === 'DONE') return stats.attempts > 0;
+            if (statusFilter === 'NOT_DONE') return stats.attempts === 0;
+            return true;
+        })
         .sort((a, b) => {
             // Grouping: Combined first, then AI Generated, then others
             const isCombinedA = a.id.includes('combined');
@@ -359,6 +376,11 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
             const newSet = new Set(selectedIds);
             newSet.delete(id);
             setSelectedIds(newSet);
+            return;
+        }
+
+        if (usedPackageIds.has(id)) {
+            showToast("Paket ini sudah digabung dalam paket lain.", "error");
             return;
         }
 
@@ -872,62 +894,40 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                     </div>
                 )}
 
-                {/* SKD VIEW TABS */}
-                {category === 'SKD' && (
-                    <div className="flex flex-col gap-4 mb-8">
-                        <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl shadow-inner w-full font-black border border-slate-200 dark:border-slate-700">
-                            <button 
-                                onClick={() => {
+                {/* FILTERS */}
+                <div className="flex flex-wrap sm:flex-nowrap justify-between items-center gap-2 mb-6 px-1">
+                    <h2 className="text-sm font-black text-slate-700 dark:text-slate-300 w-full sm:w-auto">Daftar Paket</h2>
+                    <div className="flex flex-1 sm:flex-none justify-end gap-2 w-full sm:w-auto">
+                        {category === 'SKD' && (
+                            <select
+                                value={skdSubtestFilter}
+                                onChange={(e) => {
                                     SoundManager.play('click');
-                                    setSkdViewMode('FULL');
+                                    setSkdSubtestFilter(e.target.value as any);
                                 }}
-                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 ${
-                                    skdViewMode === 'FULL' 
-                                        ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-md' 
-                                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                                }`}
+                                className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-bold shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none max-w-[160px] flex-1 sm:flex-none"
                             >
-                                <ListOrdered size={18} />
-                                <span className="text-xs sm:text-sm">SIMULASI FULL</span>
-                            </button>
-                            <button 
-                                onClick={() => {
-                                    SoundManager.play('click');
-                                    setSkdViewMode('SUBTEST');
-                                }}
-                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 ${
-                                    skdViewMode === 'SUBTEST' 
-                                        ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-md' 
-                                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                                }`}
-                            >
-                                <Zap size={18} />
-                                <span className="text-xs sm:text-sm">LATIHAN SUBTES</span>
-                            </button>
-                        </div>
-
-                        {skdViewMode === 'SUBTEST' && (
-                            <div className="flex flex-wrap justify-center gap-2 animate-fade-in">
-                                {['SEMUA', 'TWK', 'TIU', 'TKP'].map(sub => (
-                                    <button
-                                        key={sub}
-                                        onClick={() => {
-                                            SoundManager.play('click');
-                                            setSkdSubtestFilter(sub as any);
-                                        }}
-                                        className={`px-6 py-2 rounded-full text-[10px] font-black tracking-widest transition-all ${
-                                            skdSubtestFilter === sub 
-                                                ? 'bg-indigo-600 text-white shadow-lg' 
-                                                : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 hover:border-indigo-400'
-                                        }`}
-                                    >
-                                        {sub}
-                                    </button>
-                                ))}
-                            </div>
+                                <option value="SEMUA">Semua Jenis</option>
+                                <option value="FULL">Hanya Simulasi Full</option>
+                                <option value="TWK">Hanya Latihan TWK</option>
+                                <option value="TIU">Hanya Latihan TIU</option>
+                                <option value="TKP">Hanya Latihan TKP</option>
+                            </select>
                         )}
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => {
+                                SoundManager.play('click');
+                                setStatusFilter(e.target.value as any);
+                            }}
+                            className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-bold shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none max-w-[160px] flex-1 sm:flex-none"
+                        >
+                            <option value="ALL">Status: Semua</option>
+                            <option value="NOT_DONE">Belum Dikerjakan</option>
+                            <option value="DONE">Sudah Dikerjakan</option>
+                        </select>
                     </div>
-                )}
+                </div>
 
                 {/* PACKAGE LIST */}
                 {isLoading && filteredPackages.length === 0 ? (
@@ -1010,6 +1010,11 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                                     )}
                                     {/* Badges Container */}
                                     <div className="absolute top-0 right-0 flex items-center p-0.5 gap-0.5">
+                                        {usedPackageIds.has(pkg.id) && (
+                                            <div className="bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[7px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tight border border-amber-200/50 dark:border-amber-800/50">
+                                                SUDAH DIGABUNG
+                                            </div>
+                                        )}
                                         {pkg.isAiGenerated && (
                                             <div className="bg-indigo-600/10 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 text-[7px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tight border border-indigo-200/50 dark:border-indigo-800/50">
                                                 AI
@@ -1092,20 +1097,61 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                                         </div>
 
                                         {!isSelectionMode && (
-                                            <button 
-                                                onClick={() => {
-                                                    SoundManager.play('click');
-                                                    setPendingPackage(pkg);
-                                                }}
-                                                className={`w-full py-1.5 rounded-md font-black text-[9px] uppercase tracking-wider shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5 group/btn ${
-                                                    stats.attempts > 0
-                                                        ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20'
-                                                        : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/20'
-                                                }`}
-                                            >
-                                                <span>{stats.attempts > 0 ? 'KERJAKAN ULANG' : 'KERJAKAN'}</span>
-                                                <Zap size={10} className="fill-white" />
-                                            </button>
+                                            <div className="flex flex-col gap-1.5">
+                                                <div className="flex gap-1.5">
+                                                    <button 
+                                                        onClick={() => {
+                                                            SoundManager.play('click');
+                                                            setPendingPackage(pkg);
+                                                        }}
+                                                        className={`flex-1 py-1.5 rounded-md font-black text-[9px] uppercase tracking-wider shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5 group/btn ${
+                                                            stats.attempts > 0
+                                                                ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20'
+                                                                : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/20'
+                                                        }`}
+                                                    >
+                                                        <span>{stats.attempts > 0 ? 'KERJAKAN ULANG' : 'KERJAKAN'}</span>
+                                                        <Zap size={10} className="fill-white" />
+                                                    </button>
+                                                    
+                                                    {stats.attempts > 0 && (
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setExpandedPackageId(expandedPackageId === pkg.id ? null : pkg.id);
+                                                            }}
+                                                            className="w-7 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-500 rounded-md flex items-center justify-center transition-colors"
+                                                            title="Riwayat Percobaan"
+                                                        >
+                                                            <ChevronDown size={12} className={`transition-transform ${expandedPackageId === pkg.id ? 'rotate-180' : ''}`} />
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                {/* EXPANDED HISTORY */}
+                                                <AnimatePresence>
+                                                    {expandedPackageId === pkg.id && stats.attemptsDetails && (
+                                                        <motion.div
+                                                            initial={{ height: 0, opacity: 0 }}
+                                                            animate={{ height: 'auto', opacity: 1 }}
+                                                            exit={{ height: 0, opacity: 0 }}
+                                                            className="overflow-hidden"
+                                                        >
+                                                            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-2 border border-slate-100 dark:border-slate-800 space-y-1 mt-1 max-h-32 overflow-y-auto custom-scrollbar">
+                                                                {stats.attemptsDetails.map((attempt, idx) => (
+                                                                    <div key={idx} className="flex justify-between items-center text-[9px] py-1 border-b border-slate-200/50 dark:border-slate-700/50 last:border-0">
+                                                                        <span className="text-slate-500">Attempt {stats.attempts - idx}</span>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="font-mono text-slate-400">{new Date(attempt.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                                                                            <span className="font-bold text-slate-700 dark:text-slate-300 bg-slate-200/50 dark:bg-slate-700/50 px-1.5 py-0.5 rounded">Skor: {attempt.score}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
                                         )}
                                     </div>
                                 </div>

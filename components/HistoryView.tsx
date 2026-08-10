@@ -194,6 +194,8 @@ export const getUtbkDetails = (item: TestHistoryItem) => {
 
 export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview, username, onExport, onImport, onDelete, onDeleteMultiple, onToggleStudied, userProfile }) => {
     const [filterCategory, setFilterCategory] = useState<'ALL' | CategoryType>('ALL');
+    const [skdSubFilter, setSkdSubFilter] = useState<'ALL' | 'TWK' | 'TIU' | 'TKP'>('ALL');
+    const [timeFilter, setTimeFilter] = useState<'ALL' | 'TODAY' | 'WEEK' | 'MONTH'>('ALL');
     const [viewMode, setViewMode] = useState<'LIST' | 'ANALYTICS'>('LIST');
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
@@ -208,11 +210,49 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
     const [tokenInput, setTokenInput] = useState('');
     const [showAuthModal, setShowAuthModal] = useState(false);
 
-    const filteredHistory = history.filter(item => filterCategory === 'ALL' || item.category === filterCategory);
+    const filteredHistory = history.filter(item => {
+        if (filterCategory !== 'ALL' && item.category !== filterCategory) return false;
+        
+        if (filterCategory === 'SKD' && skdSubFilter !== 'ALL') {
+            const isTWK = item.packageId?.includes('-twk-') || item.packageTitle?.includes('TWK');
+            const isTIU = item.packageId?.includes('-tiu-') || item.packageTitle?.includes('TIU');
+            const isTKP = item.packageId?.includes('-tkp-') || item.packageTitle?.includes('TKP');
+            
+            if (skdSubFilter === 'TWK' && !isTWK) return false;
+            if (skdSubFilter === 'TIU' && !isTIU) return false;
+            if (skdSubFilter === 'TKP' && !isTKP) return false;
+        }
+
+        if (timeFilter !== 'ALL') {
+            const itemDate = new Date(item.date);
+            const now = new Date();
+            if (timeFilter === 'TODAY') {
+                if (itemDate.toDateString() !== now.toDateString()) return false;
+            } else if (timeFilter === 'WEEK') {
+                const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                if (itemDate < oneWeekAgo) return false;
+            } else if (timeFilter === 'MONTH') {
+                const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                if (itemDate < oneMonthAgo) return false;
+            }
+        }
+        
+        return true;
+    });
     const totalTests = filteredHistory.length;
     
     const avgScore = totalTests > 0 ? Math.round(filteredHistory.reduce((a, b) => a + (b.score || 0), 0) / totalTests) : 0;
     const highestScore = totalTests > 0 ? Math.max(...filteredHistory.map(h => h.score || 0)) : 0;
+
+    let totalQuestionsAnswered = 0;
+    let totalCorrectAll = 0;
+    filteredHistory.forEach(h => {
+        if (h.answers) {
+            totalQuestionsAnswered += h.answers.length;
+            totalCorrectAll += h.answers.filter(a => a.isCorrect).length;
+        }
+    });
+    const totalWrongAll = totalQuestionsAnswered - totalCorrectAll;
 
     const handleDeleteClick = (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
@@ -427,7 +467,7 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                     </div>
                 )}
 
-                <div className="flex gap-1.5 overflow-x-auto pb-2.5 mb-4 scrollbar-hide">
+                <div className="flex gap-1.5 overflow-x-auto pb-2.5 mb-2 scrollbar-hide">
                     <button onClick={() => setFilterCategory('ALL')} className={`px-2.5 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap transition ${filterCategory === 'ALL' ? 'bg-slate-900 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
                         Semua
                     </button>
@@ -438,7 +478,32 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                     ))}
                 </div>
 
-                <div className="grid grid-cols-3 gap-1.5 sm:gap-4 mb-4 sm:mb-6">
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                    {filterCategory === 'SKD' && (
+                        <select 
+                            value={skdSubFilter} 
+                            onChange={(e) => setSkdSubFilter(e.target.value as any)}
+                            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                            <option value="ALL">SKD: Semua</option>
+                            <option value="TWK">SKD: TWK</option>
+                            <option value="TIU">SKD: TIU</option>
+                            <option value="TKP">SKD: TKP</option>
+                        </select>
+                    )}
+                    <select 
+                        value={timeFilter} 
+                        onChange={(e) => setTimeFilter(e.target.value as any)}
+                        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                        <option value="ALL">Waktu: Semua</option>
+                        <option value="TODAY">Hari Ini</option>
+                        <option value="WEEK">7 Hari Terakhir</option>
+                        <option value="MONTH">30 Hari Terakhir</option>
+                    </select>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 sm:gap-4 mb-4 sm:mb-6">
                     <div className="bg-white dark:bg-slate-800 p-2 sm:p-5 rounded-lg sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center sm:items-start text-center sm:text-left">
                         <div className="flex items-center gap-1 sm:gap-2 text-slate-500 dark:text-slate-400 mb-0.5 sm:mb-2 font-bold text-[8px] sm:text-xs uppercase tracking-wider"><Filter size={12} className="w-[10px] h-[10px] sm:w-4 sm:h-4"/> <span className="hidden sm:inline">Total Tes</span><span className="sm:hidden">Tes</span></div>
                         <div className="text-sm sm:text-3xl font-black text-slate-800 dark:text-white">{totalTests}</div>
@@ -450,6 +515,18 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                     <div className="bg-white dark:bg-slate-800 p-2 sm:p-5 rounded-lg sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center sm:items-start text-center sm:text-left">
                         <div className="flex items-center gap-1 sm:gap-2 text-slate-500 dark:text-slate-400 mb-0.5 sm:mb-2 font-bold text-[8px] sm:text-xs uppercase tracking-wider"><Award size={12} className="w-[10px] h-[10px] sm:w-4 sm:h-4"/> <span className="hidden sm:inline">Tertinggi</span><span className="sm:hidden">Top</span></div>
                         <div className="text-sm sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{highestScore}</div>
+                    </div>
+                    <div className="bg-white dark:bg-slate-800 p-2 sm:p-5 rounded-lg sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center sm:items-start text-center sm:text-left">
+                        <div className="flex items-center gap-1 sm:gap-2 text-slate-500 dark:text-slate-400 mb-0.5 sm:mb-2 font-bold text-[8px] sm:text-xs uppercase tracking-wider"><CheckSquare size={12} className="w-[10px] h-[10px] sm:w-4 sm:h-4"/> <span className="hidden sm:inline">Soal Dijawab</span><span className="sm:hidden">Dijawab</span></div>
+                        <div className="text-sm sm:text-3xl font-black text-purple-600 dark:text-purple-500">{totalQuestionsAnswered}</div>
+                    </div>
+                    <div className="bg-white dark:bg-slate-800 p-2 sm:p-5 rounded-lg sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center sm:items-start text-center sm:text-left col-span-2 sm:col-span-1">
+                        <div className="flex items-center gap-1 sm:gap-2 text-slate-500 dark:text-slate-400 mb-0.5 sm:mb-2 font-bold text-[8px] sm:text-xs uppercase tracking-wider"><ShieldCheck size={12} className="w-[10px] h-[10px] sm:w-4 sm:h-4"/> <span className="hidden sm:inline">Benar / Salah</span><span className="sm:hidden">B / S</span></div>
+                        <div className="text-sm sm:text-2xl font-black">
+                            <span className="text-emerald-500">{totalCorrectAll}</span>
+                            <span className="text-slate-400 mx-1">/</span>
+                            <span className="text-rose-500">{totalWrongAll}</span>
+                        </div>
                     </div>
                 </div>
 

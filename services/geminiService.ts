@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { db } from './firebase';
-import { collection, doc, setDoc, getDocs, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, deleteDoc, query, where, writeBatch } from 'firebase/firestore';
 import {
   StudyMode,
   CategoryType,
@@ -1940,3 +1940,20 @@ Kembalikan respon dalam format JSON sesuai skema yang ditentukan. Berikan saran/
 
     return await callGemini<TargetScoreCalcResult>(prompt, schema);
 };
+export async function saveMultipleToBankSoal(category: CategoryType, questions: Question[]) {
+    if (typeof window === 'undefined' || questions.length === 0) return;
+    try {
+        const batchSize = 500;
+        for (let i = 0; i < questions.length; i += batchSize) {
+            const batch = writeBatch(db);
+            const chunk = questions.slice(i, i + batchSize);
+            chunk.forEach(question => {
+                const docRef = doc(db, 'bank_soal', question.id);
+                batch.set(docRef, { category, question });
+            });
+            await batch.commit();
+        }
+    } catch (e) {
+        console.error("Failed to batch save to bank soal", e);
+    }
+}

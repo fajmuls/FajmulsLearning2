@@ -1677,6 +1677,16 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                 }} className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm">
                                     Jawab Acak (Random)
                                 </button>
+                                
+                                <button onClick={async () => {
+                                    showToast(`Sedang menyimpan ${questions.length} soal...`, "info");
+                                    await Gemini.saveMultipleToBankSoal(category, questions);
+                                    showToast(`${questions.length} Soal dimasukkan ke Bank Soal!`, "success");
+                                    setShowAdminModal(false);
+                                }} className="w-full flex items-center justify-center gap-2 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 shadow-sm border border-purple-500">
+                                    <Sparkles size={16} /> Simpan Semua ke Bank Soal
+                                </button>
+
                                 <button onClick={() => setShowAdminModal(false)} className="w-full py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700">
                                     Tutup
                                 </button>

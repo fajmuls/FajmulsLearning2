@@ -142,13 +142,14 @@ export const AdminSessionViewer: React.FC<{
             )}
 
             <button 
-                onClick={() => {
+                onClick={async () => {
                 const toAdd = localQuestions.filter(q => !addedIds.has(q.id));
                 if (toAdd.length === 0) {
                     showToast("Semua soal sudah ada di Bank Soal", "info");
                     return;
                 }
-                toAdd.forEach(q => Gemini.saveToBankSoal(session.category, q));
+                showToast(`Sedang menyimpan ${toAdd.length} soal...`, "info");
+                await Gemini.saveMultipleToBankSoal(session.category, toAdd);
                 setAddedIds(prev => {
                     const next = new Set(prev);
                     toAdd.forEach(q => next.add(q.id));

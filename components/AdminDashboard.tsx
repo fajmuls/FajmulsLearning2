@@ -7,6 +7,30 @@ interface AdminDashboardProps {
 
 const PATCH_NOTES = [
   {
+    version: "v2.1.4",
+    date: "2026-08-10",
+    type: "Feature & Optimization",
+    description: "Optimalisasi Penyimpanan Massal & Peningkatan Riwayat Belajar",
+    details: [
+      "Optimasi Database: Memperkenalkan pemrosesan batching (berkelompok) saat admin menyimpan soal ke Bank Soal (menggunakan `writeBatch` Firestore), mencegah overload saat menyimpan >100 soal sekaligus.",
+      "Filter Paket Soal: Merapikan UI pemilihan paket soal SKD menjadi sistem dropdown yang lebih bersih untuk Jenis (TWK, TIU, TKP) dan Status (Belum/Sudah Dikerjakan).",
+      "Detail Riwayat Percobaan: Pengguna kini bisa melihat riwayat percobaan per paket soal secara detail dengan skor dan waktunya (dropdown pada tombol Kerjakan Ulang).",
+      "Penyempurnaan Riwayat Belajar: Menambahkan ringkasan total soal dijawab dan benar/salah secara global di menu Riwayat. Menambahkan filter detail untuk riwayat SKD (TWK/TIU/TKP saja) dan rentang waktu (Hari ini, 7 Hari, 30 Hari)."
+    ]
+  },
+  {
+    version: "v2.1.3",
+    date: "2026-08-10",
+    type: "Feature & Bug Fixes",
+    description: "Perbaikan Shuffle, Filter Status, Pencegahan Penggabungan Ganda & Tools Admin",
+    details: [
+      "Bug Fix: Fitur Urutan Acak (Shuffle) kini benar-benar mengacak soal secara acak saat tombol ditekan.",
+      "Filter Status: Menambahkan filter untuk melihat 'Semua Paket', 'Belum Dikerjakan', dan 'Sudah Dikerjakan' di layar pemilihan paket.",
+      "Pencegahan Duplikasi Gabungan: Paket Subtes yang sudah pernah digunakan dalam sebuah paket 'Gabungan' tidak dapat digabung lagi dan akan ditandai dengan label 'SUDAH DIGABUNG'.",
+      "Admin Tools: Menambahkan tombol 'Simpan Semua ke Bank Soal' pada menu admin saat sedang mengerjakan soal, melengkapi fitur 'Jawab Semua Benar'."
+    ]
+  },
+  {
     version: "v2.1.2",
     date: "2026-08-10",
     type: "Feature",

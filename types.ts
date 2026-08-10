@@ -282,6 +282,7 @@ export interface StaticTestPackage {
     questions: Question[];
     version?: string;
     patchNotes?: string[];
+    combinedSourceIds?: string[];
 }
 
 export interface AppSettings {
@@ -354,6 +355,7 @@ export interface UserPackageStats {
     highScore: number;
     avgScore: number;
     lastAttemptDate: string;
+    attemptsDetails?: TestHistoryItem[];
 }
 
 export interface IshiharaPlate {

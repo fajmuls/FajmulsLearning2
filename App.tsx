@@ -3561,7 +3561,8 @@ function App() {
       tkaLevel: basePkg.tkaLevel,
       questions: combinedQuestions,
       isAiGenerated: true,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      combinedSourceIds: pkgsToCombine.map(p => p.id)
     };
     
     setAvailablePackages(prev => [newPkg, ...prev]);
@@ -3699,8 +3700,12 @@ function App() {
     }
   };
 
-  const handlePackageSelect = (pkg: StaticTestPackage) => {
-    setQuestions(pkg.questions);
+  const handlePackageSelect = (pkg: StaticTestPackage, options?: { shuffle?: boolean }) => {
+    let finalQuestions = [...pkg.questions];
+    if (options?.shuffle) {
+      finalQuestions.sort(() => Math.random() - 0.5);
+    }
+    setQuestions(finalQuestions);
     setSessionMode(StudyMode.SIMULATION);
     setCurrentPackageTitle(pkg.title);
     setSessionDuration(pkg.durationMinutes);
