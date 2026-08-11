@@ -7,6 +7,19 @@ interface AdminDashboardProps {
 
 export const PATCH_NOTES = [
   {
+    version: "v2.7.0",
+    date: "2026-08-11",
+    type: "Major Update",
+    description: "Enhanced Analytics Precision & SKD Refinement",
+    details: [
+      "Refined SKD Categorization: Memprioritaskan deteksi sub-materi (TWK, TIU, TKP) agar tidak tercampur dalam kategori 'Full', memberikan visibilitas progres yang lebih akurat.",
+      "Granular Test History: Memastikan riwayat Tes Benchmark, Tes Kecermatan, dan Buta Warna dicatat secara terpisah sesuai dengan nama paket/sub-tes yang dikerjakan.",
+      "Fixed Buta Warna Naming: Menstandarisasi penulisan 'Buta Warna' pada seluruh komponen riwayat untuk estetika dan profesionalisme.",
+      "Interactive Sub-Materi Tabs: Penyesuaian layout tab pada riwayat belajar untuk navigasi yang lebih intuitif antara Analisis dan Daftar Riwayat.",
+      "Performance Optimizations: Peningkatan kecepatan pemrosesan data riwayat untuk user dengan jumlah sesi yang besar (>500 sesi)."
+    ]
+  },
+  {
     version: "v2.6.0",
     date: "2026-08-11",
     type: "Major Update",

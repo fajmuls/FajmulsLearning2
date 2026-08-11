@@ -305,7 +305,13 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
             const lowTitle = subTitle.toLowerCase();
 
             if (cat === 'SKD') {
-                if (lowTitle.includes('skd kedinasan')) {
+                if (lowTitle.includes('twk')) {
+                    subTitle = 'Materi TWK';
+                } else if (lowTitle.includes('tiu')) {
+                    subTitle = 'Materi TIU';
+                } else if (lowTitle.includes('tkp')) {
+                    subTitle = 'Materi TKP';
+                } else if (lowTitle.includes('skd kedinasan')) {
                     if (lowTitle.includes('gabungan')) {
                         subTitle = 'SKD Kedinasan Full Gabungan';
                     } else if (lowTitle.includes('to skd kedinasan') || lowTitle.includes('try out skd kedinasan')) {
@@ -315,12 +321,6 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                     }
                 } else if (lowTitle.includes('simulasi') || lowTitle.includes('lengkap')) {
                     subTitle = 'Simulasi SKD CPNS Full';
-                } else if (lowTitle.includes('twk')) {
-                    subTitle = 'Materi TWK';
-                } else if (lowTitle.includes('tiu')) {
-                    subTitle = 'Materi TIU';
-                } else if (lowTitle.includes('tkp')) {
-                    subTitle = 'Materi TKP';
                 } else {
                     subTitle = 'Materi SKD';
                 }
@@ -340,7 +340,7 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                 
                 // For SKD, pre-initialize the required 5 subcategories to ensure they always show up
                 if (cat === 'SKD') {
-                    const skdSubs = ['Simulasi SKD CPNS Full', 'Materi TWK', 'Materi TIU', 'Materi TKP', 'TO SKD Kedinasan Full', 'SKD Kedinasan Full Gabungan'];
+                    const skdSubs = ['Simulasi SKD CPNS Full', 'Materi TWK', 'Materi TIU', 'Materi TKP', 'TO SKD Kedinasan Full', 'SKD Kedinasan Full', 'SKD Kedinasan Full Gabungan'];
                     skdSubs.forEach(s => {
                         groups[cat].subCategories[s] = {
                             title: s,
