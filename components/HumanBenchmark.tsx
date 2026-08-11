@@ -2882,6 +2882,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
             id: `bench-${Date.now()}`,
             date: new Date().toISOString(),
             category: 'BENCHMARK',
+            packageTitle: `Benchmark: ${gameType.replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')}`,
             score: score,
             maxScore: 0, 
             details: {

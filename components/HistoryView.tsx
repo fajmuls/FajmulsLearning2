@@ -306,15 +306,14 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
 
             if (cat === 'SKD') {
                 if (lowTitle.includes('skd kedinasan')) {
-                    // Group TO SKD Kedinasan 11, 12, 13 etc into "TO SKD Kedinasan Full"
-                    if (lowTitle.includes('to skd kedinasan') || lowTitle.includes('try out skd kedinasan')) {
-                        subTitle = 'TO SKD Kedinasan Full';
-                    } else if (lowTitle.includes('gabungan')) {
+                    if (lowTitle.includes('gabungan')) {
                         subTitle = 'SKD Kedinasan Full Gabungan';
+                    } else if (lowTitle.includes('to skd kedinasan') || lowTitle.includes('try out skd kedinasan')) {
+                        subTitle = 'TO SKD Kedinasan Full';
                     } else {
                         subTitle = 'SKD Kedinasan Full';
                     }
-                } else if (lowTitle.includes('simulasi')) {
+                } else if (lowTitle.includes('simulasi') || lowTitle.includes('lengkap')) {
                     subTitle = 'Simulasi SKD CPNS Full';
                 } else if (lowTitle.includes('twk')) {
                     subTitle = 'Materi TWK';
@@ -322,21 +321,36 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                     subTitle = 'Materi TIU';
                 } else if (lowTitle.includes('tkp')) {
                     subTitle = 'Materi TKP';
+                } else {
+                    subTitle = 'Materi SKD';
                 }
             } else if (cat === 'UTBK') {
                 if (lowTitle.includes('simulasi')) subTitle = 'Try Out UTBK';
                 else subTitle = 'Materi UTBK';
-            } else if (cat === 'BENCHMARK') {
-                // Keep subTitle as the package title
-            } else if (cat === 'KECERMATAN') {
-                // Already likely has specific package titles
             } else if (cat === 'BUTAWRNA') {
-                // Normalize Buta Warna titles if they have typos
-                subTitle = subTitle.replace(/BUTA WRNA/gi, 'BUTA WARNA');
+                // Ensure specific test names are used for Buta Warna
+                subTitle = (item.packageTitle || 'Tes Buta Warna').replace(/BUTAWRNA/gi, 'BUTA WARNA').replace(/BUTA WRNA/gi, 'BUTA WARNA');
+            } else if (cat === 'BENCHMARK' || cat === 'KECERMATAN') {
+                // Keep the specific package title for these to ensure they are separated
+                subTitle = item.packageTitle || item.category;
             }
 
             if (!groups[cat]) {
                 groups[cat] = { category: cat, subCategories: {} };
+                
+                // For SKD, pre-initialize the required 5 subcategories to ensure they always show up
+                if (cat === 'SKD') {
+                    const skdSubs = ['Simulasi SKD CPNS Full', 'Materi TWK', 'Materi TIU', 'Materi TKP', 'TO SKD Kedinasan Full', 'SKD Kedinasan Full Gabungan'];
+                    skdSubs.forEach(s => {
+                        groups[cat].subCategories[s] = {
+                            title: s,
+                            count: 0,
+                            avgScore: 0,
+                            highestScore: 0,
+                            attempts: []
+                        };
+                    });
+                }
             }
             
             if (!groups[cat].subCategories[subTitle]) {
@@ -366,7 +380,9 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
         // Finalize averages and sort attempts by date desc
         Object.values(groups).forEach(cat => {
             Object.values(cat.subCategories).forEach(sub => {
-                sub.avgScore = Math.round(sub.avgScore / sub.count);
+                if (sub.count > 0) {
+                    sub.avgScore = Math.round(sub.avgScore / sub.count);
+                }
                 sub.attempts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             });
         });
@@ -717,7 +733,7 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                                                     <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                                                         {catGroup.category.toUpperCase() === 'BUTAWRNA' ? 'BUTA WARNA' : catGroup.category}
                                                     </h4>
-                                                    <p className="text-[10px] text-slate-400">{Object.keys(catGroup.subCategories).length} Sub-kategori Terdeteksi</p>
+                                                    <p className="text-[10px] text-slate-400">{Object.keys(catGroup.subCategories).length} Sub-materi</p>
                                                 </div>
                                             </div>
                                             <ChevronRight size={18} className={`text-slate-400 transition-transform ${expandedGroups[catGroup.category] ? 'rotate-90' : ''}`} />
@@ -732,12 +748,16 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                                                                 onClick={() => toggleGroup(`${catGroup.category}-${sub.title}`)}
                                                                 className="w-full p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700 transition"
                                                             >
-                                                                <div className="flex flex-col text-left">
-                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-white line-clamp-1">{sub.title}</span>
+                                                                <div className="flex flex-col text-left overflow-hidden">
+                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-white truncate pr-2">{sub.title}</span>
                                                                     <div className="flex items-center gap-2 mt-1">
-                                                                        <span className="text-[9px] font-bold bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-500">{sub.count} Attempt</span>
-                                                                        <span className="text-[9px] font-bold text-indigo-500">Avg: {sub.avgScore}</span>
-                                                                        <span className="text-[9px] font-bold text-emerald-500">Puncak: {sub.highestScore}</span>
+                                                                        <span className="text-[9px] font-bold bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-500 whitespace-nowrap">{sub.count} Sesi</span>
+                                                                        {sub.count > 0 && (
+                                                                            <>
+                                                                                <span className="text-[9px] font-bold text-indigo-500 whitespace-nowrap">Avg: {sub.avgScore}</span>
+                                                                                <span className="text-[9px] font-bold text-emerald-500 whitespace-nowrap">Top: {sub.highestScore}</span>
+                                                                            </>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                                 <ChevronRight size={14} className={`text-slate-300 transition-transform ${expandedGroups[`${catGroup.category}-${sub.title}`] ? 'rotate-90' : ''}`} />

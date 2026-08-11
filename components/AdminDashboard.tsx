@@ -7,6 +7,19 @@ interface AdminDashboardProps {
 
 export const PATCH_NOTES = [
   {
+    version: "v2.6.0",
+    date: "2026-08-11",
+    type: "Major Update",
+    description: "Granular Performance Tracking & SKD Structure",
+    details: [
+      "SKD Categorization: Implementasi 5 sub-kategori utama (CPNS Full, TWK, TIU, TKP, Kedinasan) untuk pelacakan progres yang lebih akurat.",
+      "Drill-down Special Tests: Pemisahan detail riwayat untuk Tes Benchmark, Tes Kecermatan, dan Buta Warna berdasarkan nama paket spesifik.",
+      "Empty State Placeholders: Menampilkan struktur kategori SKD secara lengkap meskipun belum ada riwayat pengerjaan.",
+      "Visual Consistency: Standardisasi ikon materi dan perbaikan penulisan 'Buta Warna' untuk pengalaman visual yang lebih profesional.",
+      "Mobile Layout Fix: Optimalisasi kontainer materi untuk mencegah teks terpotong pada layar kecil."
+    ]
+  },
+  {
     version: "v2.5.0",
     date: "2026-08-11",
     type: "Major Update",
