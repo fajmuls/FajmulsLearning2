@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Timer, Zap, CheckCircle, XCircle, ChevronRight, Lightbulb, Pause, Play, Grid, Loader2, ArrowLeft, ArrowRight, Save, CloudUpload, AlertTriangle, Flag, Type, Plus, Minus, Copy, Bookmark, Mic, MicOff, Settings, Keyboard, Lock, Bot, Sparkles, RotateCcw, Shuffle, Eye, EyeOff } from 'lucide-react';
+import { Timer, Zap, CheckCircle, XCircle, ChevronRight, Lightbulb, Pause, Play, Grid, Loader2, ArrowLeft, ArrowRight, Save, CloudUpload, AlertTriangle, Flag, Type, Plus, Minus, Copy, Bookmark, Mic, MicOff, Settings, Keyboard, Lock, Bot, Sparkles, RotateCcw, Shuffle, Eye, EyeOff, Eraser } from 'lucide-react';
 import { StudyMode, Question, UserAnswer, CategoryType, DrillMaterial, TestHistoryItem, SavedSessionState, AppFontSize, MarkedQuestion } from '../types';
 import { SoundManager } from '../services/soundService';
 import * as Gemini from '../services/geminiService';
@@ -579,6 +579,8 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
     const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
     const [bankSoalIds, setBankSoalIds] = useState<Set<string>>(new Set());
     const [finishStats, setFinishStats] = useState({ unanswered: 0, doubtful: 0, total: 0 });
+    const [showHintConfirm, setShowHintConfirm] = useState(false);
+    const [showEliminateConfirm, setShowEliminateConfirm] = useState(false);
 
     useEffect(() => {
         if (isAdminAuthenticated) {
@@ -702,6 +704,20 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
             showToast("Voice Control dinonaktifkan", 'info');
         } else {
             setShowVoiceConfig(true);
+        }
+    };
+
+    const confirmUseHint = () => {
+        if (currentQ.hint && !hintUsedMap[currentQ.id]) {
+            handleUseHint();
+            setShowHintConfirm(false);
+        }
+    };
+
+    const confirmUseEliminate = () => {
+        if (!eliminatedOptionsMap[currentQ.id] && currentQ.options && currentQ.options.length > 2) {
+            handleUseEliminator();
+            setShowEliminateConfirm(false);
         }
     };
 
@@ -1746,10 +1762,54 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col h-full overflow-hidden relative order-1">
+                {/* Confirmation Modals for Help */}
+                <AnimatePresence>
+                    {showHintConfirm && (
+                        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl max-w-sm w-full border border-slate-200 dark:border-slate-700 text-center">
+                                <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-600 dark:text-amber-400">
+                                    <Lightbulb size={24} />
+                                </div>
+                                <h3 className="text-lg font-bold mb-2 dark:text-white">Gunakan Clue?</h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Clue akan membantu Anda memahami kata kunci soal ini. Gunakan sekarang?</p>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setShowHintConfirm(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-700">Batal</button>
+                                    <button onClick={confirmUseHint} className="flex-1 py-2.5 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 shadow-sm">Ya, Pakai</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {showEliminateConfirm && (
+                        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl max-w-sm w-full border border-slate-200 dark:border-slate-700 text-center">
+                                <div className="w-12 h-12 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-600 dark:text-rose-400">
+                                    <Eraser size={24} />
+                                </div>
+                                <h3 className="text-lg font-bold mb-2 dark:text-white">Eliminasi Jawaban?</h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Satu pilihan jawaban yang salah akan dihapus untuk mempermudah Anda. Gunakan fitur ini?</p>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setShowEliminateConfirm(false)} className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-700">Batal</button>
+                                    <button onClick={confirmUseEliminate} className="flex-1 py-2.5 bg-rose-500 text-white rounded-xl font-bold hover:bg-rose-600 shadow-sm">Ya, Pakai</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
                 {/* Mobile Header */}
                 <div className="md:hidden bg-white dark:bg-slate-800 p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center shadow-sm z-20">
                     <div className="font-bold text-slate-700 dark:text-white text-sm">No. {currentIndex + 1}</div>
                     <div className="flex items-center gap-2">
+                         {currentQ?.hint && !hintUsedMap[currentQ.id] && (
+                             <button onClick={() => setShowHintConfirm(true)} className="p-1.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg border border-amber-200 dark:border-amber-800 transition" title="Gunakan Clue">
+                                 <Lightbulb size={16} />
+                             </button>
+                         )}
+                         {!eliminatedOptionsMap[currentQ.id] && currentQ.options && currentQ.options.length > 2 && (
+                             <button onClick={() => setShowEliminateConfirm(true)} className="p-1.5 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-800 transition" title="Eliminasi 1 Opsi Salah">
+                                 <Eraser size={16} />
+                             </button>
+                         )}
                          {focusTimerType === 'STANDARD' && mode === StudyMode.SIMULATION && (
                             <>
                                 <div className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs font-mono font-bold dark:text-white">{formatTime(timeLeft)}</div>
@@ -1854,6 +1914,19 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                                     <Zap size={10} fill="currentColor"/> HOTS
                                                 </span>
                                             )}
+                                            {/* Desktop Help Buttons */}
+                                            <div className="hidden md:flex items-center gap-1 ml-2">
+                                                {currentQ?.hint && !hintUsedMap[currentQ.id] && (
+                                                    <button onClick={() => setShowHintConfirm(true)} className="flex items-center gap-1 px-2 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg border border-amber-200 dark:border-amber-800 text-[10px] font-bold hover:bg-amber-100 transition shadow-sm">
+                                                        <Lightbulb size={12} /> Clue
+                                                    </button>
+                                                )}
+                                                {!eliminatedOptionsMap[currentQ.id] && currentQ.options && currentQ.options.length > 2 && (
+                                                    <button onClick={() => setShowEliminateConfirm(true)} className="flex items-center gap-1 px-2 py-1 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-800 text-[10px] font-bold hover:bg-rose-100 transition shadow-sm">
+                                                        <Eraser size={12} /> Eliminasi
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className="text-right shrink-0">
                                             <span className="text-xs sm:text-sm font-black text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-750 px-2 py-0.5 rounded">No. {currentIndex + 1}</span>
@@ -1905,7 +1978,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                             )}
                                             {!eliminatedOptionsMap[currentQ.id] && currentQ.options && currentQ.options.length > 2 && (
                                                 <button onClick={handleUseEliminator} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40 transition">
-                                                    <EyeOff size={14} /> Eliminasi 1 Opsi Salah
+                                                    <Eraser size={14} /> Eliminasi 1 Opsi Salah
                                                 </button>
                                             )}
                                         </div>

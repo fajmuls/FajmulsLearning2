@@ -1,11 +1,38 @@
-import React from 'react';
-import { ArrowLeft, Activity, Info, Tag, Layers, GitCommit, FileText } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, Activity, Info, Tag, Layers, GitCommit, FileText, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import * as FirebaseService from '../services/firebase';
 
 interface AdminDashboardProps {
   onBack: () => void;
 }
 
 export const PATCH_NOTES = [
+  {
+    version: "v2.9.0",
+    date: "2026-08-11",
+    type: "Major Update",
+    description: "Expanded Article Test Modes & UI Consistency",
+    details: [
+      "Article Test Categories: Menambahkan pilihan mode 'Keseluruhan' dan 'Khusus TWK' pada Tes Pasal.",
+      "TWK Focus Mode: Menambahkan 30 soal khusus tema TWK (Bela Negara, Integritas, dll.) untuk persiapan SKD.",
+      "Consistency Update: Mengganti ikon eliminasi menjadi 'Eraser' di seluruh aplikasi untuk konsistensi visual.",
+      "Firebase Integration: Optimalisasi fetching data berdasarkan kategori soal.",
+      "Bug Fix: Memperbaiki error visual pada indikator bantuan di top bar."
+    ]
+  },
+  {
+    version: "v2.8.0",
+    date: "2026-08-11",
+    type: "Major Update",
+    description: "New Game Mode: Article Test (Tes Pasal Hukum)",
+    details: [
+      "Article Test (Tes Pasal): Menambahkan kategori baru di Human Benchmark untuk menguji pemahaman pasal-pasal UUD 1945 dan peraturan hukum lainnya.",
+      "Interactive Learning: Setiap soal pasal kini dilengkapi dengan penjelasan detail dan referensi pasal yang tepat.",
+      "Session Engine Optimization: Memindahkan tombol 'Clue' dan 'Eliminasi' ke top bar untuk pengalaman pengerjaan yang lebih bersih di desktop.",
+      "Confirmation Dialogs: Menambahkan konfirmasi sebelum menggunakan bantuan (Clue/Eliminasi) untuk mencegah penggunaan yang tidak disengaja.",
+      "Visual Refinement: Optimalisasi ikon dan layout kartu pada Human Benchmark Dashboard."
+    ]
+  },
   {
     version: "v2.7.0",
     date: "2026-08-11",
@@ -181,6 +208,70 @@ export const PATCH_NOTES = [
 ];
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+
+  const [genCategory, setGenCategory] = useState<'GENERAL' | 'TWK'>('GENERAL');
+
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    setStatus(null);
+    try {
+      const prompt = `Generate 20 high-quality multiple choice questions specifically for ${genCategory === 'TWK' ? 'TWK (Tes Wawasan Kebangsaan) level SKD' : 'Indonesian laws and articles (Pasal-Pasal UUD 1945, KUHP, etc.)'} for a legal education app.
+      
+      Requirements:
+      1. Language: Indonesian.
+      2. Format: JSON array of objects.
+      3. Each object structure:
+      {
+          "id": "${genCategory.toLowerCase()}_pasal_gen_${Date.now()}_index",
+          "question": "The question text",
+          "options": ["Option A", "Option B", "Option C", "Option D", "Option E"],
+          "correctAnswer": "The correct option text",
+          "article": "The article reference",
+          "explanation": "Detailed explanation"
+      }
+      4. Return ONLY the JSON array.`;
+
+      const response = await fetch('/api/generate-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+
+      const jsonMatch = data.text.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error("Format AI tidak valid (JSON tidak ditemukan)");
+
+      const questions = JSON.parse(jsonMatch[0]);
+      const questionsWithIds = questions.map((q: any, i: number) => ({
+        ...q,
+        id: q.id || `${genCategory.toLowerCase()}_pasal_gen_${Date.now()}_${i}`
+      }));
+
+      await FirebaseService.saveArticleQuestions(questionsWithIds, genCategory);
+      setStatus({ type: 'success', message: `Berhasil menambahkan ${questionsWithIds.length} soal ${genCategory} baru!` });
+    } catch (e: any) {
+      console.error(e);
+      setStatus({ type: 'error', message: e.message || "Gagal menghasilkan soal." });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!confirm('PERINGATAN: Ini akan menghapus SEMUA soal pasal dari database. Lanjutkan?')) return;
+    try {
+      // Note: We'd need a clearArticleQuestions in FirebaseService
+      // For now we'll just alert that it's coming soon or implement it
+      alert('Fitur hapus massal sedang dikembangkan. Silakan hapus via console Firebase untuk saat ini.');
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 overflow-hidden">
       <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 sticky top-0 z-10 shrink-0">
@@ -213,8 +304,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
         <div className="max-w-[800px] mx-auto space-y-8">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
             <h2 className="text-xl font-black text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-              <FileText className="text-purple-500" /> Patch Notes & Updates
+              <FileText className="text-orange-500" /> Manajemen Tes Pasal (Hukum)
             </h2>
+
+            {status && (
+              <div className={`mb-6 p-4 rounded-2xl flex items-start gap-3 animate-fade-in ${status.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800' : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-800'}`}>
+                {status.type === 'success' ? <CheckCircle2 size={20} className="shrink-0" /> : <AlertCircle size={20} className="shrink-0" />}
+                <span className="text-sm font-bold">{status.message}</span>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">Generate Questions</h3>
+                <div className="flex gap-2 mb-4">
+                  {(['GENERAL', 'TWK'] as const).map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setGenCategory(cat)}
+                      className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all ${genCategory === cat ? 'bg-orange-100 text-orange-600 border border-orange-200' : 'bg-white dark:bg-slate-800 text-slate-400 border border-slate-100 dark:border-slate-700'}`}
+                    >
+                      {cat === 'GENERAL' ? 'Umum' : 'TWK'}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Gunakan AI untuk membuat 20 soal {genCategory === 'TWK' ? 'khusus TWK' : 'pasal umum'} baru.</p>
+                <button 
+                  disabled={isGenerating}
+                  onClick={handleGenerate}
+                  className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isGenerating ? <><Loader2 size={16} className="animate-spin" /> Sedang Proses...</> : `Generate 20 Soal ${genCategory === 'TWK' ? 'TWK' : 'Umum'}`}
+                </button>
+              </div>
+              
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">Reset Database</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Hapus semua data soal pasal yang ada saat ini dari database.</p>
+                <button 
+                  onClick={handleReset}
+                  className="w-full py-2.5 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl font-bold text-sm transition-all"
+                >
+                  Kosongkan Data
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
             
             <div className="space-y-8">
               {PATCH_NOTES.map((note, index) => (
@@ -261,15 +398,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                   <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
                     <li className="flex gap-2">
                       <span className="text-emerald-500 font-bold">•</span>
-                      <span><strong>AI Study Planner:</strong> AI menyarankan materi belajar harian berdasarkan kelemahan di grafik akurasi.</span>
+                      <span><strong>Global Leaderboard Article Test:</strong> Menambahkan peringkat global khusus untuk skor tertinggi di Tes Pasal.</span>
                     </li>
                     <li className="flex gap-2">
                       <span className="text-emerald-500 font-bold">•</span>
-                      <span><strong>Predictive Score:</strong> Prediksi peluang kelulusan berdasarkan tren skor rata-rata vs ambang batas nasional.</span>
+                      <span><strong>AI Law Explanation:</strong> Integrasi Gemini untuk menjelaskan konteks hukum suatu pasal jika pengguna masih bingung.</span>
                     </li>
                     <li className="flex gap-2">
                       <span className="text-emerald-500 font-bold">•</span>
-                      <span><strong>Custom Study Groups:</strong> Fitur untuk membandingkan heatmap konsistensi dengan teman (Belajar Bareng).</span>
+                      <span><strong>Dark Mode Sync:</strong> Otomatisasi sinkronisasi tema aplikasi dengan preferensi sistem operasi pengguna secara real-time.</span>
                     </li>
                   </ul>
                 </div>
@@ -281,15 +418,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                   <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
                     <li className="flex gap-2">
                       <span className="text-amber-500 font-bold">•</span>
-                      <span><strong>Chart Memory Optimization:</strong> Perbaikan lag saat berpindah tab Analisis secara cepat pada perangkat low-end.</span>
+                      <span><strong>Mobile Help Buttons:</strong> Re-alignment tombol bantuan pada tampilan mobile agar lebih ergonomis untuk jempol.</span>
                     </li>
                     <li className="flex gap-2">
                       <span className="text-amber-500 font-bold">•</span>
-                      <span><strong>Heatmap Fluidity:</strong> Peningkatan performa rendering heatmap untuk rentang waktu yang lebih panjang (&gt;1 tahun).</span>
+                      <span><strong>History Categorization Fix:</strong> Memastikan attempt gabungan (SKD Full) selalu muncul di urutan paling atas.</span>
                     </li>
                     <li className="flex gap-2">
                       <span className="text-amber-500 font-bold">•</span>
-                      <span><strong>Detail Transition:</strong> Animasi transisi yang lebih halus saat membuka detail attempt di ringkasan paket.</span>
+                      <span><strong>Asset Pre-loading:</strong> Optimasi pre-loading ikon dan aset suara saat aplikasi pertama kali dimuat (LCP improvement).</span>
                     </li>
                   </ul>
                 </div>

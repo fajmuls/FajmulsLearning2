@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Zap, Grid, Activity, Play, Trophy, BarChart2, X, Users, TrendingUp, Target, Brain, Hash, Type, FileText, CheckCircle, Heart, History, Clock, Map, Copy, Globe, Loader2, ArrowUp, Search, MapPin, Briefcase, RefreshCw, Route, Flag, Layers } from 'lucide-react';
+import { ArrowLeft, Zap, Grid, Activity, Play, Trophy, BarChart2, X, Users, TrendingUp, Target, Brain, Hash, Type, FileText, CheckCircle, Heart, History, Clock, Map, Copy, Globe, Loader2, ArrowUp, Search, MapPin, Briefcase, RefreshCw, Route, Flag, Layers, Info } from 'lucide-react';
 import { SoundManager } from '../services/soundService';
 import { BenchmarkMode, TestHistoryItem, BenchmarkResultDetails, GlobalBenchmarkScore } from '../types';
 import { TYPING_TEXTS } from '../constants';
@@ -88,6 +88,7 @@ const getGameColor = (game: BenchmarkMode) => {
         case 'TIME_PRESSURE': return 'text-rose-600 bg-rose-50 dark:bg-rose-900/20';
         case 'MULTI_LAYER': return 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20';
         case 'SYNONYM_ANTONYM': return 'text-cyan-600 bg-cyan-50 dark:bg-cyan-900/20';
+        case 'ARTICLE_TEST': return 'text-orange-600 bg-orange-50 dark:bg-orange-900/20';
         default: return 'text-slate-500 bg-slate-100';
     }
 }
@@ -140,6 +141,7 @@ const getGameLabel = (g: BenchmarkMode) => {
         case 'TIME_PRESSURE': return 'Time Pressure Logic';
         case 'MULTI_LAYER': return 'Multi-Layer Puzzle';
         case 'SYNONYM_ANTONYM': return 'Sinonim & Antonim';
+        case 'ARTICLE_TEST': return 'Tes Pasal (Hukum)';
         default: return g;
     }
 }
@@ -2669,6 +2671,181 @@ const MultiLayerGame: React.FC<{ onFinish: (level: number) => void, onExit: () =
     );
 };
 
+const ArticleTestGame: React.FC<{ onFinish: (score: number) => void, onExit: () => void }> = ({ onFinish, onExit }) => {
+    const [state, setState] = useState<'START' | 'LOADING' | 'PLAYING' | 'EXPLANATION' | 'GAMEOVER'>('START');
+    const [questions, setQuestions] = useState<any[]>([]);
+    const [qIndex, setQIndex] = useState(0);
+    const [score, setScore] = useState(0);
+    const [lives, setLives] = useState(3);
+    const [selectedOption, setSelectedOption] = useState<string | null>(null);
+    const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+
+    const startGame = async (category?: string) => {
+        setState('LOADING');
+        try {
+            const result = await FirebaseService.getArticleQuestions(category);
+            if (result && result.length > 0) {
+                const limit = category === 'TWK' ? 30 : 50;
+                const shuffled = [...result].sort(() => Math.random() - 0.5).slice(0, limit);
+                setQuestions(shuffled);
+                setState('PLAYING');
+            } else {
+                setState('GAMEOVER');
+            }
+        } catch (e) {
+            console.error(e);
+            setState('GAMEOVER');
+        }
+    };
+
+    const handleAnswer = (option: string) => {
+        if (state !== 'PLAYING') return;
+        const currentQ = questions[qIndex];
+        setSelectedOption(option);
+        const correct = option === currentQ.correctAnswer;
+        setIsCorrect(correct);
+        
+        if (correct) {
+            SoundManager.play('success');
+            setScore(prev => prev + 1);
+        } else {
+            SoundManager.play('error');
+            setLives(prev => prev - 1);
+        }
+        
+        setState('EXPLANATION');
+    };
+
+    const handleNext = () => {
+        if (lives <= 0) {
+            setState('GAMEOVER');
+            setTimeout(() => onFinish(score), 2000);
+            return;
+        }
+
+        if (qIndex + 1 < questions.length) {
+            setQIndex(prev => prev + 1);
+            setSelectedOption(null);
+            setIsCorrect(null);
+            setState('PLAYING');
+        } else {
+            SoundManager.play('finish');
+            setState('GAMEOVER');
+            setTimeout(() => onFinish(score), 2000);
+        }
+    };
+
+    if (state === 'START') {
+        return (
+            <div className="w-full max-w-lg mx-auto bg-slate-900 border-2 border-slate-700 rounded-3xl overflow-hidden shadow-2xl flex flex-col p-8 text-center animate-fade-in text-white relative">
+                <button onClick={onExit} className="absolute top-4 left-4 p-2 text-slate-400 hover:text-white transition bg-slate-800 rounded-full"><ArrowLeft size={20}/></button>
+                <div className="w-20 h-20 bg-orange-500/20 text-orange-400 rounded-full flex items-center justify-center mx-auto mb-6"><FileText size={40}/></div>
+                <h2 className="text-3xl font-black mb-4">Tes Pasal (Hukum)</h2>
+                <p className="text-slate-400 mb-8 max-w-sm mx-auto">Uji pemahamanmu tentang hukum dan pasal-pasal di Indonesia. Pilih mode tes di bawah ini.</p>
+                <div className="grid grid-cols-1 gap-4">
+                    <button onClick={() => startGame('GENERAL')} className="w-full py-4 bg-orange-600 hover:bg-orange-500 text-white rounded-2xl font-black text-xl shadow-lg transition-all transform hover:scale-105 active:scale-95 flex flex-col items-center">
+                        <span>Mode Keseluruhan</span>
+                        <span className="text-xs font-normal opacity-80 mt-1">UUD 1945, KUHP, & Peraturan Umum (50 Soal)</span>
+                    </button>
+                    <button onClick={() => startGame('TWK')} className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-xl shadow-lg transition-all transform hover:scale-105 active:scale-95 flex flex-col items-center">
+                        <span>Mode Khusus TWK</span>
+                        <span className="text-xs font-normal opacity-80 mt-1">Fokus SKD: Bela Negara & Integritas (30 Soal)</span>
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (state === 'LOADING') {
+        return (
+            <div className="w-full h-[500px] bg-slate-900 border-2 border-slate-700 rounded-3xl flex flex-col items-center justify-center animate-fade-in text-white relative">
+                <Loader2 className="animate-spin text-orange-500 mb-6" size={48}/>
+                <h2 className="text-2xl font-bold">Mengambil Data Pasal...</h2>
+            </div>
+        );
+    }
+
+    if (state === 'PLAYING' || state === 'EXPLANATION') {
+        const q = questions[qIndex];
+        return (
+            <div className="w-full min-h-[600px] bg-slate-900 border-2 border-slate-700 rounded-3xl flex flex-col animate-fade-in text-white relative p-6">
+                <button onClick={onExit} className="absolute top-4 left-4 p-2 text-slate-400 hover:text-white transition bg-slate-800 rounded-full z-10"><ArrowLeft size={20}/></button>
+                
+                <div className="flex justify-between items-center mb-8 px-4 sm:px-12">
+                    <div className="text-slate-400 font-bold uppercase tracking-wider text-sm flex items-center gap-2">Skor <span className="text-2xl text-orange-400">{score}</span></div>
+                    <div className="flex gap-1">
+                        {[1,2,3].map(i => (
+                            <Heart key={i} size={24} className={i <= lives ? "text-rose-500 fill-rose-500" : "text-slate-700 fill-slate-700"} />
+                        ))}
+                    </div>
+                </div>
+
+                <div className="flex-1 flex flex-col items-center justify-center max-w-2xl mx-auto w-full">
+                    <div className="text-orange-400 font-bold tracking-widest uppercase mb-2 text-sm">Pertanyaan {qIndex + 1}/{questions.length}</div>
+                    <div className="text-xl sm:text-2xl font-bold mb-8 text-center leading-relaxed">{q.question}</div>
+                    
+                    <div className="grid grid-cols-1 gap-3 w-full mb-8">
+                        {q.options.map((opt: string, i: number) => {
+                            const isSelected = selectedOption === opt;
+                            const isCorrectAns = opt === q.correctAnswer;
+                            let style = "bg-slate-800 border-slate-700";
+                            
+                            if (state === 'EXPLANATION') {
+                                if (isCorrectAns) style = "bg-emerald-500/20 border-emerald-500 text-emerald-400";
+                                else if (isSelected && !isCorrectAns) style = "bg-rose-500/20 border-rose-500 text-rose-400";
+                                else style = "bg-slate-800/50 border-slate-700 text-slate-500";
+                            } else {
+                                style = "bg-slate-800 hover:bg-slate-700 border-slate-700 hover:border-orange-500";
+                            }
+
+                            return (
+                                <button
+                                    key={i}
+                                    disabled={state === 'EXPLANATION'}
+                                    onClick={() => handleAnswer(opt)}
+                                    className={`p-4 border-2 rounded-xl text-left font-bold transition-all ${style} flex items-center gap-4`}
+                                >
+                                    <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-sm ${isSelected ? 'bg-orange-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
+                                        {String.fromCharCode(65 + i)}
+                                    </div>
+                                    <span className="flex-1">{opt}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {state === 'EXPLANATION' && (
+                        <div className="w-full animate-slide-up">
+                            <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 mb-6">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Info size={18} className="text-orange-400"/>
+                                    <span className="font-bold text-orange-400 uppercase text-xs tracking-wider">Pembahasan: {q.article}</span>
+                                </div>
+                                <p className="text-slate-300 text-sm leading-relaxed">{q.explanation}</p>
+                            </div>
+                            <button
+                                onClick={handleNext}
+                                className="w-full py-4 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-black transition-all shadow-lg flex items-center justify-center gap-2"
+                            >
+                                {lives <= 0 ? 'Lihat Hasil Akhir' : 'Pertanyaan Selanjutnya'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="w-full h-[500px] bg-slate-900 border-2 border-slate-700 rounded-3xl flex flex-col items-center justify-center animate-fade-in text-white relative">
+            <Trophy size={64} className="mb-6 text-orange-500"/>
+            <h2 className="text-4xl font-black mb-4">Selesai!</h2>
+            <div className="text-xl text-slate-400 mb-2">Skor Kamu</div>
+            <div className="text-6xl font-black text-orange-400 mb-8">{score}</div>
+        </div>
+    );
+};
+
 const SynonymAntonymGame: React.FC<{ onFinish: (score: number) => void, onExit: () => void }> = ({ onFinish, onExit }) => {
     const [state, setState] = useState<'LANG_SELECT' | 'LOADING' | 'PLAYING' | 'SHOW_MEANING' | 'GAMEOVER'>('LANG_SELECT');
     const [lang, setLang] = useState<'ID'|'EN'>('ID');
@@ -2953,6 +3130,7 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
             case 'TIME_PRESSURE': return <TimePressureGame onFinish={(s) => handleFinishGame(s, 'TIME_PRESSURE')} onExit={() => setMode('MENU')} />;
             case 'MULTI_LAYER': return <MultiLayerGame onFinish={(s) => handleFinishGame(s, 'MULTI_LAYER')} onExit={() => setMode('MENU')} />;
             case 'SYNONYM_ANTONYM': return <SynonymAntonymGame onFinish={(s) => handleFinishGame(s, 'SYNONYM_ANTONYM')} onExit={() => setMode('MENU')} />;
+            case 'ARTICLE_TEST': return <ArticleTestGame onFinish={(s) => handleFinishGame(s, 'ARTICLE_TEST')} onExit={() => setMode('MENU')} />;
             default: setMode('MENU'); return null;
         }
     }
@@ -3145,6 +3323,15 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
                                 colorClass="bg-cyan-600"
                                 textColorClass="text-cyan-600"
                                 btnColorClass="bg-cyan-600 hover:bg-cyan-700"
+                            />
+                            <GameCard 
+                                game="ARTICLE_TEST" 
+                                title="Tes Pasal (Hukum)" 
+                                desc="Uji pemahamanmu tentang pasal-pasal UUD 1945 dan peraturan hukum lainnya." 
+                                icon={<FileText size={32}/>}
+                                colorClass="bg-orange-600"
+                                textColorClass="text-orange-600"
+                                btnColorClass="bg-orange-600 hover:bg-orange-700"
                             />
                             <GameCard 
                                 game="TYPING" 

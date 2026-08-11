@@ -34,6 +34,7 @@ console.log("Firebase Service Initialized for:", firebaseConfig.projectId);
 const BENCHMARK_COLLECTION = 'benchmark_scores';
 const GLOBAL_LEADERBOARD_COLLECTION = 'global_leaderboard';
 const PACKAGES_COLLECTION = 'test_packages';
+const ARTICLE_QUESTIONS_COLLECTION = 'article_questions';
 const USERS_COLLECTION = 'users';
 const BATTLES_COLLECTION = 'battles';
 
@@ -454,6 +455,38 @@ export const getTestPackages = async (): Promise<StaticTestPackage[]> => {
             };
             throw new Error(JSON.stringify(errInfo));
         }
+        return [];
+    }
+};
+
+// --- ARTICLE TEST QUESTIONS ---
+
+export const saveArticleQuestions = async (questions: any[], category: string = 'GENERAL') => {
+    try {
+        const batch = questions.map(q => {
+            const cleanQ = deepClean({ ...q, category });
+            return setDoc(doc(db, ARTICLE_QUESTIONS_COLLECTION, q.id), cleanQ);
+        });
+        await Promise.all(batch);
+        console.log(`${questions.length} article questions saved in category: ${category}`);
+    } catch (e) {
+        console.error("Error saving article questions:", e);
+        throw e;
+    }
+};
+
+export const getArticleQuestions = async (category?: string): Promise<any[]> => {
+    try {
+        let q;
+        if (category) {
+            q = query(collection(db, ARTICLE_QUESTIONS_COLLECTION), where("category", "==", category));
+        } else {
+            q = collection(db, ARTICLE_QUESTIONS_COLLECTION);
+        }
+        const snap = await getDocs(q);
+        return snap.docs.map(d => d.data());
+    } catch (e) {
+        console.error("Error fetching article questions:", e);
         return [];
     }
 };

@@ -84,6 +84,14 @@ service cloud.firestore {
     }
     
     // ===============================================================
+    // Article Questions
+    // ===============================================================
+    match /article_questions/{questionId} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    // ===============================================================
     // Battles (Multiplayer)
     // ===============================================================
     match /battles/{battleId} {
