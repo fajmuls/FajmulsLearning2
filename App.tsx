@@ -36,7 +36,7 @@ import { TkaSelection } from "./components/TkaSelection";
 import { SubjectSelection } from "./components/SubjectSelection";
 import { BankSoalManager } from "./components/BankSoalManager";
 import { AdminSessionViewer } from "./components/AdminSessionViewer";
-import { AdminDashboard } from "./components/AdminDashboard";
+import { AdminDashboard, PATCH_NOTES } from "./components/AdminDashboard";
 import { GenerationProgressBox } from "./components/GenerationProgressBox";
 import {
   CATEGORIES,
@@ -2029,6 +2029,12 @@ const Dashboard: React.FC<{
                 </div>
               )}
           </>
+        </div>
+        
+        <div className="mt-12 mb-8 pb-8 text-center border-t border-slate-100 dark:border-slate-800 pt-8 opacity-50">
+            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-widest uppercase">
+                Fajmuls Learning System • {PATCH_NOTES[0].version}
+            </p>
         </div>
       </div>
     </div>

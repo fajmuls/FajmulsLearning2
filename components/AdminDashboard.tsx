@@ -5,7 +5,60 @@ interface AdminDashboardProps {
   onBack: () => void;
 }
 
-const PATCH_NOTES = [
+export const PATCH_NOTES = [
+  {
+    version: "v2.5.0",
+    date: "2026-08-11",
+    type: "Major Update",
+    description: "Icon-Based Analytics & Enhanced Grouping",
+    details: [
+      "Icon-Based Analytics: Mengganti label teks pada ringkasan paket dengan ikon deskriptif untuk keterbacaan yang lebih cepat.",
+      "Granular Categorization: Implementasi pemisahan kategori yang lebih detail untuk Tes Benchmark, Tes Kecermatan, dan Buta Warna.",
+      "SKD Full Grouping: Pengelompokan cerdas untuk Try Out SKD Kedinasan (TO 11, 12, 13) ke dalam satu kategori induk 'TO SKD Kedinasan Full'.",
+      "Typo Fix: Memperbaiki kesalahan penulisan 'Buta WRNA' menjadi 'Buta Warna' pada seluruh modul riwayat dan analisis.",
+      "UI Refinement: Penyesuaian kontainer materi untuk memastikan teks tidak terpotong atau keluar kotak pada perangkat mobile."
+    ]
+  },
+  {
+    version: "v2.4.0",
+    date: "2026-08-11",
+    type: "Major Update",
+    description: "Tabbed Analytics & Hierarchical Summary",
+    details: [
+      "Tabbed Navigation: Memisahkan 'Ringkasan & Analisis' dengan 'Ruangan Soal' untuk pengalaman navigasi yang lebih terfokus.",
+      "Hierarchical Summary: Menampilkan ringkasan progres secara bertingkat (Kategori > Materi > Attempt) untuk drill-down performa yang mendalam.",
+      "Performance Layers: Rekonstruksi layout analisis menjadi 4 layer fungsional: Konsistensi, Statistik Utama, Ringkasan Paket, dan Visualisasi Grafik.",
+      "Title Sanitization: Secara otomatis menghapus label 'Attempt ke-X' pada judul riwayat untuk menjaga kebersihan visual.",
+      "Interactive Drill-down: Sub-kategori dalam ringkasan kini dapat diklik untuk melihat detail skor setiap percobaan secara instan."
+    ]
+  },
+  {
+    version: "v2.3.0",
+    date: "2026-08-11",
+    type: "Major Update",
+    description: "Visualisasi Konsistensi (Heatmap) & Redesain Riwayat Belajar",
+    details: [
+      "Learning Heatmap: Menambahkan kalender kontribusi belajar ala GitHub untuk melacak konsistensi harian.",
+      "Ringkasan per Paket: Fitur summary baru yang mengelompokkan riwayat berdasarkan paket soal, menampilkan jumlah attempt, skor rata-rata, dan skor puncak.",
+      "Redesain Detail Riwayat: Layout riwayat belajar kini lebih terstruktur dengan sistem 'Layer' (Layer 1: Performa Utama, Layer 2: Detail Jawaban, Layer 3: Fitur Bantuan).",
+      "Statistik Persentase: Menambahkan perhitungan persentase akurasi (Benar/Salah) pada setiap item riwayat.",
+      "Revisi Penamaan: Menghapus label 'Attempt ke-X' pada judul riwayat untuk menjaga kebersihan visual dan integritas nama paket soal.",
+      "Puncak Performa: Menambahkan indikator 'Puncak' (Peak performance) pada setiap sesi belajar untuk motivasi maksimal."
+    ]
+  },
+  {
+    version: "v2.2.0",
+    date: "2026-08-11",
+    type: "Major Feature",
+    description: "Sistem Bantuan (Clues) & Peningkatan Analisis Percobaan",
+    details: [
+      "Fitur Clue (Hint): Setiap soal kini dilengkapi dengan 'Clue' yang dapat dibuka jika pengguna merasa kesulitan. AI akan memberikan petunjuk tanpa membocorkan jawaban.",
+      "Fitur Eliminasi Opsi: Pengguna dapat mengeliminasi satu pilihan jawaban yang salah untuk mempersempit kemungkinan jawaban.",
+      "Attempt Tracking: Riwayat pengerjaan kini secara otomatis melacak dan menampilkan nomor percobaan (Attempt ke-1, 2, dst) untuk setiap paket soal yang sama.",
+      "Statistik Penggunaan Alat Bantu: Menambahkan pelacakan penggunaan Clue dan Eliminasi pada setiap soal di ringkasan hasil akhir.",
+      "Gemini System V7: Peningkatan logika AI untuk menghasilkan soal yang lebih menantang (Anti-Leak) dan penyertaan hint kontekstual yang cerdas."
+    ]
+  },
   {
     version: "v2.1.4",
     date: "2026-08-10",
@@ -169,6 +222,53 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
               ))}
             </div>
             
+            <div className="mt-12 pt-12 border-t border-slate-200 dark:border-slate-800">
+              <h2 className="text-xl font-black text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+                <Info className="text-blue-500" /> Saran Pengembangan Selanjutnya
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-emerald-50 dark:bg-emerald-900/10 p-5 rounded-2xl border border-emerald-100 dark:border-emerald-800">
+                  <h3 className="font-bold text-emerald-800 dark:text-emerald-300 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
+                    <Layers size={16} /> Fitur & QoL Teratas
+                  </h3>
+                  <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
+                    <li className="flex gap-2">
+                      <span className="text-emerald-500 font-bold">•</span>
+                      <span><strong>AI Study Planner:</strong> AI menyarankan materi belajar harian berdasarkan kelemahan di grafik akurasi.</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-emerald-500 font-bold">•</span>
+                      <span><strong>Predictive Score:</strong> Prediksi peluang kelulusan berdasarkan tren skor rata-rata vs ambang batas nasional.</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-emerald-500 font-bold">•</span>
+                      <span><strong>Custom Study Groups:</strong> Fitur untuk membandingkan heatmap konsistensi dengan teman (Belajar Bareng).</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-amber-50 dark:bg-amber-900/10 p-5 rounded-2xl border border-amber-100 dark:border-amber-800">
+                  <h3 className="font-bold text-amber-800 dark:text-amber-300 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
+                    <Activity size={16} /> Perbaikan & UI/UX
+                  </h3>
+                  <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
+                    <li className="flex gap-2">
+                      <span className="text-amber-500 font-bold">•</span>
+                      <span><strong>Chart Memory Optimization:</strong> Perbaikan lag saat berpindah tab Analisis secara cepat pada perangkat low-end.</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-amber-500 font-bold">•</span>
+                      <span><strong>Heatmap Fluidity:</strong> Peningkatan performa rendering heatmap untuk rentang waktu yang lebih panjang (&gt;1 tahun).</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-amber-500 font-bold">•</span>
+                      <span><strong>Detail Transition:</strong> Animasi transisi yang lebih halus saat membuka detail attempt di ringkasan paket.</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </main>

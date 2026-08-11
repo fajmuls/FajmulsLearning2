@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Timer, Zap, CheckCircle, XCircle, ChevronRight, Lightbulb, Pause, Play, Grid, Loader2, ArrowLeft, ArrowRight, Save, CloudUpload, AlertTriangle, Flag, Type, Plus, Minus, Copy, Bookmark, Mic, MicOff, Settings, Keyboard, Lock, Bot, Sparkles, RotateCcw, Shuffle } from 'lucide-react';
+import { Timer, Zap, CheckCircle, XCircle, ChevronRight, Lightbulb, Pause, Play, Grid, Loader2, ArrowLeft, ArrowRight, Save, CloudUpload, AlertTriangle, Flag, Type, Plus, Minus, Copy, Bookmark, Mic, MicOff, Settings, Keyboard, Lock, Bot, Sparkles, RotateCcw, Shuffle, Eye, EyeOff } from 'lucide-react';
 import { StudyMode, Question, UserAnswer, CategoryType, DrillMaterial, TestHistoryItem, SavedSessionState, AppFontSize, MarkedQuestion } from '../types';
 import { SoundManager } from '../services/soundService';
 import * as Gemini from '../services/geminiService';
@@ -548,6 +548,9 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
     useEffect(() => {
         answerMapRef.current = answerMap;
     }, [answerMap]);
+
+    const [hintUsedMap, setHintUsedMap] = useState<Record<string, boolean>>({});
+    const [eliminatedOptionsMap, setEliminatedOptionsMap] = useState<Record<string, string[]>>({});
     
     const [isPaused, setIsPaused] = useState(false);
     const [isMobileGridOpen, setIsMobileGridOpen] = useState(false);
@@ -1295,6 +1298,30 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [currentIndex, activeQuestions, showFinishModal, showExitModal, showAdminModal, showFlagModal, isBreak, isPaused, showVoiceConfig, showShortcutModal]);
 
+    const handleUseHint = () => {
+        const currentQ = activeQuestions[currentIndex];
+        if (!currentQ || !currentQ.hint || hintUsedMap[currentQ.id]) return;
+        setHintUsedMap(prev => ({ ...prev, [currentQ.id]: true }));
+        SoundManager.play('click');
+    };
+
+    const handleUseEliminator = () => {
+        const currentQ = activeQuestions[currentIndex];
+        if (!currentQ || eliminatedOptionsMap[currentQ.id]?.length > 0) return;
+        
+        let wrongOptions = currentQ.options?.filter(opt => opt !== currentQ.correctAnswer) || [];
+        if (currentQ.tkpPoints && currentQ.tkpPoints.length > 0) {
+            const topPoints = currentQ.tkpPoints.filter(p => p.points >= 4).map(p => p.option);
+            wrongOptions = currentQ.options?.filter(opt => !topPoints.includes(opt)) || [];
+        }
+
+        if (wrongOptions.length > 0) {
+            const toEliminate = wrongOptions[Math.floor(Math.random() * wrongOptions.length)];
+            setEliminatedOptionsMap(prev => ({ ...prev, [currentQ.id]: [toEliminate] }));
+            SoundManager.play('click');
+        }
+    };
+
     const handleAnswer = async (option: string) => {
         const currentQ = activeQuestions[currentIndex];
         if (!currentQ) return;
@@ -1388,7 +1415,9 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
             isOverthinking: false,
             isGuessing: timeTaken < 5,
             aiEvaluation: aiEval,
-            isDoubtful: existing?.isDoubtful || false
+            isDoubtful: existing?.isDoubtful || false,
+            hintsUsed: hintUsedMap[currentQ.id] ? 1 : 0,
+            eliminatorsUsed: eliminatedOptionsMap[currentQ.id]?.length > 0 ? 1 : 0
         };
 
         setAnswerMap(prev => ({ ...prev, [currentQ.id]: newAnswer }));
@@ -1860,10 +1889,35 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                         )}
                                     </div>
 
+                                    {/* Clues System */}
+                                    {(currentQ.hint || eliminatedOptionsMap[currentQ.id]?.length > 0 || !eliminatedOptionsMap[currentQ.id]) && (
+                                        <div className="flex flex-wrap gap-2 mb-4">
+                                            {currentQ.hint && !hintUsedMap[currentQ.id] && (
+                                                <button onClick={handleUseHint} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 text-xs font-bold hover:bg-amber-100 dark:hover:bg-amber-900/40 transition">
+                                                    <Lightbulb size={14} /> Gunakan Clue
+                                                </button>
+                                            )}
+                                            {hintUsedMap[currentQ.id] && (
+                                                <div className="w-full sm:w-auto p-3 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 text-amber-800 dark:text-amber-300 text-sm">
+                                                    <strong className="flex items-center gap-1.5 mb-1"><Lightbulb size={14} /> Clue:</strong>
+                                                    <SimpleMarkdown text={currentQ.hint || ''} />
+                                                </div>
+                                            )}
+                                            {!eliminatedOptionsMap[currentQ.id] && currentQ.options && currentQ.options.length > 2 && (
+                                                <button onClick={handleUseEliminator} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40 transition">
+                                                    <EyeOff size={14} /> Eliminasi 1 Opsi Salah
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {/* Options */}
                                     {currentQ.type === 'multiple_choice' ? (
                                         <div className="space-y-2 sm:space-y-3">
                                             {currentQ.options?.map((opt, idx) => {
+                                                const isEliminated = eliminatedOptionsMap[currentQ.id]?.includes(opt);
+                                                if (isEliminated) return null; // Or render disabled
+
                                                 const optLabel = String.fromCharCode(65 + idx);
                                                 const isSelected = currentAns?.selectedAnswer === opt;
                                                 let containerClass = "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750";

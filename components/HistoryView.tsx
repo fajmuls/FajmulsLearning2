@@ -7,13 +7,14 @@ import {
     TrendingUp, Award, History, Calendar, CheckCircle, XCircle, 
     ChevronRight, Zap, Activity, Clock, BarChart2, Trash2, Eye, 
     Briefcase, GraduationCap, Brain, FileText, MessageSquare, Palette, Book, BookOpen, Library, School, Package,
-    Square, CheckSquare, Grid, ShieldCheck, AlertTriangle, Flag, Bot, AlertCircle, Info, Target
+    Square, CheckSquare, Grid, ShieldCheck, AlertTriangle, Flag, Bot, AlertCircle, Info, Target, Lightbulb, EyeOff
 } from 'lucide-react';
 import { TestHistoryItem, CategoryType, SkdResultDetails, TesKoranResultDetails, TesKecermatanResultDetails, UtbkResultDetails, BenchmarkResultDetails, Question, UserAnswer, UserProfile, StudyMode } from '../types';
 import { CATEGORIES } from '../constants';
 import { SoundManager } from '../services/soundService';
 import { SimpleMarkdown, MatrixQuestionRenderer, SvgRenderer } from './QuestionRenderer';
 import { InteractiveFigural } from './InteractiveFigural';
+import { LearningHeatmap } from './LearningHeatmap';
 import { isUserAdmin } from '../services/firebase';
 
 interface HistoryProps {
@@ -43,7 +44,18 @@ const isPsikotesIQ = (item: TestHistoryItem): boolean => {
 };
 
 const isColorBlindTest = (item: TestHistoryItem): boolean => {
-    return item.category === 'BUTAWRNA';
+    return item.category?.toUpperCase() === 'BUTA WARNA' || item.category?.toUpperCase() === 'BUTAWRNA';
+};
+
+const getCategoryIcon = (category: string) => {
+    const cat = category.toUpperCase();
+    if (cat === 'SKD') return <ShieldCheck size={16} />;
+    if (cat === 'BUTA WARNA' || cat === 'BUTAWRNA') return <Eye size={16} />;
+    if (cat === 'BENCHMARK') return <Activity size={16} />;
+    if (cat === 'KECERMATAN') return <Zap size={16} />;
+    if (cat === 'UTBK') return <GraduationCap size={16} />;
+    if (cat === 'PSIKOTEST') return <Brain size={16} />;
+    return <Package size={16} />;
 };
 
 // --- HELPER UNTUK VISUAL ---
@@ -192,7 +204,7 @@ export const getUtbkDetails = (item: TestHistoryItem) => {
     return { pu, ppu, pbm, pk, lbi, lbe, pm, average: avg };
 };
 
-export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview, username, onExport, onImport, onDelete, onDeleteMultiple, onToggleStudied, userProfile }) => {
+export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview, username, onExport, onImport, onDelete, onDeleteMultiple, onToggleStudied, userProfile, isDarkMode }) => {
     const [filterCategory, setFilterCategory] = useState<'ALL' | CategoryType>('ALL');
     const [skdSubFilter, setSkdSubFilter] = useState<'ALL' | 'TWK' | 'TIU' | 'TKP'>('ALL');
     const [timeFilter, setTimeFilter] = useState<'ALL' | 'TODAY' | 'WEEK' | 'MONTH'>('ALL');
@@ -209,8 +221,27 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
     // Auth State
     const [tokenInput, setTokenInput] = useState('');
     const [showAuthModal, setShowAuthModal] = useState(false);
+    const [showSummary, setShowSummary] = useState(false);
 
-    const filteredHistory = history.filter(item => {
+    const [activeTab, setActiveTab] = useState<'ANALYTICS' | 'HISTORY'>('ANALYTICS');
+    const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+    const toggleGroup = (key: string) => {
+        setExpandedGroups(prev => ({ ...prev, [key]: !prev[key] }));
+        SoundManager.play('click');
+    };
+
+    const sortedHistory = useMemo(() => {
+        const sorted = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const attemptCounts: Record<string, number> = {};
+        return sorted.map(item => {
+            const key = item.packageId || item.packageTitle || item.category;
+            attemptCounts[key] = (attemptCounts[key] || 0) + 1;
+            return { ...item, attemptNumber: attemptCounts[key] };
+        }).reverse();
+    }, [history]);
+
+    const filteredHistory = sortedHistory.filter(item => {
         if (filterCategory !== 'ALL' && item.category !== filterCategory) return false;
         
         if (filterCategory === 'SKD' && skdSubFilter !== 'ALL') {
@@ -253,6 +284,95 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
         }
     });
     const totalWrongAll = totalQuestionsAnswered - totalCorrectAll;
+
+    const packageSummary = useMemo(() => {
+        const groups: Record<string, { 
+            category: string, 
+            subCategories: Record<string, {
+                title: string,
+                count: number,
+                avgScore: number,
+                highestScore: number,
+                attempts: { id: string, date: string, score: number, title: string }[]
+            }>
+        }> = {};
+        
+        filteredHistory.forEach(item => {
+            const cat = item.category || 'LAINNYA';
+            
+            // Determine subcategory title
+            let subTitle = item.packageTitle || item.category;
+            const lowTitle = subTitle.toLowerCase();
+
+            if (cat === 'SKD') {
+                if (lowTitle.includes('skd kedinasan')) {
+                    // Group TO SKD Kedinasan 11, 12, 13 etc into "TO SKD Kedinasan Full"
+                    if (lowTitle.includes('to skd kedinasan') || lowTitle.includes('try out skd kedinasan')) {
+                        subTitle = 'TO SKD Kedinasan Full';
+                    } else if (lowTitle.includes('gabungan')) {
+                        subTitle = 'SKD Kedinasan Full Gabungan';
+                    } else {
+                        subTitle = 'SKD Kedinasan Full';
+                    }
+                } else if (lowTitle.includes('simulasi')) {
+                    subTitle = 'Simulasi SKD CPNS Full';
+                } else if (lowTitle.includes('twk')) {
+                    subTitle = 'Materi TWK';
+                } else if (lowTitle.includes('tiu')) {
+                    subTitle = 'Materi TIU';
+                } else if (lowTitle.includes('tkp')) {
+                    subTitle = 'Materi TKP';
+                }
+            } else if (cat === 'UTBK') {
+                if (lowTitle.includes('simulasi')) subTitle = 'Try Out UTBK';
+                else subTitle = 'Materi UTBK';
+            } else if (cat === 'BENCHMARK') {
+                // Keep subTitle as the package title
+            } else if (cat === 'KECERMATAN') {
+                // Already likely has specific package titles
+            } else if (cat === 'BUTAWRNA') {
+                // Normalize Buta Warna titles if they have typos
+                subTitle = subTitle.replace(/BUTA WRNA/gi, 'BUTA WARNA');
+            }
+
+            if (!groups[cat]) {
+                groups[cat] = { category: cat, subCategories: {} };
+            }
+            
+            if (!groups[cat].subCategories[subTitle]) {
+                groups[cat].subCategories[subTitle] = { 
+                    title: subTitle, 
+                    count: 0, 
+                    avgScore: 0, 
+                    highestScore: 0, 
+                    attempts: [] 
+                };
+            }
+            
+            const sub = groups[cat].subCategories[subTitle];
+            sub.count++;
+            sub.avgScore += (item.score || 0);
+            if ((item.score || 0) > sub.highestScore) {
+                sub.highestScore = item.score || 0;
+            }
+            sub.attempts.push({ 
+                id: item.id, 
+                date: item.date, 
+                score: item.score || 0,
+                title: item.packageTitle || item.category
+            });
+        });
+        
+        // Finalize averages and sort attempts by date desc
+        Object.values(groups).forEach(cat => {
+            Object.values(cat.subCategories).forEach(sub => {
+                sub.avgScore = Math.round(sub.avgScore / sub.count);
+                sub.attempts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            });
+        });
+        
+        return Object.values(groups);
+    }, [filteredHistory]);
 
     const handleDeleteClick = (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
@@ -503,57 +623,171 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                     </select>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 sm:gap-4 mb-4 sm:mb-6">
-                    <div className="bg-white dark:bg-slate-800 p-2 sm:p-5 rounded-lg sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center sm:items-start text-center sm:text-left">
-                        <div className="flex items-center gap-1 sm:gap-2 text-slate-500 dark:text-slate-400 mb-0.5 sm:mb-2 font-bold text-[8px] sm:text-xs uppercase tracking-wider"><Filter size={12} className="w-[10px] h-[10px] sm:w-4 sm:h-4"/> <span className="hidden sm:inline">Total Tes</span><span className="sm:hidden">Tes</span></div>
-                        <div className="text-sm sm:text-3xl font-black text-slate-800 dark:text-white">{totalTests}</div>
-                    </div>
-                    <div className="bg-white dark:bg-slate-800 p-2 sm:p-5 rounded-lg sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center sm:items-start text-center sm:text-left">
-                        <div className="flex items-center gap-1 sm:gap-2 text-slate-500 dark:text-slate-400 mb-0.5 sm:mb-2 font-bold text-[8px] sm:text-xs uppercase tracking-wider"><TrendingUp size={12} className="w-[10px] h-[10px] sm:w-4 sm:h-4"/> <span className="hidden sm:inline">Avg Skor</span><span className="sm:hidden">Avg</span></div>
-                        <div className="text-sm sm:text-3xl font-black text-indigo-600 dark:text-indigo-400">{avgScore}</div>
-                    </div>
-                    <div className="bg-white dark:bg-slate-800 p-2 sm:p-5 rounded-lg sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center sm:items-start text-center sm:text-left">
-                        <div className="flex items-center gap-1 sm:gap-2 text-slate-500 dark:text-slate-400 mb-0.5 sm:mb-2 font-bold text-[8px] sm:text-xs uppercase tracking-wider"><Award size={12} className="w-[10px] h-[10px] sm:w-4 sm:h-4"/> <span className="hidden sm:inline">Tertinggi</span><span className="sm:hidden">Top</span></div>
-                        <div className="text-sm sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{highestScore}</div>
-                    </div>
-                    <div className="bg-white dark:bg-slate-800 p-2 sm:p-5 rounded-lg sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center sm:items-start text-center sm:text-left">
-                        <div className="flex items-center gap-1 sm:gap-2 text-slate-500 dark:text-slate-400 mb-0.5 sm:mb-2 font-bold text-[8px] sm:text-xs uppercase tracking-wider"><CheckSquare size={12} className="w-[10px] h-[10px] sm:w-4 sm:h-4"/> <span className="hidden sm:inline">Soal Dijawab</span><span className="sm:hidden">Dijawab</span></div>
-                        <div className="text-sm sm:text-3xl font-black text-purple-600 dark:text-purple-500">{totalQuestionsAnswered}</div>
-                    </div>
-                    <div className="bg-white dark:bg-slate-800 p-2 sm:p-5 rounded-lg sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center sm:items-start text-center sm:text-left col-span-2 sm:col-span-1">
-                        <div className="flex items-center gap-1 sm:gap-2 text-slate-500 dark:text-slate-400 mb-0.5 sm:mb-2 font-bold text-[8px] sm:text-xs uppercase tracking-wider"><ShieldCheck size={12} className="w-[10px] h-[10px] sm:w-4 sm:h-4"/> <span className="hidden sm:inline">Benar / Salah</span><span className="sm:hidden">B / S</span></div>
-                        <div className="text-sm sm:text-2xl font-black">
-                            <span className="text-emerald-500">{totalCorrectAll}</span>
-                            <span className="text-slate-400 mx-1">/</span>
-                            <span className="text-rose-500">{totalWrongAll}</span>
-                        </div>
-                    </div>
-                </div>
-
                 <div className="flex gap-4 border-b border-slate-200 dark:border-slate-700 mb-6">
-                    <button 
-                        onClick={() => setViewMode('LIST')} 
-                        className={`pb-3 text-sm font-bold transition-all border-b-2 ${viewMode === 'LIST' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-                    >
-                        Daftar Riwayat
-                    </button>
                     <button 
                         onClick={() => setViewMode('ANALYTICS')} 
                         className={`pb-3 text-sm font-bold transition-all border-b-2 ${viewMode === 'ANALYTICS' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                     >
-                        Analisis Progres
+                        Ringkasan & Analisis
+                    </button>
+                    <button 
+                        onClick={() => setViewMode('LIST')} 
+                        className={`pb-3 text-sm font-bold transition-all border-b-2 ${viewMode === 'LIST' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                    >
+                        Ruangan Soal (Riwayat)
                     </button>
                 </div>
 
                 {viewMode === 'ANALYTICS' && (
-                    <div className="space-y-6">
+                    <div className="space-y-6 animate-fade-in">
+                        {/* Layer 1: Consistency & Activity Stats */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="md:col-span-2">
+                                <LearningHeatmap history={history} isDarkMode={isDarkMode} />
+                            </div>
+                            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-center">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Aktivitas Belajar</h3>
+                                    <Activity size={16} className="text-indigo-500" />
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-3xl font-black text-slate-800 dark:text-white">{totalTests}</span>
+                                    <span className="text-xs font-bold text-slate-500">Sesi Selesai</span>
+                                </div>
+                                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2">
+                                    <div>
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase">Akurasi</div>
+                                        <div className="text-sm font-black text-emerald-500">
+                                            {totalQuestionsAnswered > 0 ? Math.round((totalCorrectAll / totalQuestionsAnswered) * 100) : 0}%
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase">Avg Skor</div>
+                                        <div className="text-sm font-black text-indigo-500">{avgScore}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Layer 2: Main Performance Cards (Summary) */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Rata-rata</div>
+                                <div className="text-xl font-black text-indigo-600 dark:text-indigo-400">{avgScore}</div>
+                            </div>
+                            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Puncak</div>
+                                <div className="text-xl font-black text-emerald-600 dark:text-emerald-500">{highestScore}</div>
+                            </div>
+                            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Jawaban</div>
+                                <div className="text-xl font-black text-purple-600 dark:text-purple-500">{totalQuestionsAnswered}</div>
+                            </div>
+                            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">B / S</div>
+                                <div className="text-lg font-black flex items-center gap-1">
+                                    <span className="text-emerald-500">{totalCorrectAll}</span>
+                                    <span className="text-slate-300">/</span>
+                                    <span className="text-rose-500">{totalWrongAll}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Layer 3: Hierarchical Package Summary */}
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20">
+                                <h3 className="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2">
+                                    <BarChart2 size={16} className="text-indigo-500" /> Ringkasan Per Paket & Materi
+                                </h3>
+                                <p className="text-[10px] text-slate-500 mt-1">Dikelompokkan berdasarkan kategori dan sub-materi ujian.</p>
+                            </div>
+                            
+                            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {packageSummary.map((catGroup, ci) => (
+                                    <div key={ci} className="overflow-hidden">
+                                        <button 
+                                            onClick={() => toggleGroup(catGroup.category)}
+                                            className="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                                                    {getCategoryIcon(catGroup.category)}
+                                                </div>
+                                                <div className="text-left">
+                                                    <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                                        {catGroup.category.toUpperCase() === 'BUTAWRNA' ? 'BUTA WARNA' : catGroup.category}
+                                                    </h4>
+                                                    <p className="text-[10px] text-slate-400">{Object.keys(catGroup.subCategories).length} Sub-kategori Terdeteksi</p>
+                                                </div>
+                                            </div>
+                                            <ChevronRight size={18} className={`text-slate-400 transition-transform ${expandedGroups[catGroup.category] ? 'rotate-90' : ''}`} />
+                                        </button>
+
+                                        {expandedGroups[catGroup.category] && (
+                                            <div className="bg-slate-50/30 dark:bg-slate-900/10 px-4 pb-4 animate-fade-in">
+                                                <div className="space-y-3">
+                                                    {Object.values(catGroup.subCategories).map((sub, si) => (
+                                                        <div key={si} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm overflow-hidden">
+                                                            <button 
+                                                                onClick={() => toggleGroup(`${catGroup.category}-${sub.title}`)}
+                                                                className="w-full p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+                                                            >
+                                                                <div className="flex flex-col text-left">
+                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-white line-clamp-1">{sub.title}</span>
+                                                                    <div className="flex items-center gap-2 mt-1">
+                                                                        <span className="text-[9px] font-bold bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-500">{sub.count} Attempt</span>
+                                                                        <span className="text-[9px] font-bold text-indigo-500">Avg: {sub.avgScore}</span>
+                                                                        <span className="text-[9px] font-bold text-emerald-500">Puncak: {sub.highestScore}</span>
+                                                                    </div>
+                                                                </div>
+                                                                <ChevronRight size={14} className={`text-slate-300 transition-transform ${expandedGroups[`${catGroup.category}-${sub.title}`] ? 'rotate-90' : ''}`} />
+                                                            </button>
+
+                                                            {expandedGroups[`${catGroup.category}-${sub.title}`] && (
+                                                                <div className="px-3 pb-3 border-t border-slate-100 dark:border-slate-800 animate-slide-up">
+                                                                    <table className="w-full text-left mt-2">
+                                                                        <thead>
+                                                                            <tr className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter border-b border-slate-50 dark:border-slate-800">
+                                                                                <th className="pb-1">Tanggal</th>
+                                                                                <th className="pb-1">Nama Paket</th>
+                                                                                <th className="pb-1 text-right">Skor</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                                                                            {sub.attempts.map((att, ai) => (
+                                                                                <tr key={ai} className="group hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 cursor-pointer" onClick={() => onReview(history.find(h => h.id === att.id)!)}>
+                                                                                    <td className="py-2 text-[10px] text-slate-500 font-medium">
+                                                                                        {new Date(att.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+                                                                                    </td>
+                                                                                    <td className="py-2 text-[10px] text-slate-700 dark:text-slate-300 font-bold line-clamp-1">
+                                                                                        {att.title}
+                                                                                    </td>
+                                                                                    <td className="py-2 text-[10px] text-indigo-600 dark:text-indigo-400 font-black text-right">
+                                                                                        {att.score}
+                                                                                    </td>
+                                                                                </tr>
+                                                                            ))}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Layer 4: Original Progress Charts */}
                         {filteredHistory.length > 1 ? (
-                            <>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
                                     <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-2 flex items-center gap-2">
-                                        <BarChart2 className="text-indigo-500 w-4 h-4" /> Grafik Tren Skor Utama
+                                        <TrendingUp className="text-indigo-500 w-4 h-4" /> Grafik Tren Skor Utama
                                     </h3>
-                                    <p className="text-xs text-slate-500 mb-6">Lihat peningkatan atau penurunan skor Anda dari waktu ke waktu berdasarkan filter kategori yang dipilih.</p>
                                     <div className="h-64 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <AreaChart data={[...filteredHistory].reverse()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -563,34 +797,72 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                                                         <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
                                                     </linearGradient>
                                                 </defs>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
-                                                <XAxis dataKey={(d) => new Date(d.date).toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
-                                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
-                                                <Tooltip 
-                                                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '11px' }}
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#1e293b' : '#f1f5f9'} />
+                                                <XAxis 
+                                                    dataKey="date" 
+                                                    tickFormatter={(val) => new Date(val).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fontSize: 10, fill: isDarkMode ? '#64748b' : '#94a3b8' }}
+                                                    dy={10}
                                                 />
-                                                <Area type="monotone" dataKey="score" stroke="#6366f1" fillOpacity={1} fill="url(#colorScore)" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: '#6366f1', strokeWidth: 2 }} />
+                                                <YAxis 
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fontSize: 10, fill: isDarkMode ? '#64748b' : '#94a3b8' }}
+                                                />
+                                                <Tooltip 
+                                                    contentStyle={{ 
+                                                        backgroundColor: isDarkMode ? '#1e293b' : '#ffffff', 
+                                                        borderColor: isDarkMode ? '#334155' : '#e2e8f0',
+                                                        borderRadius: '12px',
+                                                        fontSize: '11px',
+                                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                                                    }}
+                                                    labelFormatter={(val) => new Date(val).toLocaleString('id-ID')}
+                                                />
+                                                <Area type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" />
                                             </AreaChart>
                                         </ResponsiveContainer>
                                     </div>
                                 </div>
+
                                 <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
                                     <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-2 flex items-center gap-2">
                                         <Target className="text-emerald-500 w-4 h-4" /> Grafik Akurasi Jawaban (%)
                                     </h3>
                                     <div className="h-64 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <LineChart data={[...filteredHistory].reverse().map((d: any) => ({ ...d, accuracy: Math.round((d.details?.correctCount || 0) / Math.max(d.details?.totalQuestions || 1, 1) * 100) }))} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
-                                                <XAxis dataKey={(d) => new Date(d.date).toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
-                                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
-                                                <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '11px' }} />
+                                            <LineChart data={[...filteredHistory].reverse().map((d: any) => ({ ...d, accuracy: Math.round((d.answers || []).filter((a: any) => a.isCorrect).length / Math.max((d.answers || []).length || 1, 1) * 100) }))} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#1e293b' : '#f1f5f9'} />
+                                                <XAxis 
+                                                    dataKey="date" 
+                                                    tickFormatter={(val) => new Date(val).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fontSize: 10, fill: isDarkMode ? '#64748b' : '#94a3b8' }}
+                                                    dy={10}
+                                                />
+                                                <YAxis 
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fontSize: 10, fill: isDarkMode ? '#64748b' : '#94a3b8' }}
+                                                />
+                                                <Tooltip 
+                                                    contentStyle={{ 
+                                                        backgroundColor: isDarkMode ? '#1e293b' : '#ffffff', 
+                                                        borderColor: isDarkMode ? '#334155' : '#e2e8f0',
+                                                        borderRadius: '12px',
+                                                        fontSize: '11px',
+                                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                                                    }}
+                                                />
                                                 <Line type="monotone" dataKey="accuracy" stroke="#10b981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2 }} />
                                             </LineChart>
                                         </ResponsiveContainer>
                                     </div>
                                 </div>
-                            </>
+                            </div>
                         ) : (
                             <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-400">
                                 <Activity size={48} className="mx-auto mb-4 opacity-20"/>
@@ -601,8 +873,8 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                 )}
 
                 {viewMode === 'LIST' && (
-                    <>
-                        <div className="flex justify-end mb-4">
+                    <div className="animate-fade-in">
+                        <div className="flex justify-end mb-4 gap-2">
                             <button 
                                 onClick={() => setShowAllDetails(!showAllDetails)}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm ${showAllDetails ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'}`}
@@ -630,6 +902,8 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                             const totalCorrect = (item.answers || []).filter(a => a.isCorrect).length;
                             const totalWrong = totalAnswered - totalCorrect;
                             const totalTimeUsed = (item.answers || []).reduce((acc: number, a) => acc + (a.timeTakenSeconds || 0), 0);
+                            const totalHints = (item.answers || []).reduce((acc: number, a) => acc + (a.hintsUsed || 0), 0);
+                            const totalEliminators = (item.answers || []).reduce((acc: number, a) => acc + (a.eliminatorsUsed || 0), 0);
                             const formattedDuration = formatDuration(totalTimeUsed);
 
                             const isPauli = isTesKoran(item);
@@ -649,6 +923,10 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                             if (item.packageTitle) {
                                 displayTitle = item.packageTitle;
                             }
+
+                            // CLEAN TITLE: Remove any "Attempt" suffixes
+                            displayTitle = displayTitle.replace(/\s*\(?Attempt\s*(ke-)?\s*\d+\)?/gi, '').trim();
+                            displayTitle = displayTitle.replace(/\s*-\s*Attempt\s*\d+/gi, '').trim();
 
                             // Display Value Logic (Score vs Accuracy vs IQ)
                             let mainDisplayValue = (item.score || 0).toString();
@@ -869,111 +1147,96 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                                             
                                             {/* --- DETAILED STATS GRID --- */}
                                             {showAllDetails && (
-                                                <div className="mt-3">
-                                                    {/* STATS KHUSUS KECERMATAN & PAULI (6 ITEMS GRID) */}
-                                                    {(isKecermatan || isPauli) ? (
-                                                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-xs bg-slate-50 dark:bg-slate-700/30 p-2 rounded-xl border border-slate-100 dark:border-slate-700">
-                                                            <div className="flex flex-col text-center border-r border-slate-200 dark:border-slate-600 last:border-0 sm:last:border-0">
-                                                                <span className="text-[9px] text-slate-400 uppercase">Total Dijawab</span>
-                                                                <span className="font-black text-indigo-600 dark:text-indigo-400">{gridCorrect + gridWrong}</span>
-                                                            </div>
-                                                            <div className="flex flex-col text-center border-r border-slate-200 dark:border-slate-600">
-                                                                <span className="text-[9px] text-slate-400 uppercase">Benar/Salah</span>
-                                                                <span className="font-bold"><span className="text-emerald-500">{gridCorrect}</span> / <span className="text-rose-500">{gridWrong}</span></span>
-                                                            </div>
-                                                            <div className="flex flex-col text-center border-r-0 sm:border-r border-slate-200 dark:border-slate-600">
-                                                                <span className="text-[9px] text-slate-400 uppercase">Speed Avg</span>
-                                                                <span className="font-black text-slate-700 dark:text-slate-200">{gridSpeed}</span>
-                                                            </div>
-                                                            <div className="flex flex-col text-center border-r border-slate-200 dark:border-slate-600">
-                                                                <span className="text-[9px] text-slate-400 uppercase">Stabil</span>
-                                                                <span className="font-black text-amber-500">{gridStability}</span>
-                                                            </div>
-                                                            <div className="flex flex-col text-center border-r border-slate-200 dark:border-slate-600">
-                                                                <span className="text-[9px] text-slate-400 uppercase">Peak</span>
-                                                                <span className="font-black text-emerald-500" title={`Highest: ${gridPeak.val} at Interval ${gridPeak.index}`}>{gridPeak.val}<span className="text-[8px] text-slate-400 font-normal ml-0.5">@{gridPeak.index}</span></span>
-                                                            </div>
-                                                            <div className="flex flex-col text-center">
-                                                                <span className="text-[9px] text-slate-400 uppercase">Kesimpulan</span>
-                                                                <span className={`font-black text-[10px] leading-tight ${verdictData.color}`}>{verdictData.text}</span>
+                                                <div className="mt-3 space-y-2">
+                                                    {/* LAYER 1: Performa Utama (Tes, Rata-rata, Puncak) */}
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center">
+                                                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Tes (Skor)</span>
+                                                            <span className={`text-xs sm:text-sm font-black ${scoreColorClass}`}>{mainDisplayValue}</span>
+                                                        </div>
+                                                        <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center">
+                                                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Rata-rata</span>
+                                                            <span className="text-xs sm:text-sm font-black text-indigo-600 dark:text-indigo-400">
+                                                                {isPauli || isKecermatan ? gridSpeed : (totalAnswered > 0 ? Math.round(totalTimeUsed / totalAnswered) : 0)}
+                                                                <span className="text-[8px] sm:text-[10px] font-normal ml-0.5">{isPauli ? 'jpm' : (isKecermatan ? 'dtk' : 's/q')}</span>
+                                                            </span>
+                                                        </div>
+                                                        <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center">
+                                                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Puncak</span>
+                                                            <span className="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-500">
+                                                                {isPauli || isKecermatan ? gridPeak.val : item.maxScore}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* LAYER 2: Detail Jawaban (Jawaban, B/S + Persentase) */}
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center">
+                                                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Jawaban</span>
+                                                            <span className="text-xs sm:text-sm font-black text-slate-700 dark:text-slate-200">{totalAnswered} <span className="text-slate-400 text-[10px]">/ {isPauli || isKecermatan ? totalAnswered : totalQuestions}</span></span>
+                                                        </div>
+                                                        <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center">
+                                                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mb-1">B / S (%)</span>
+                                                            <div className="flex gap-1.5 items-center">
+                                                                <span className="text-xs sm:text-sm font-black text-emerald-500">{totalCorrect}</span>
+                                                                <span className="text-slate-300 dark:text-slate-600">/</span>
+                                                                <span className="text-xs sm:text-sm font-black text-rose-500">{totalWrong}</span>
+                                                                <span className="text-[10px] font-bold text-slate-400 ml-1">
+                                                                    ({totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0}%)
+                                                                </span>
                                                             </div>
                                                         </div>
-                                                    ) : (
-                                                        /* STATS UNTUK SOAL UMUM (TPA, SKD, UTBK, CB) */
-                                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] sm:text-xs bg-slate-50 dark:bg-slate-700/30 p-2 sm:p-3 rounded-xl border border-slate-100 dark:border-slate-700">
-                                                            <div className="flex flex-col">
-                                                                <span className="text-slate-400 font-medium text-[10px] sm:text-[11px] mb-0.5">Dijawab</span>
-                                                                <span className="font-bold text-slate-700 dark:text-slate-200 text-xs sm:text-sm">{totalAnswered} <span className="text-slate-400 text-[10px] sm:text-xs">/ {totalQuestions}</span></span>
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className="text-slate-400 font-medium text-[10px] sm:text-[11px] mb-0.5">Benar / Salah</span>
-                                                                <span className="font-bold text-emerald-600 text-xs sm:text-sm">{totalCorrect} <span className="text-slate-400 text-[10px] sm:text-xs">/</span> <span className="text-rose-500">{totalWrong}</span></span>
-                                                            </div>
-                                                            
-                                                            {/* Dynamic Stats for Color Blind */}
-                                                            {isCB && (item.details as any).breakdown && (
-                                                                <div className="flex flex-col sm:col-span-2">
-                                                                    <span className="text-slate-400 font-medium text-[10px] sm:text-[11px] mb-0.5">Analisis</span>
-                                                                    <span className="font-bold text-xs sm:text-sm text-slate-700 dark:text-slate-200 uppercase truncate">
-                                                                        {(item.details as any).diagnosis}
-                                                                    </span>
-                                                                </div>
-                                                            )}
+                                                    </div>
 
-                                                            {!isCB && (
-                                                                <div className="flex flex-col">
-                                                                    <span className="text-slate-400 font-medium text-[10px] sm:text-[11px] mb-0.5">Waktu</span>
-                                                                    <span className="font-bold text-slate-700 dark:text-slate-200 text-xs sm:text-sm">{formatDuration(totalTimeUsed)}</span>
-                                                                </div>
-                                                            )}
-
-                                                            {/* SKD SPECIFIC */}
-                                                            {item.category === 'SKD' && item.details && (
-                                                                <div className="flex flex-col col-span-2 sm:col-span-1">
-                                                                    <span className="text-slate-400 font-medium text-[10px] sm:text-[11px] mb-0.5">Rincian</span>
-                                                                    <div className="flex gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-mono font-bold flex-wrap items-center h-full">
-                                                                        {(item.details as SkdResultDetails).twk !== undefined && (
-                                                                            <span className="bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 px-1 rounded">TWK:{(item.details as SkdResultDetails).twk}</span>
-                                                                        )}
-                                                                        {(item.details as SkdResultDetails).tiu !== undefined && (
-                                                                            <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 px-1 rounded">TIU:{(item.details as SkdResultDetails).tiu}</span>
-                                                                        )}
-                                                                        {(item.details as SkdResultDetails).tkp !== undefined && (
-                                                                            <span className="bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 px-1 rounded">TKP:{(item.details as SkdResultDetails).tkp}</span>
-                                                                        )}
+                                                    {/* LAYER 3: Rincian Tambahan (SKD/UTBK Breakdown or Analysis) */}
+                                                    <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
+                                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                                            <div className="flex gap-2 items-center">
+                                                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Ringkasan:</span>
+                                                                {item.category === 'SKD' && item.details ? (
+                                                                    <div className="flex gap-1.5 text-[9px] font-bold">
+                                                                        <span className="text-amber-600">TWK:{(item.details as SkdResultDetails).twk || 0}</span>
+                                                                        <span className="text-blue-600">TIU:{(item.details as SkdResultDetails).tiu || 0}</span>
+                                                                        <span className="text-purple-600">TKP:{(item.details as SkdResultDetails).tkp || 0}</span>
                                                                     </div>
-                                                                </div>
-                                                            )}
+                                                                ) : item.category === 'UTBK' && item.details ? (
+                                                                    <span className="text-[9px] font-bold text-indigo-600">Avg IRT: {(item.details as any).average || 0}</span>
+                                                                ) : (
+                                                                    <span className={`text-[10px] font-bold uppercase ${verdictData.color}`}>{verdictData.text}</span>
+                                                                )}
+                                                            </div>
 
-                                                            {/* UTBK SPECIFIC */}
-                                                            {item.category === 'UTBK' && item.details && (() => {
-                                                                const uDetails = getUtbkDetails(item) as UtbkResultDetails;
-                                                                return (
-                                                                    <div className="flex flex-col col-span-2">
-                                                                        <span className="text-slate-400 font-medium text-[10px] sm:text-[11px] mb-0.5">Rincian</span>
-                                                                        <div className="flex gap-1.5 text-[10px] sm:text-[11px] font-mono font-bold flex-wrap items-center mt-0.5">
-                                                                            <span className="bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400 px-1 rounded" title="Penalaran Umum">PU:{uDetails.pu}</span>
-                                                                            <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 px-1 rounded" title="Pengetahuan & Pemahaman Umum">PPU:{uDetails.ppu}</span>
-                                                                            <span className="bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-400 px-1 rounded" title="Pemahaman Bacaan & Menulis">PBM:{uDetails.pbm}</span>
-                                                                            <span className="bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-400 px-1 rounded" title="Pengetahuan Kuantitatif">PK:{uDetails.pk}</span>
-                                                                            <span className="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 px-1 rounded" title="Literasi B. Indonesia">LBI:{uDetails.lbi}</span>
-                                                                            <span className="bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-400 px-1 rounded" title="Literasi B. Inggris">LBE:{uDetails.lbe}</span>
-                                                                            <span className="bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 px-1 rounded" title="Penalaran Matematika">PM:{uDetails.pm}</span>
-                                                                        </div>
+                                                            <div className="flex gap-3">
+                                                                {totalHints > 0 && (
+                                                                    <div className="flex items-center gap-1">
+                                                                        <Lightbulb size={10} className="text-blue-500" />
+                                                                        <span className="text-[9px] font-bold text-slate-500">{totalHints} Clue</span>
                                                                     </div>
-                                                                );
-                                                            })()}
+                                                                )}
+                                                                {totalEliminators > 0 && (
+                                                                    <div className="flex items-center gap-1">
+                                                                        <EyeOff size={10} className="text-amber-500" />
+                                                                        <span className="text-[9px] font-bold text-slate-500">{totalEliminators} Eliminasi</span>
+                                                                    </div>
+                                                                )}
+                                                                {!isPauli && !isKecermatan && (
+                                                                    <div className="flex items-center gap-1">
+                                                                        <Clock size={10} className="text-slate-400" />
+                                                                        <span className="text-[9px] font-bold text-slate-500">{formatDuration(totalTimeUsed)}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                    )}
+                                                    </div>
 
                                                     {/* CHART VISUALIZATION FOR PAULI & KECERMATAN */}
                                                     {(isPauli || isKecermatan) && chartData.length > 0 && (
-                                                        <div className="mt-2 h-8 flex items-end gap-0.5 opacity-50 hover:opacity-100 transition-opacity">
+                                                        <div className="mt-2 h-10 flex items-end gap-0.5 opacity-60 hover:opacity-100 transition-all bg-white dark:bg-slate-900/50 p-1 rounded-lg border border-slate-100 dark:border-slate-800">
                                                             {chartData.map((val, idx) => {
                                                                 const max = Math.max(...chartData, 1);
                                                                 const h = (val / max) * 100;
                                                                 return (
-                                                                    <div key={idx} className={`flex-1 rounded-t-sm ${idx + 1 === gridPeak.index ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`} style={{height: `${h}%`}}></div>
+                                                                    <div key={idx} className={`flex-1 rounded-t-[1px] ${idx + 1 === gridPeak.index ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300 dark:bg-slate-600'}`} style={{height: `${h}%`}}></div>
                                                                 )
                                                             })}
                                                         </div>
@@ -997,7 +1260,7 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                         })
                     )}
                 </div>
-                </>
+                </div>
                 )}
             </div>
         </div>

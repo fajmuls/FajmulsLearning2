@@ -1,6 +1,6 @@
 {
   "name": "Fajmuls Learning",
-  "description": "Aplikasi belajar komprehensif untuk UTBK dan SKD menggunakan metode belajar berbasis sains seperti Active Recall, Spaced Repetition, dan Feynman Technique, didukung oleh AI.",
+  "description": "Aplikasi belajar cerdas untuk UTBK dan SKD dengan sistem Clue bertenaga AI, eliminasi jawaban, dan pelacakan riwayat percobaan untuk optimalisasi persiapan ujian.",
   "requestFramePermissions": [
     "microphone"
   ],

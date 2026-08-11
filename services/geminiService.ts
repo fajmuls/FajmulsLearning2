@@ -120,6 +120,7 @@ const questionSchema: Schema = {
     shortcut: { type: Type.STRING },
     options: { type: Type.ARRAY, items: { type: Type.STRING } },
     correctAnswer: { type: Type.STRING, description: "The correct option. Must exactly match one of the items in the options array. Determine this AFTER writing the explanation." },
+    hint: { type: Type.STRING, description: "A clue to help the user answer the question if they are stuck. DO NOT reveal the answer directly." },
     tkpPoints: {
       type: Type.ARRAY,
       items: {
@@ -751,6 +752,13 @@ export const buildQuestionPrompt = async (
   - **EQUAL OPTION LENGTHS (ANTI-GUESSING)**: You MUST ensure that all 5 options (A, B, C, D, E) are roughly the EXACT SAME LENGTH (character and word count). The correct answer MUST NEVER be noticeably longer or more detailed than the distractor options. If you need to add detail to the correct answer, you MUST also add equally complex and long details to the incorrect answers to camouflage it.
   - **DISTRACTOR QUALITY (Near-Miss Logic for HOTS)**: For incorrect options (distractors), do NOT use random or easily guessable wrong answers. Construct them logically based on common calculation errors, misread signs, logical traps, or near-misses of the exact correct answer. In TWK and TKP, distractors must sound incredibly plausible, academic, and highly professional.
   - **HOTS REQUIREMENT (MASTER LEVEL)**: Every question MUST be at the HOTS level. Questions should require analysis, evaluation, and creation, not just simple recall. Use "Analyze...", "Evaluate...", "Determine the best course of action based on..." phrasing.
+  - **ANTI-LEAK / EXTREME DIFFICULTY (VERSION 7)**:
+    - In TWK or conceptual questions, NEVER reveal the correct answer or crucial parts of it inside the question prompt. E.g. If asking who wrote a script, do not say "The script written by Muhammad Yamin..."
+    - Provide deep analytical scenarios rather than simple memorization. 
+  - **CLUE SYSTEM (VERSION 7)**:
+    - You MUST provide a \`hint\` field for every single question.
+    - The hint MUST NOT give away the answer directly.
+    - The hint should provide a contextual clue (e.g., "Ingat peristiwa yang terjadi berdekatan dengan Kongres Pemuda II", or "Perhatikan pola bilangan ganjil pada lompatan ke-2").
   - **SUB-TEST STANDARDIZATION**: You MUST use these exact names for subtests:
     - TWK: "Nasionalisme", "Integritas", "Bela Negara", "Pilar Negara", "Bahasa Indonesia".
     - TIU: "Kemampuan Verbal", "Kemampuan Numerik", "Kemampuan Figural".
@@ -1607,7 +1615,7 @@ GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
 - 6 questions about "Nasionalisme"
 - 6 questions about "Integritas"
 - 3 questions about "Bela Negara"
-CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings matching its topic: "TWK - Nasionalisme", "TWK - Integritas", or "TWK - Bela Negara".`, 15, [], stream, undefined, 'HOTS');
+CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings matching its topic: "TWK - Nasionalisme", "TWK - Integritas", or "TWK - Bela Negara". MUST BE HIGHLY UNIQUE AND NOT REPEAT COMMON PATTERNS.`, 15, [], stream, undefined, 'HOTS');
         
         // Batch 2: 15 questions
         const p2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Wawasan Kebangsaan (TWK). UNIQUE SEED: ${randomSeed}. 
@@ -1615,7 +1623,7 @@ GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
 - 3 questions about "Bela Negara"
 - 6 questions about "Pilar Negara"
 - 6 questions about "Bahasa Indonesia"
-CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings matching its topic: "TWK - Bela Negara", "TWK - Pilar Negara", or "TWK - Bahasa Indonesia".`, 15, [], stream, undefined, 'HOTS');
+CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings matching its topic: "TWK - Bela Negara", "TWK - Pilar Negara", or "TWK - Bahasa Indonesia". MUST BE HIGHLY UNIQUE AND NOT REPEAT COMMON PATTERNS.`, 15, [], stream, undefined, 'HOTS');
         
         const results = await Promise.all([p1, p2]);
         let allTwk: Question[] = [];

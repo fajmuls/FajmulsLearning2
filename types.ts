@@ -121,6 +121,7 @@ export interface Question {
   matchingPairs?: { statement: string; category: string }[];
   explanation: string;
   shortcut?: string;
+  hint?: string;
   metadata: QuestionMetadata;
 }
 
@@ -178,6 +179,8 @@ export interface UserAnswer {
     interviewFeedback?: InterviewFeedback;
     aiEvaluation?: string;
     isDoubtful?: boolean;
+    hintsUsed?: number;
+    eliminatorsUsed?: number;
 }
 
 export interface SkdResultDetails {
@@ -267,6 +270,8 @@ export interface TestHistoryItem {
     packageTitle?: string;
     packageId?: string;
     isStudied?: boolean;
+    hintsUsed?: number;
+    eliminatorsUsed?: number;
 }
 
 export interface StaticTestPackage {
