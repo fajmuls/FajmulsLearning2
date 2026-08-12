@@ -817,12 +817,21 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
         showToast("Urutan soal berhasil diacak", "info");
     };
 
+    const processedQuestions = useMemo(() => {
+        return questions.map(q => {
+            if (!q.options || q.options.length === 0) return q;
+            // Shuffling options for each session
+            const shuffledOptions = [...q.options].sort(() => Math.random() - 0.5);
+            return { ...q, options: shuffledOptions };
+        });
+    }, [questions]);
+
     // Filter questions for current UTBK subtest
     const activeQuestions = useMemo(() => {
-        let filteredQuestions = sessionQuestions;
+        let filteredQuestions = processedQuestions;
         if (isUtbkSimulation) {
             const currentSubtestName = UTBK_EXAM_CONFIG[utbkSubtestIndex].name;
-            filteredQuestions = sessionQuestions.filter(q => 
+            filteredQuestions = processedQuestions.filter(q => 
                 q.metadata?.subtest?.includes(currentSubtestName) || 
                 q.metadata?.subtest?.includes(currentSubtestName.replace(' & ', ' dan '))
             );
@@ -836,7 +845,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
         );
         
         return uniqueQuestions;
-    }, [sessionQuestions, isUtbkSimulation, utbkSubtestIndex]);
+    }, [processedQuestions, isUtbkSimulation, utbkSubtestIndex]);
 
     const currentQ = activeQuestions[currentIndex];
 
@@ -1799,15 +1808,20 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                 {/* Mobile Header */}
                 <div className="md:hidden bg-white dark:bg-slate-800 p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center shadow-sm z-20">
                     <div className="font-bold text-slate-700 dark:text-white text-sm">No. {currentIndex + 1}</div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                          {currentQ?.hint && !hintUsedMap[currentQ.id] && (
-                             <button onClick={() => setShowHintConfirm(true)} className="p-1.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg border border-amber-200 dark:border-amber-800 transition" title="Gunakan Clue">
-                                 <Lightbulb size={16} />
+                             <button onClick={() => setShowHintConfirm(true)} className="p-2 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg border border-amber-200 dark:border-amber-800 transition" title="Gunakan Clue">
+                                 <Lightbulb size={18} />
                              </button>
                          )}
                          {!eliminatedOptionsMap[currentQ.id] && currentQ.options && currentQ.options.length > 2 && (
-                             <button onClick={() => setShowEliminateConfirm(true)} className="p-1.5 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-800 transition" title="Eliminasi 1 Opsi Salah">
-                                 <Eraser size={16} />
+                             <button onClick={() => setShowEliminateConfirm(true)} className="p-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-800 transition" title="Eliminasi 1 Opsi Salah">
+                                 <Eraser size={18} />
+                             </button>
+                         )}
+                         {currentAns?.selectedAnswer && (
+                             <button onClick={handleClearAnswer} className="p-2 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-lg border border-slate-200 dark:border-slate-600 transition" title="Hapus Jawaban">
+                                 <XCircle size={18} />
                              </button>
                          )}
                          {focusTimerType === 'STANDARD' && mode === StudyMode.SIMULATION && (
@@ -1915,15 +1929,20 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                                 </span>
                                             )}
                                             {/* Desktop Help Buttons */}
-                                            <div className="hidden md:flex items-center gap-1 ml-2">
+                                            <div className="hidden sm:flex items-center gap-1.5 ml-2">
                                                 {currentQ?.hint && !hintUsedMap[currentQ.id] && (
-                                                    <button onClick={() => setShowHintConfirm(true)} className="flex items-center gap-1 px-2 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg border border-amber-200 dark:border-amber-800 text-[10px] font-bold hover:bg-amber-100 transition shadow-sm">
-                                                        <Lightbulb size={12} /> Clue
+                                                    <button onClick={() => setShowHintConfirm(true)} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl border border-amber-200 dark:border-amber-800 text-[10px] font-black hover:bg-amber-100 transition shadow-sm uppercase tracking-tighter">
+                                                        <Lightbulb size={14} /> Clue
                                                     </button>
                                                 )}
                                                 {!eliminatedOptionsMap[currentQ.id] && currentQ.options && currentQ.options.length > 2 && (
-                                                    <button onClick={() => setShowEliminateConfirm(true)} className="flex items-center gap-1 px-2 py-1 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-800 text-[10px] font-bold hover:bg-rose-100 transition shadow-sm">
-                                                        <Eraser size={12} /> Eliminasi
+                                                    <button onClick={() => setShowEliminateConfirm(true)} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl border border-rose-200 dark:border-rose-800 text-[10px] font-black hover:bg-rose-100 transition shadow-sm uppercase tracking-tighter">
+                                                        <Eraser size={14} /> Eliminasi
+                                                    </button>
+                                                )}
+                                                {currentAns?.selectedAnswer && (
+                                                    <button onClick={handleClearAnswer} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 rounded-xl border border-slate-200 dark:border-slate-700 text-[10px] font-black hover:bg-slate-100 transition shadow-sm uppercase tracking-tighter">
+                                                        <XCircle size={14} /> Reset
                                                     </button>
                                                 )}
                                             </div>
@@ -1962,25 +1981,11 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                         )}
                                     </div>
 
-                                    {/* Clues System */}
-                                    {(currentQ.hint || eliminatedOptionsMap[currentQ.id]?.length > 0 || !eliminatedOptionsMap[currentQ.id]) && (
-                                        <div className="flex flex-wrap gap-2 mb-4">
-                                            {currentQ.hint && !hintUsedMap[currentQ.id] && (
-                                                <button onClick={handleUseHint} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 text-xs font-bold hover:bg-amber-100 dark:hover:bg-amber-900/40 transition">
-                                                    <Lightbulb size={14} /> Gunakan Clue
-                                                </button>
-                                            )}
-                                            {hintUsedMap[currentQ.id] && (
-                                                <div className="w-full sm:w-auto p-3 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 text-amber-800 dark:text-amber-300 text-sm">
-                                                    <strong className="flex items-center gap-1.5 mb-1"><Lightbulb size={14} /> Clue:</strong>
-                                                    <SimpleMarkdown text={currentQ.hint || ''} />
-                                                </div>
-                                            )}
-                                            {!eliminatedOptionsMap[currentQ.id] && currentQ.options && currentQ.options.length > 2 && (
-                                                <button onClick={handleUseEliminator} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40 transition">
-                                                    <Eraser size={14} /> Eliminasi 1 Opsi Salah
-                                                </button>
-                                            )}
+                                    {/* Hint Display (When Used) */}
+                                    {hintUsedMap[currentQ.id] && (
+                                        <div className="w-full p-3 mb-4 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 text-amber-800 dark:text-amber-300 text-sm animate-fade-in">
+                                            <strong className="flex items-center gap-1.5 mb-1"><Lightbulb size={14} /> Clue:</strong>
+                                            <SimpleMarkdown text={currentQ.hint || ''} />
                                         </div>
                                     )}
 
@@ -2183,9 +2188,6 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                     <Save size={10}/> Saved
                                 </div>
                             )}
-                            <button onClick={handleClearAnswer} className={`flex items-center gap-0.5 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-2 rounded-lg font-bold border transition bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 text-[10px] sm:text-xs md:text-sm truncate max-w-[80px] xs:max-w-none`}>
-                                <XCircle size={12} className="sm:w-4 sm:h-4 shrink-0"/> <span className="hidden sm:inline">Hapus Jawaban</span><span className="inline sm:hidden font-medium">Hapus</span>
-                            </button>
                             <button onClick={toggleDoubtful} className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-3 py-1 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs md:text-sm border transition shrink-0 ${currentAns?.isDoubtful ? 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700' : 'bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600'}`}>
                                 <input type="checkbox" checked={currentAns?.isDoubtful || false} readOnly className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 accent-amber-500 cursor-pointer shrink-0"/><span className="hidden sm:inline ml-1 font-bold">Ragu-ragu</span><span className="inline sm:hidden font-medium ml-1">Ragu</span>
                             </button>

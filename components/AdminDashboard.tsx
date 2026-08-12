@@ -8,6 +8,20 @@ interface AdminDashboardProps {
 
 export const PATCH_NOTES = [
   {
+    version: "v3.0.0",
+    date: "2026-08-11",
+    type: "Major Update",
+    description: "Mobile UI Overhaul & UX Consolidation",
+    details: [
+      "Human Benchmark Mobile Optimization: Menyesuaikan seluruh mini-game agar proporsional di layar handphone (Font diperkecil, padding rapat, ikon minimalis).",
+      "Help Button Consolidation: Memindahkan tombol Clue, Eliminasi, dan Reset (Hapus Jawaban) ke header atas (Mobile & Desktop) untuk menghindari redundansi.",
+      "Icon Restoration: Mengembalikan ikon yang hilang (Zap, Target, FileText, dll.) pada menu utama Human Benchmark.",
+      "Option Shuffling: Implementasi pengacakan opsi (A, B, C, D, E) pada setiap pengerjaan paket soal untuk integritas latihan.",
+      "UI Box Refinement: Mempercantik kotak soal dengan layout yang lebih bersih dan modern.",
+      "Bug Fix: Memperbaiki clipping elemen pada game Sequence Memory dan Aim Trainer di layar kecil."
+    ]
+  },
+  {
     version: "v2.9.0",
     date: "2026-08-11",
     type: "Major Update",
@@ -398,15 +412,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                   <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
                     <li className="flex gap-2">
                       <span className="text-emerald-500 font-bold">•</span>
-                      <span><strong>Global Leaderboard Article Test:</strong> Menambahkan peringkat global khusus untuk skor tertinggi di Tes Pasal.</span>
+                      <span><strong>Mode Kompetisi Real-time:</strong> Menambahkan fitur 'Battle' antar user untuk mengerjakan paket soal yang sama secara bersamaan.</span>
                     </li>
                     <li className="flex gap-2">
                       <span className="text-emerald-500 font-bold">•</span>
-                      <span><strong>AI Law Explanation:</strong> Integrasi Gemini untuk menjelaskan konteks hukum suatu pasal jika pengguna masih bingung.</span>
+                      <span><strong>AI Study Planner:</strong> Integrasi Gemini untuk membuat jadwal belajar personal berdasarkan data kelemahan user di riwayat.</span>
                     </li>
                     <li className="flex gap-2">
                       <span className="text-emerald-500 font-bold">•</span>
-                      <span><strong>Dark Mode Sync:</strong> Otomatisasi sinkronisasi tema aplikasi dengan preferensi sistem operasi pengguna secara real-time.</span>
+                      <span><strong>Custom Themes:</strong> Menambahkan opsi tema warna (Pastel, Cyberpunk, Nature) untuk mempersonalisasi area belajar.</span>
                     </li>
                   </ul>
                 </div>
@@ -418,15 +432,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                   <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
                     <li className="flex gap-2">
                       <span className="text-amber-500 font-bold">•</span>
-                      <span><strong>Mobile Help Buttons:</strong> Re-alignment tombol bantuan pada tampilan mobile agar lebih ergonomis untuk jempol.</span>
+                      <span><strong>Smooth Transitions:</strong> Penambahan animasi transisi antar soal yang lebih halus (slide effects) untuk mengurangi eye strain.</span>
                     </li>
                     <li className="flex gap-2">
                       <span className="text-amber-500 font-bold">•</span>
-                      <span><strong>History Categorization Fix:</strong> Memastikan attempt gabungan (SKD Full) selalu muncul di urutan paling atas.</span>
+                      <span><strong>Mobile Grid Navigation:</strong> Memperbaiki navigasi grid soal pada mobile agar lebih mudah diakses saat pengerjaan.</span>
                     </li>
                     <li className="flex gap-2">
                       <span className="text-amber-500 font-bold">•</span>
-                      <span><strong>Asset Pre-loading:</strong> Optimasi pre-loading ikon dan aset suara saat aplikasi pertama kali dimuat (LCP improvement).</span>
+                      <span><strong>Bug Fix: Session Recovery:</strong> Memastikan state pengerjaan soal tidak hilang jika browser atau aplikasi tidak sengaja tertutup.</span>
                     </li>
                   </ul>
                 </div>
