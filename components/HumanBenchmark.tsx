@@ -93,30 +93,59 @@ const getGameColor = (game: BenchmarkMode) => {
     }
 }
 
-const getGameIcon = (game: BenchmarkMode) => {
+const getGameIcon = (game: BenchmarkMode, size = 24) => {
     switch(game) {
-        case 'REACTION': return <Zap size={24}/>;
-        case 'SEQUENCE': return <Grid size={24}/>;
-        case 'AIM': return <Target size={24}/>;
-        case 'CHIMP': return <Brain size={24}/>;
-        case 'VISUAL': return <Grid size={24}/>;
-        case 'NUMBER': return <Hash size={24}/>;
-        case 'VERBAL': return <Type size={24}/>;
-        case 'TYPING': return <FileText size={24}/>;
-        case 'BRIDGE': return <Map size={24}/>;
-        case 'MATCH': return <Copy size={24}/>;
-        case 'HANGMAN': return <Users size={24}/>;
-        case 'HOTCOLD': return <TrendingUp size={24}/>;
-        case 'NUMBER_RANGE': return <Search size={24}/>;
-        case 'POSITION_MEMORY': return <MapPin size={24}/>;
-        case 'PATTERN_BREAKER': return <Brain size={24}/>;
-        case 'DECISION_LAB': return <Briefcase size={24}/>;
-        case 'REVERSE_THINKING': return <RefreshCw size={24}/>;
-        case 'LOGIC_MAZE': return <Route size={24}/>;
-        case 'TIME_PRESSURE': return <Clock size={24}/>;
-        case 'MULTI_LAYER': return <Layers size={24}/>;
-        case 'SYNONYM_ANTONYM': return <Type size={24}/>;
-        default: return <Activity size={24}/>;
+        case 'REACTION': return <Zap size={size}/>;
+        case 'SEQUENCE': return <Grid size={size}/>;
+        case 'AIM': return <Target size={size}/>;
+        case 'CHIMP': return <Brain size={size}/>;
+        case 'VISUAL': return <Grid size={size}/>;
+        case 'NUMBER': return <Hash size={size}/>;
+        case 'VERBAL': return <Type size={size}/>;
+        case 'TYPING': return <FileText size={size}/>;
+        case 'BRIDGE': return <Map size={size}/>;
+        case 'MATCH': return <Copy size={size}/>;
+        case 'HANGMAN': return <Users size={size}/>;
+        case 'HOTCOLD': return <TrendingUp size={size}/>;
+        case 'NUMBER_RANGE': return <Search size={size}/>;
+        case 'POSITION_MEMORY': return <MapPin size={size}/>;
+        case 'PATTERN_BREAKER': return <Brain size={size}/>;
+        case 'DECISION_LAB': return <Briefcase size={size}/>;
+        case 'REVERSE_THINKING': return <RefreshCw size={size}/>;
+        case 'LOGIC_MAZE': return <Route size={size}/>;
+        case 'TIME_PRESSURE': return <Clock size={size}/>;
+        case 'MULTI_LAYER': return <Layers size={size}/>;
+        case 'SYNONYM_ANTONYM': return <Type size={size}/>;
+        case 'ARTICLE_TEST': return <FileText size={size}/>;
+        default: return <Activity size={size}/>;
+    }
+}
+
+const getGameBtnColor = (game: BenchmarkMode) => {
+    switch(game) {
+        case 'REACTION': return 'bg-amber-500 hover:bg-amber-600';
+        case 'SEQUENCE': return 'bg-indigo-600 hover:bg-indigo-700';
+        case 'AIM': return 'bg-orange-500 hover:bg-orange-600';
+        case 'CHIMP': return 'bg-teal-500 hover:bg-teal-600';
+        case 'VISUAL': return 'bg-sky-500 hover:bg-sky-600';
+        case 'NUMBER': return 'bg-blue-600 hover:bg-blue-700';
+        case 'VERBAL': return 'bg-purple-500 hover:bg-purple-600';
+        case 'TYPING': return 'bg-slate-600 hover:bg-slate-700';
+        case 'BRIDGE': return 'bg-emerald-600 hover:bg-emerald-700';
+        case 'MATCH': return 'bg-pink-600 hover:bg-pink-700';
+        case 'HANGMAN': return 'bg-slate-800 hover:bg-slate-900';
+        case 'HOTCOLD': return 'bg-rose-600 hover:bg-rose-700';
+        case 'NUMBER_RANGE': return 'bg-cyan-700 hover:bg-cyan-800';
+        case 'POSITION_MEMORY': return 'bg-fuchsia-700 hover:bg-fuchsia-800';
+        case 'PATTERN_BREAKER': return 'bg-indigo-700 hover:bg-indigo-800';
+        case 'DECISION_LAB': return 'bg-emerald-700 hover:bg-emerald-800';
+        case 'REVERSE_THINKING': return 'bg-violet-700 hover:bg-violet-800';
+        case 'LOGIC_MAZE': return 'bg-amber-700 hover:bg-amber-800';
+        case 'TIME_PRESSURE': return 'bg-rose-700 hover:bg-rose-800';
+        case 'MULTI_LAYER': return 'bg-indigo-700 hover:bg-indigo-800';
+        case 'SYNONYM_ANTONYM': return 'bg-cyan-600 hover:bg-cyan-700';
+        case 'ARTICLE_TEST': return 'bg-orange-600 hover:bg-orange-700';
+        default: return 'bg-slate-600 hover:bg-slate-700';
     }
 }
 
@@ -939,7 +968,7 @@ const ActivityFeed: React.FC<{ history: TestHistoryItem[] }> = ({ history }) => 
                                         <td className="p-3 sm:p-4">
                                             <div className="flex items-center gap-2 sm:gap-4">
                                                 <div className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl ${getGameColor(gameType)}`}>
-                                                    {getGameIcon(gameType)}
+                                                    {getGameIcon(gameType, 20)}
                                                 </div>
                                                 <span className={`font-bold text-xs sm:text-sm ${getGameColor(gameType).split(' ')[0]}`}>
                                                     {getGameLabel(gameType)}
@@ -3020,6 +3049,78 @@ const SynonymAntonymGame: React.FC<{ onFinish: (score: number) => void, onExit: 
     );
 };
 
+const GameCard: React.FC<{ 
+    game: BenchmarkMode, 
+    title: string, 
+    desc: string, 
+    onPlay: (game: BenchmarkMode) => void,
+    onShowStats: (game: BenchmarkMode) => void,
+    getStats: (game: BenchmarkMode) => { best: number | null, percentile: number }
+}> = ({ game, title, desc, onPlay, onShowStats, getStats }) => {
+    const { best, percentile } = getStats(game);
+    const fullColorClass = getGameColor(game);
+    const colorClassOnly = fullColorClass.split(' ').slice(1).join(' '); // Get the bg parts
+    const textColorClass = fullColorClass.split(' ')[0];
+    const btnColorClass = getGameBtnColor(game);
+    const accentColor = fullColorClass.split(' ')[1]; // e.g. bg-amber-500
+    
+    let unit = 'pts';
+    if (game === 'REACTION' || game === 'AIM') unit = 'ms';
+    if (game === 'TYPING') unit = 'wpm';
+    if (game === 'NUMBER_RANGE') unit = 'attempts';
+    if (game === 'SEQUENCE' || game === 'NUMBER' || game === 'CHIMP' || game === 'VISUAL' || game === 'BRIDGE' || game === 'MATCH' || game === 'POSITION_MEMORY') unit = 'lvl';
+
+    return (
+        <div className="relative overflow-hidden bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all group h-full">
+            <div className={`absolute top-0 bottom-0 left-0 w-1 ${accentColor}`}></div>
+            
+            <div className="p-3.5 sm:p-4 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 h-full">
+                 {/* Icon Box */}
+                <div className={`p-3 rounded-xl ${colorClassOnly} bg-opacity-10 shrink-0`}>
+                    <div className={textColorClass}>
+                       {getGameIcon(game, 32)}
+                    </div>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 text-center sm:text-left min-w-0 w-full">
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mb-0.5 truncate">{title}</h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs mb-2 line-clamp-2 min-h-[2.5em]">{desc}</p>
+                    
+                    {/* Percentile Bar */}
+                    <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-1.5 overflow-hidden">
+                        <div className={`h-full rounded-full ${accentColor}`} style={{ width: `${percentile}%` }}></div>
+                    </div>
+                    <div className="flex justify-between items-center text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                         <span>Best: {best !== null ? `${best} ${unit}` : '-'}</span>
+                         <span>{percentile > 0 ? `Top ${percentile}%` : '-'}</span>
+                    </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-row sm:flex-col gap-1.5 w-full sm:w-auto shrink-0">
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); SoundManager.play('click'); onPlay(game); }}
+                        className={`flex-1 sm:flex-none px-4 py-2 ${btnColorClass} text-white rounded-lg font-bold text-[11px] shadow-sm hover:shadow-md hover:scale-105 transition flex items-center justify-center gap-1.5`}
+                    >
+                        <Play size={12} fill="currentColor"/> MAIN
+                    </button>
+                    <button 
+                        onClick={(e) => { 
+                            e.stopPropagation(); 
+                            SoundManager.play('click'); 
+                            onShowStats(game);
+                        }} 
+                        className="flex-1 sm:flex-none px-3 py-2 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-400 rounded-lg font-bold text-[10px] transition flex items-center justify-center gap-1"
+                    >
+                        <BarChart2 size={12}/> STATS
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username, history, onComplete, isGuest, initialMode, initialTab }) => {
     const [mode, setMode] = useState<'MENU' | BenchmarkMode>('MENU');
     const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'RANKING'>(initialTab || 'DASHBOARD');
@@ -3107,6 +3208,31 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
         return { best: bestScore, percentile };
     };
 
+    const GAMES_DATA: { id: BenchmarkMode; title: string; desc: string }[] = [
+        { id: 'REACTION', title: 'Reaction Time', desc: 'Uji seberapa cepat refleks visual Anda merespons perubahan warna.' },
+        { id: 'SEQUENCE', title: 'Sequence Memory', desc: 'Ingat pola urutan kotak yang menyala semakin panjang.' },
+        { id: 'AIM', title: 'Aim Trainer', desc: 'Seberapa cepat Anda bisa mengenai semua target yang muncul?' },
+        { id: 'CHIMP', title: 'Chimp Test', desc: 'Apakah Anda lebih pintar dari simpanse? Uji memori kerja spasial.' },
+        { id: 'VISUAL', title: 'Visual Memory', desc: 'Ingat posisi kotak putih yang muncul. Hati-hati, setiap kesalahan mengurangi nyawa!' },
+        { id: 'NUMBER', title: 'Number Memory', desc: 'Ingat angka terpanjang yang bisa Anda hafal.' },
+        { id: 'VERBAL', title: 'Verbal Memory', desc: 'Ingat kata mana yang baru muncul dan mana yang sudah pernah.' },
+        { id: 'SYNONYM_ANTONYM', title: 'Sinonim & Antonim', desc: 'Uji perbendaharaan katamu! Pilih sinonim atau antonim yang tepat.' },
+        { id: 'ARTICLE_TEST', title: 'Tes Pasal (Hukum)', desc: 'Uji pemahamanmu tentang pasal-pasal UUD 1945 dan peraturan hukum lainnya.' },
+        { id: 'TYPING', title: 'Typing Test', desc: 'Berapa banyak kata yang bisa Anda ketik per menit?' },
+        { id: 'BRIDGE', title: 'Bridge Memory', desc: 'Hafalkan jalan yang aman dari bawah ke atas sebelum hilang.' },
+        { id: 'MATCH', title: 'Match Memory', desc: 'Cari pasangan simbol yang sama di balik kartu.' },
+        { id: 'HANGMAN', title: 'Hangman', desc: 'Tebak kata sebelum orangnya tergantung.' },
+        { id: 'HOTCOLD', title: 'Hot & Cold', desc: 'Tebak kata rahasia berdasarkan kedekatan makna.' },
+        { id: 'NUMBER_RANGE', title: 'Number Range', desc: 'Tebak angka rahasia dengan petunjuk lebih besar/kecil.' },
+        { id: 'POSITION_MEMORY', title: 'Position Memory', desc: 'Hafalkan posisi dan warna blok, lalu susun kembali.' },
+        { id: 'PATTERN_BREAKER', title: 'Pattern Breaker', desc: 'Temukan pola tersembunyi dari deret angka.' },
+        { id: 'DECISION_LAB', title: 'Decision Lab', desc: 'Buat keputusan strategis dalam berbagai skenario.' },
+        { id: 'REVERSE_THINKING', title: 'Reverse Thinking', desc: 'Diberikan jawaban, temukan logika atau persamaannya.' },
+        { id: 'LOGIC_MAZE', title: 'Logic Maze', desc: 'Jelajahi labirin dengan aturan logika yang berubah-ubah.' },
+        { id: 'TIME_PRESSURE', title: 'Time Pressure Logic', desc: 'Selesaikan soal logika sederhana di bawah tekanan waktu.' },
+        { id: 'MULTI_LAYER', title: 'Multi-Layer Puzzle', desc: 'Selesaikan teka-teki yang memiliki beberapa lapisan logika.' },
+    ];
+
     if (mode !== 'MENU') {
         switch(mode) {
             case 'REACTION': return <ReactionTimeGame onFinish={(s) => handleFinishGame(s, 'REACTION')} onExit={() => setMode('MENU')} />;
@@ -3135,76 +3261,8 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
         }
     }
 
-    const GameCard: React.FC<{ 
-        game: BenchmarkMode, 
-        title: string, 
-        desc: string, 
-        icon: React.ReactNode, 
-        colorClass: string,
-        textColorClass: string,
-        btnColorClass: string
-    }> = ({ game, title, desc, icon, colorClass, textColorClass, btnColorClass }) => {
-        const { best, percentile } = getStats(game);
-        let unit = 'pts';
-        if (game === 'REACTION' || game === 'AIM') unit = 'ms';
-        if (game === 'TYPING') unit = 'wpm';
-        if (game === 'NUMBER_RANGE') unit = 'attempts';
-        if (game === 'SEQUENCE' || game === 'NUMBER' || game === 'CHIMP' || game === 'VISUAL' || game === 'BRIDGE' || game === 'MATCH' || game === 'POSITION_MEMORY') unit = 'lvl';
-
-        return (
-            <div className="relative overflow-hidden bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all group h-full">
-                <div className={`absolute top-0 bottom-0 left-0 w-1 ${colorClass}`}></div>
-                
-                <div className="p-3.5 sm:p-4 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 h-full">
-                     {/* Icon Box */}
-                    <div className={`p-3 rounded-xl ${colorClass} bg-opacity-10 shrink-0`}>
-                        <div className={textColorClass}>
-                           {icon}
-                        </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 text-center sm:text-left min-w-0 w-full">
-                        <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mb-0.5 truncate">{title}</h3>
-                        <p className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs mb-2 line-clamp-2 min-h-[2.5em]">{desc}</p>
-                        
-                        {/* Percentile Bar */}
-                        <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-1.5 overflow-hidden">
-                            <div className={`h-full rounded-full ${colorClass}`} style={{ width: `${percentile}%` }}></div>
-                        </div>
-                        <div className="flex justify-between items-center text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
-                             <span>Best: {best !== null ? `${best} ${unit}` : '-'}</span>
-                             <span>{percentile > 0 ? `Top ${percentile}%` : '-'}</span>
-                        </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex flex-row sm:flex-col gap-1.5 w-full sm:w-auto shrink-0">
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); SoundManager.play('click'); setMode(game); }}
-                            className={`flex-1 sm:flex-none px-4 py-2 ${btnColorClass} text-white rounded-lg font-bold text-[11px] shadow-sm hover:shadow-md hover:scale-105 transition flex items-center justify-center gap-1.5`}
-                        >
-                            <Play size={12} fill="currentColor"/> MAIN
-                        </button>
-                        <button 
-                            onClick={(e) => { 
-                                e.stopPropagation(); 
-                                SoundManager.play('click'); 
-                                setStatsModalGame(game); 
-                                setStatsModalOpen(true); 
-                            }} 
-                            className="flex-1 sm:flex-none px-3 py-2 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-400 rounded-lg font-bold text-[10px] transition flex items-center justify-center gap-1"
-                        >
-                            <BarChart2 size={12}/> STATS
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="min-h-screen bg-transparent p-6 flex flex-col font-sans transition-colors">
+        <div className="min-h-screen bg-transparent p-4 sm:p-6 flex flex-col font-sans transition-colors">
              <div className="max-w-6xl mx-auto w-full">
                 
                 <StatsModal 
@@ -3251,205 +3309,18 @@ export const HumanBenchmark: React.FC<HumanBenchmarkProps> = ({ onBack, username
 
                 {activeTab === 'DASHBOARD' ? (
                     <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-6 mb-10">
-                            <GameCard 
-                                game="REACTION" 
-                                title="Reaction Time" 
-                                desc="Uji seberapa cepat refleks visual Anda merespons perubahan warna." 
-                                icon={<Zap size={32}/>}
-                                colorClass="bg-amber-500"
-                                textColorClass="text-amber-500"
-                                btnColorClass="bg-amber-500 hover:bg-amber-600"
-                            />
-                            <GameCard 
-                                game="SEQUENCE" 
-                                title="Sequence Memory" 
-                                desc="Ingat pola urutan kotak yang menyala semakin panjang." 
-                                icon={<Grid size={32}/>}
-                                colorClass="bg-indigo-500"
-                                textColorClass="text-indigo-500"
-                                btnColorClass="bg-indigo-600 hover:bg-indigo-700"
-                            />
-                            <GameCard 
-                                game="AIM" 
-                                title="Aim Trainer" 
-                                desc="Seberapa cepat Anda bisa mengenai semua target yang muncul?" 
-                                icon={<Target size={32}/>}
-                                colorClass="bg-orange-500"
-                                textColorClass="text-orange-500"
-                                btnColorClass="bg-orange-500 hover:bg-orange-600"
-                            />
-                            <GameCard 
-                                game="CHIMP" 
-                                title="Chimp Test" 
-                                desc="Apakah Anda lebih pintar dari simpanse? Uji memori kerja spasial." 
-                                icon={<Brain size={32}/>}
-                                colorClass="bg-teal-500"
-                                textColorClass="text-teal-500"
-                                btnColorClass="bg-teal-500 hover:bg-teal-600"
-                            />
-                            <GameCard 
-                                game="VISUAL" 
-                                title="Visual Memory" 
-                                desc="Ingat posisi kotak putih yang muncul. Hati-hati, setiap kesalahan mengurangi nyawa!" 
-                                icon={<Grid size={32}/>}
-                                colorClass="bg-sky-500"
-                                textColorClass="text-sky-500"
-                                btnColorClass="bg-sky-500 hover:bg-sky-600"
-                            />
-                            <GameCard 
-                                game="NUMBER" 
-                                title="Number Memory" 
-                                desc="Ingat angka terpanjang yang bisa Anda hafal." 
-                                icon={<Hash size={32}/>}
-                                colorClass="bg-blue-600"
-                                textColorClass="text-blue-600"
-                                btnColorClass="bg-blue-600 hover:bg-blue-700"
-                            />
-                            <GameCard 
-                                game="VERBAL" 
-                                title="Verbal Memory" 
-                                desc="Ingat kata mana yang baru muncul dan mana yang sudah pernah." 
-                                icon={<Type size={32}/>}
-                                colorClass="bg-purple-500"
-                                textColorClass="text-purple-500"
-                                btnColorClass="bg-purple-500 hover:bg-purple-600"
-                            />
-                            <GameCard 
-                                game="SYNONYM_ANTONYM" 
-                                title="Sinonim & Antonim" 
-                                desc="Uji perbendaharaan katamu! Pilih sinonim atau antonim yang tepat." 
-                                icon={<Type size={32}/>}
-                                colorClass="bg-cyan-600"
-                                textColorClass="text-cyan-600"
-                                btnColorClass="bg-cyan-600 hover:bg-cyan-700"
-                            />
-                            <GameCard 
-                                game="ARTICLE_TEST" 
-                                title="Tes Pasal (Hukum)" 
-                                desc="Uji pemahamanmu tentang pasal-pasal UUD 1945 dan peraturan hukum lainnya." 
-                                icon={<FileText size={32}/>}
-                                colorClass="bg-orange-600"
-                                textColorClass="text-orange-600"
-                                btnColorClass="bg-orange-600 hover:bg-orange-700"
-                            />
-                            <GameCard 
-                                game="TYPING" 
-                                title="Typing Test" 
-                                desc="Berapa banyak kata yang bisa Anda ketik per menit?" 
-                                icon={<FileText size={32}/>}
-                                colorClass="bg-slate-500"
-                                textColorClass="text-slate-500"
-                                btnColorClass="bg-slate-600 hover:bg-slate-700"
-                            />
-                             <GameCard 
-                                game="BRIDGE" 
-                                title="Bridge Memory" 
-                                desc="Hafalkan jalan yang aman dari bawah ke atas sebelum hilang." 
-                                icon={<Map size={32}/>}
-                                colorClass="bg-emerald-500"
-                                textColorClass="text-emerald-500"
-                                btnColorClass="bg-emerald-600 hover:bg-emerald-700"
-                            />
-                            <GameCard 
-                                game="MATCH" 
-                                title="Match Memory" 
-                                desc="Cari pasangan simbol yang sama di balik kartu." 
-                                icon={<Copy size={32}/>}
-                                colorClass="bg-pink-500"
-                                textColorClass="text-pink-500"
-                                btnColorClass="bg-pink-600 hover:bg-pink-700"
-                            />
-                            <GameCard 
-                                game="HANGMAN" 
-                                title="Hangman" 
-                                desc="Tebak kata sebelum orangnya tergantung." 
-                                icon={<Users size={32}/>}
-                                colorClass="bg-slate-700"
-                                textColorClass="text-slate-700"
-                                btnColorClass="bg-slate-800 hover:bg-slate-900"
-                            />
-                            <GameCard 
-                                game="HOTCOLD" 
-                                title="Hot & Cold" 
-                                desc="Tebak kata rahasia berdasarkan kedekatan makna." 
-                                icon={<TrendingUp size={32}/>}
-                                colorClass="bg-rose-500"
-                                textColorClass="text-rose-500"
-                                btnColorClass="bg-rose-600 hover:bg-rose-700"
-                            />
-                            <GameCard 
-                                game="NUMBER_RANGE" 
-                                title="Number Range" 
-                                desc="Tebak angka rahasia dengan petunjuk lebih besar/kecil." 
-                                icon={<Search size={32}/>}
-                                colorClass="bg-cyan-600"
-                                textColorClass="text-cyan-600"
-                                btnColorClass="bg-cyan-700 hover:bg-cyan-800"
-                            />
-                            <GameCard 
-                                game="POSITION_MEMORY" 
-                                title="Position Memory" 
-                                desc="Hafalkan posisi dan warna blok, lalu susun kembali." 
-                                icon={<MapPin size={32}/>}
-                                colorClass="bg-fuchsia-600"
-                                textColorClass="text-fuchsia-600"
-                                btnColorClass="bg-fuchsia-700 hover:bg-fuchsia-800"
-                            />
-                            <GameCard 
-                                game="PATTERN_BREAKER" 
-                                title="Pattern Breaker" 
-                                desc="Temukan pola tersembunyi dari deret angka." 
-                                icon={<Brain size={32}/>}
-                                colorClass="bg-indigo-600"
-                                textColorClass="text-indigo-600"
-                                btnColorClass="bg-indigo-700 hover:bg-indigo-800"
-                            />
-                            <GameCard 
-                                game="DECISION_LAB" 
-                                title="Decision Lab" 
-                                desc="Buat keputusan strategis dalam berbagai skenario." 
-                                icon={<Briefcase size={32}/>}
-                                colorClass="bg-emerald-600"
-                                textColorClass="text-emerald-600"
-                                btnColorClass="bg-emerald-700 hover:bg-emerald-800"
-                            />
-                            <GameCard 
-                                game="REVERSE_THINKING" 
-                                title="Reverse Thinking" 
-                                desc="Diberikan jawaban, temukan logika atau persamaannya." 
-                                icon={<RefreshCw size={32}/>}
-                                colorClass="bg-violet-600"
-                                textColorClass="text-violet-600"
-                                btnColorClass="bg-violet-700 hover:bg-violet-800"
-                            />
-                            <GameCard 
-                                game="LOGIC_MAZE" 
-                                title="Logic Maze" 
-                                desc="Jelajahi labirin dengan aturan logika yang berubah-ubah." 
-                                icon={<Route size={32}/>}
-                                colorClass="bg-amber-600"
-                                textColorClass="text-amber-600"
-                                btnColorClass="bg-amber-700 hover:bg-amber-800"
-                            />
-                            <GameCard 
-                                game="TIME_PRESSURE" 
-                                title="Time Pressure Logic" 
-                                desc="Selesaikan soal logika sederhana di bawah tekanan waktu." 
-                                icon={<Clock size={32}/>}
-                                colorClass="bg-rose-600"
-                                textColorClass="text-rose-600"
-                                btnColorClass="bg-rose-700 hover:bg-rose-800"
-                            />
-                            <GameCard 
-                                game="MULTI_LAYER" 
-                                title="Multi-Layer Puzzle" 
-                                desc="Selesaikan teka-teki yang memiliki beberapa lapisan logika." 
-                                icon={<Layers size={32}/>}
-                                colorClass="bg-indigo-600"
-                                textColorClass="text-indigo-600"
-                                btnColorClass="bg-indigo-700 hover:bg-indigo-800"
-                            />
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-4 sm:gap-6 mb-10">
+                            {GAMES_DATA.map(game => (
+                                <GameCard 
+                                    key={game.id}
+                                    game={game.id}
+                                    title={game.title}
+                                    desc={game.desc}
+                                    onPlay={(g) => setMode(g)}
+                                    onShowStats={(g) => { setStatsModalGame(g); setStatsModalOpen(true); }}
+                                    getStats={getStats}
+                                />
+                            ))}
                         </div>
                         
                         <ActivityFeed history={history} />

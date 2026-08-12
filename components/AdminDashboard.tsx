@@ -8,6 +8,20 @@ interface AdminDashboardProps {
 
 export const PATCH_NOTES = [
   {
+    version: "v3.1.0",
+    date: "2026-08-11",
+    type: "Feature & Optimization",
+    description: "Benchmark Dashboard Refactor & Icon Consistency",
+    details: [
+      "Data-Driven Dashboard: Rekonstruksi dashboard Human Benchmark menggunakan model data-driven untuk performa rendering yang lebih cepat dan stabil.",
+      "Fixed Missing Icons: Memperbaiki bug di mana ikon game tidak muncul pada beberapa perangkat atau kondisi tertentu.",
+      "Icon Standardization: Menstandarisasi ukuran (32px) dan warna ikon di seluruh kartu game untuk konsistensi visual maksimal.",
+      "Performance Optimization: Memindahkan komponen GameCard ke level modul untuk mencegah re-creation komponen yang tidak perlu saat render.",
+      "Improved Color Logic: Sinkronisasi logika warna antara dashboard, riwayat aktivitas, dan leaderboard.",
+      "Refined Activity Feed: Memperkecil ukuran ikon pada tabel riwayat agar lebih pas di layar handphone."
+    ]
+  },
+  {
     version: "v3.0.0",
     date: "2026-08-11",
     type: "Major Update",
@@ -401,46 +415,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
             
             <div className="mt-12 pt-12 border-t border-slate-200 dark:border-slate-800">
               <h2 className="text-xl font-black text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                <Info className="text-blue-500" /> Saran Pengembangan Selanjutnya
+                <Info className="text-blue-500" /> Saran Update Paling Berguna (Next Step)
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-emerald-50 dark:bg-emerald-900/10 p-5 rounded-2xl border border-emerald-100 dark:border-emerald-800">
                   <h3 className="font-bold text-emerald-800 dark:text-emerald-300 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
-                    <Layers size={16} /> Fitur & QoL Teratas
+                    <Layers size={16} /> UI/UX & QoL Improvements
                   </h3>
                   <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
                     <li className="flex gap-2">
                       <span className="text-emerald-500 font-bold">•</span>
-                      <span><strong>Mode Kompetisi Real-time:</strong> Menambahkan fitur 'Battle' antar user untuk mengerjakan paket soal yang sama secara bersamaan.</span>
+                      <span><strong>Dark Mode Polish:</strong> Menambahkan transisi yang lebih halus saat berpindah tema dan memastikan semua kontras teks di dark mode memenuhi standar WCAG AA.</span>
                     </li>
                     <li className="flex gap-2">
                       <span className="text-emerald-500 font-bold">•</span>
-                      <span><strong>AI Study Planner:</strong> Integrasi Gemini untuk membuat jadwal belajar personal berdasarkan data kelemahan user di riwayat.</span>
+                      <span><strong>Haptic Feedback:</strong> Implementasi getaran halus (vibration API) pada perangkat mobile saat menjawab benar/salah untuk pengalaman sensorik yang lebih kaya.</span>
                     </li>
                     <li className="flex gap-2">
                       <span className="text-emerald-500 font-bold">•</span>
-                      <span><strong>Custom Themes:</strong> Menambahkan opsi tema warna (Pastel, Cyberpunk, Nature) untuk mempersonalisasi area belajar.</span>
+                      <span><strong>Game Instructions Modal:</strong> Menambahkan tombol '?' kecil di pojok setiap game card untuk menampilkan instruksi cara bermain sebelum game dimulai.</span>
                     </li>
                   </ul>
                 </div>
 
                 <div className="bg-amber-50 dark:bg-amber-900/10 p-5 rounded-2xl border border-amber-100 dark:border-amber-800">
                   <h3 className="font-bold text-amber-800 dark:text-amber-300 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
-                    <Activity size={16} /> Perbaikan & UI/UX
+                    <Activity size={16} /> Fitur & Bug Fix Prioritas
                   </h3>
                   <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
                     <li className="flex gap-2">
                       <span className="text-amber-500 font-bold">•</span>
-                      <span><strong>Smooth Transitions:</strong> Penambahan animasi transisi antar soal yang lebih halus (slide effects) untuk mengurangi eye strain.</span>
+                      <span><strong>Bug Fix: Audio Latency:</strong> Optimasi pre-loading file audio untuk mengurangi lag suara saat feedback success/error di beberapa browser mobile.</span>
                     </li>
                     <li className="flex gap-2">
                       <span className="text-amber-500 font-bold">•</span>
-                      <span><strong>Mobile Grid Navigation:</strong> Memperbaiki navigasi grid soal pada mobile agar lebih mudah diakses saat pengerjaan.</span>
+                      <span><strong>Global Search:</strong> Menambahkan bar pencarian di dashboard utama untuk mempermudah user mencari game atau paket soal spesifik dengan cepat.</span>
                     </li>
                     <li className="flex gap-2">
                       <span className="text-amber-500 font-bold">•</span>
-                      <span><strong>Bug Fix: Session Recovery:</strong> Memastikan state pengerjaan soal tidak hilang jika browser atau aplikasi tidak sengaja tertutup.</span>
+                      <span><strong>Offline Persistence:</strong> Implementasi Service Worker agar aplikasi tetap bisa diakses dan data pengerjaan tersimpan sementara saat koneksi internet terputus.</span>
                     </li>
                   </ul>
                 </div>
