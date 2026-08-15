@@ -8,6 +8,20 @@ interface AdminDashboardProps {
 
 export const PATCH_NOTES = [
   {
+    version: "v3.2.0",
+    date: "2026-08-14",
+    type: "Feature & AI Upgrade",
+    description: "Elite SKD Question Engine & Originality Guard",
+    details: [
+      "Elite Kedinasan Standard: Peningkatan standar kesulitan soal (TWK, TIU, TKP) agar setara dengan tes asli kedinasan (STAN/STIS/IPDN).",
+      "Anti-Repetition Logic: AI kini dipaksa untuk menciptakan skenario baru dan unik, menghindari pola-pola 'Bank Soal' yang membosankan dan repetitif.",
+      "Figural Precision V17: Perbaikan pada logika pola gambar (TIU) agar lebih presisi, simetris, dan tidak acak-acakan (Messy-free SVG).",
+      "Matrix Variety Upgrade: Meningkatkan jumlah dan variasi soal Matriks 9 Kotak dengan logika geometris 2D yang lebih kompleks.",
+      "TKP Grey-Area Dilemmas: Skenario TKP kini lebih fokus pada dilema birokrasi modern dan transformasi digital, menghindari skenario klise.",
+      "LaTeX Math Standardization: Memastikan seluruh simbol matematika menggunakan rendering LaTeX yang sempurna dan profesional."
+    ]
+  },
+  {
     version: "v3.1.0",
     date: "2026-08-11",
     type: "Feature & Optimization",
@@ -430,7 +444,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                     </li>
                     <li className="flex gap-2">
                       <span className="text-emerald-500 font-bold">•</span>
-                      <span><strong>Haptic Feedback:</strong> Implementasi getaran halus (vibration API) pada perangkat mobile saat menjawab benar/salah untuk pengalaman sensorik yang lebih kaya.</span>
+                      <span><strong>Interactive Explanation:</strong> Menambahkan highlight teks pada bagian penting di penjelasan soal agar user lebih cepat menangkap inti materi.</span>
                     </li>
                     <li className="flex gap-2">
                       <span className="text-emerald-500 font-bold">•</span>
@@ -441,12 +455,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
 
                 <div className="bg-amber-50 dark:bg-amber-900/10 p-5 rounded-2xl border border-amber-100 dark:border-amber-800">
                   <h3 className="font-bold text-amber-800 dark:text-amber-300 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
-                    <Activity size={16} /> Fitur & Bug Fix Prioritas
+                    <Activity size={16} /> Fitur & Content Strategy
                   </h3>
                   <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
                     <li className="flex gap-2">
                       <span className="text-amber-500 font-bold">•</span>
-                      <span><strong>Bug Fix: Audio Latency:</strong> Optimasi pre-loading file audio untuk mengurangi lag suara saat feedback success/error di beberapa browser mobile.</span>
+                      <span><strong>Smart Question Bank:</strong> Implementasi sistem tagging otomatis pada soal-soal baru agar user bisa memfilter soal berdasarkan sub-materi yang spesifik.</span>
                     </li>
                     <li className="flex gap-2">
                       <span className="text-amber-500 font-bold">•</span>
@@ -454,7 +468,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                     </li>
                     <li className="flex gap-2">
                       <span className="text-amber-500 font-bold">•</span>
-                      <span><strong>Offline Persistence:</strong> Implementasi Service Worker agar aplikasi tetap bisa diakses dan data pengerjaan tersimpan sementara saat koneksi internet terputus.</span>
+                      <span><strong>Performance Prediction:</strong> Menggunakan data pengerjaan user untuk memprediksi probabilitas kelulusan di instansi target secara real-time.</span>
                     </li>
                   </ul>
                 </div>

@@ -716,29 +716,31 @@ export const buildQuestionPrompt = async (
   let base64Pdf: string | undefined = undefined;
 
   
-  // V16.0 UPGRADE: MASTER-LEVEL TIU & ANALYTICAL REASONING
+  // V17.0 UPGRADE: ELITE KEDINASAN LEVEL (STAN/STIS/IPDN)
   const shapeInstructions = `
-  CRITICAL VISUAL & LOGIC RULES (V16.0 - MASTER):
+  CRITICAL VISUAL & LOGIC RULES (V17.0 - ELITE KEDINASAN):
   - **EXPLANATION-FIRST PRINCIPLE (MANDATORY)**: You MUST solve the logical problem step-by-step in the "explanation" field BEFORE defining "options" or "correctAnswer". Mentally draw timelines, tables, or seating charts before writing.
   - **LOGIC INTEGRITY**: For Analytical Reasoning (Ordering, Queuing, Seating):
     - NO ROUNDING Hallucination: Quantities and orders must be absolute.
     - DISAMBIGUATION: If premises allow multiple valid configurations, it is a FAIL. Add a premise to ensure exactly one unique solution.
     - QUEUE/ORDER: Use clear sequential logic. (e.g., "A di antara B dan C", "D mendahului E").
 
-  - **MANDATORY SVG COMPLETION**:
+  - **MANDATORY SVG COMPLETION & AESTHETICS**:
+    - NO MESSY/RANDOM DESIGNS: SVGs must be clean, balanced, and professionally rendered. Avoid random line weights or overlapping shapes that look accidental.
+    - GEOMETRIC PRECISION: Use symmetry, perfect alignment, and deliberate spacing. 
     - SERIAL (Pola) & ANALOGY: The 'content' field MUST start with an SVG string showing the complete sequence. NEVER leave it as text only.
     - MATRIX (3x3): You MUST use the 'metadata.matrix' JSON schema field. Do NOT put the matrix in the 'content' string. 'metadata.matrix' must be an array of rows, where each cell is an object with 'content' (SVG string or '?'), 'id', and 'logic'. Cell (2,2) MUST be '?'.
     - KETIDAKSAMAAN (Odd One Out): 'options' MUST be 5 distinct SVG strings. Use generic question text like "Pilihlah gambar yang berbeda dari yang lain."
   
-  - **FIGURAL DIFFICULTY MUST BE EXTREME (IQ TEST LEVEL)**:
-    - NO SIMPLE PATTERNS: Do not use simple logic like "add 1 line" or "change color to black".
-    - MULTIPLE VARIABLES: Always use at least 2 simultaneous transformations (e.g., rotation AND translation AND fill change).
-    - If Matrix: The row logic AND column logic MUST intersect correctly at the answer cell (e.g., XOR overlapping lines, or arithmetic addition of shapes).
-    - If Serial: Ensure the sequence has a non-linear but logical progression (e.g., oscillating movement + consistent rotation).
-    - Ensure SVGs are richly detailed (e.g., multiple layered shapes: circle inside square with diagonal lines).
+  - **FIGURAL DIFFICULTY MUST BE ELITE (ASLI KEDINASAN LEVEL)**:
+    - ANTI-CLICHÉ: Avoid common patterns like "add 1 dot" or "rotate 90 deg". Synthesize NEW logic.
+    - MULTIPLE VARIABLES: Always use at least 3 simultaneous transformations (e.g., rotation AND translation AND opacity change AND shape substitution).
+    - If Matrix: Use COMPLEX arithmetic of shapes (Shape A + Shape B = Shape C where overlapping lines disappear).
+    - If Serial: Use recursive patterns (e.g., step 1 moves +1, step 2 moves -2, step 3 moves +3).
+    - Ensure SVGs are richly detailed with layered complexity (e.g. nested polygons with hatching patterns).
 
   - **RENDER FIDELITY**:
-    - SVGs MUST use viewBox="0 0 100 100" with high-contrast colors (e.g. stroke="currentColor").
+    - SVGs MUST use viewBox="0 0 100 100" with high-contrast colors (e.g. stroke="currentColor"). Use consistent stroke-width (usually 2).
   `;
 
   // Removed old shape instructions
@@ -751,7 +753,11 @@ export const buildQuestionPrompt = async (
   - **FLAWLESS LOGIC**: For Analytical Logic (ordering, seating, schedules) and Syllogisms, double-check your logical constraints. Ensure there is ONE and ONLY ONE valid sequence/configuration that matches all premises without contradiction.
   - **EQUAL OPTION LENGTHS (ANTI-GUESSING)**: You MUST ensure that all 5 options (A, B, C, D, E) are roughly the EXACT SAME LENGTH (character and word count). The correct answer MUST NEVER be noticeably longer or more detailed than the distractor options. If you need to add detail to the correct answer, you MUST also add equally complex and long details to the incorrect answers to camouflage it.
   - **DISTRACTOR QUALITY (Near-Miss Logic for HOTS)**: For incorrect options (distractors), do NOT use random or easily guessable wrong answers. Construct them logically based on common calculation errors, misread signs, logical traps, or near-misses of the exact correct answer. In TWK and TKP, distractors must sound incredibly plausible, academic, and highly professional.
-  - **HOTS REQUIREMENT (MASTER LEVEL)**: Every question MUST be at the HOTS level. Questions should require analysis, evaluation, and creation, not just simple recall. Use "Analyze...", "Evaluate...", "Determine the best course of action based on..." phrasing.
+  - **HOTS REQUIREMENT (ELITE KEDINASAN LEVEL)**: Every question MUST be at the ELITE HOTS level. Questions should require deep analysis, evaluation, and creation, not just simple recall. Use "Analyze...", "Evaluate...", "Determine the best course of action based on..." phrasing.
+  - **ANTI-REPETITION & ORIGINALITY**: 
+    - DO NOT use standard, overused question bank scenarios (e.g., for TKP: "seeing someone struggling", "printer broken", "internet down"). 
+    - Synthesize FRESH, modern, and complex scenarios relevant to government service (Kedinasan) and modern bureaucracy.
+    - Avoid common "Bank Soal" patterns. If a pattern is common, make it 3x more complex.
   - **ANTI-LEAK / EXTREME DIFFICULTY (VERSION 7)**:
     - In TWK or conceptual questions, NEVER reveal the correct answer or crucial parts of it inside the question prompt. E.g. If asking who wrote a script, do not say "The script written by Muhammad Yamin..."
     - Provide deep analytical scenarios rather than simple memorization. 
@@ -884,7 +890,7 @@ export const buildQuestionPrompt = async (
       const isTkp = (typeof context === 'string' && (context.toUpperCase().includes('TKP') || context.toUpperCase().includes('KARAKTERISTIK PRIBADI'))) || (category === 'SKD' && difficultyOverride === 'TKP');
 
       if (isTwk) {
-           difficultyContext = `CONTEXT: SKD TWK (Tes Wawasan Kebangsaan) - EXTREME HOTS DIFFICULTY (MASTER LEVEL).
+           difficultyContext = `CONTEXT: SKD TWK (Tes Wawasan Kebangsaan) - ELITE KEDINASAN DIFFICULTY.
            
            THEME & TOPICS (STRICTLY FOLLOW THESE):
            - Nasionalisme: 20-30% questions.
@@ -894,47 +900,43 @@ export const buildQuestionPrompt = async (
            - Bahasa Indonesia: 10-20% questions.
 
            CONTENT RATIO (CRITICAL):
-           - 20-40% Memorization (Hafalan): Key dates, articles, and definitions.
-           - 60-80% Reasoning/Application (Penalaran): Case studies, analysis of national situations, and implementation of values.
+           - 10-20% Advanced Memorization: Deep constitutional history and specific article nuances.
+           - 80-90% Extreme Reasoning: Complex case studies involving ethics, geopolitics, and national integrity.
 
            CRITICAL TWK RULES (ELITE DIFFICULTY & SANGAT MENGECOH):
            1. **NO IMAGES/SVG**: DILARANG KERAS menghasilkan gambar, SVG, atau visual apa pun. Soal TWK HARUS 100% TEKS.
-           2. FORMAT: Gunakan narasi/studi kasus nyata atau skenario geopolitik/ketatanegaraan yang kompleks (Maks 80 kata). Jangan gunakan soal hafalan sederhana.
-           3. JAWABAN: Opsi jawaban harus menguji pemahaman KONSEPTUAL tingkat tinggi, mensyaratkan peserta untuk membandingkan 2 asas/undang-undang secara bersamaan.
-           4. EXPLANATION: Berikan penjelasan yang **SINGKAT, PADAT, DAN JELAS**. Maksimal 2-3 kalimat pendek, fokus pada 'key differentiator'.
-           5. DISTRACTORS (PENGECOH): Pengecoh HARUS SUPER SULIT. Semua opsi salah harus terdengar sangat logis, konstitusional, dan sering dianggap benar oleh orang awam. Selisih kebenaran antara opsi A-E harus sangat tipis.
-           6. METADATA TRAP: Jelaskan jebakan pola pikir apa yang membuat mayoritas orang salah menjawab soal ini.`;
+           2. FORMAT: Gunakan narasi/studi kasus nyata yang kompleks. Hindari "Soal Hafalan Langsung".
+           3. JAWABAN: Opsi jawaban harus menguji pemahaman KONSEPTUAL tingkat tinggi.
+           4. EXPLANATION: Berikan penjelasan yang mendalam namun efisien.
+           5. DISTRACTORS: Pengecoh HARUS SUPER SULIT. Semua opsi salah harus terdengar sangat logis dan konstitusional.
+           6. ANTI-REPETITION: Do not use standard "Pancasila as the basis of state" or "UUD 1945 was amended 4 times" questions. Go deeper.`;
       } else if (isTiu) {
-           difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - EXTREME HOTS (ELITE LEVEL).
+           difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - ELITE KEDINASAN LEVEL (HOTS).
            
            THEME & TOPICS (STRICTLY FOLLOW THESE):
-           - Kemampuan Verbal: Analogi (padanan kata yang ambigu), silogisme (penarikan kesimpulan kompleks), dan analitis (posisi/urutan rumit).
-           - Kemampuan Numerik: Berhitung cepat, deret angka (pola bertingkat/interleaved), perbandingan kuantitatif, dan soal cerita matematika analisis tinggi.
-           - Kemampuan Figural: Analogi gambar, ketidaksamaan gambar, dan serial gambar (Gunakan SVG yang kompleks).
+           - Kemampuan Verbal: Analogi (multi-variable), silogisme (complex negations), dan analitis (labyrinth logic).
+           - Kemampuan Numerik: Deret interleaved 3-lapis, perbandingan kuantitatif dengan variabel tersembunyi, soal cerita matematika analisis tinggi.
+           - Kemampuan Figural: Serial gambar, analogi gambar, dan MATRIKS 3X3 (9 KOTAK) dengan logika geometris yang sangat menantang.
 
            CRITICAL TIU RULES (ELITE DIFFICULTY & PENGECOH EKSTREM):
-           0. LENGTH LIMIT: Soal harus **PENDEK DAN JELAS (MAKSIMAL 100 KATA)**.
-           1. VERBAL ANALOGY: Gunakan analogi 3-variabel dengan kosa kata KBBI level tinggi yang jarang dipakai. Hindari analogi sederhana.
-           2. NUMERICAL SERIES: Pola harus SANGAT SULIT (kombinasi Fibonacci, deret prima, pola bertingkat/interleaved 3 lapis).
-           3. LOGICAL REASONING: Gunakan silogisme dengan 3-4 premis yang SULIT (mengandung negasi ganda atau kuantor "sebagian/semua" yang menjebak).
-           4. SOAL CERITA: Buat soal cerita matematika dengan 3 variabel dependen (misalnya kecepatan, waktu kerja bersama dengan jeda istirahat).
-           5. EXPLANATION: Berikan penjelasan TUNTAS langkah demi langkah, dan WAJIB sertakan trik cepat/shortcut.
-           6. FIGURAL: Gunakan SVG yang kompleks. Minimal 3 transformasi berbarengan (rotasi, translasi, inverse color).
-           7. ANTI-GUESSING BY LENGTH: PANJANG OPSI (A-E) HARUS SAMA PERSIS.`;
+           1. VERBAL ANALOGY: Gunakan analogi yang menuntut pemahaman konteks sosial/sains/sastra yang luas.
+           2. NUMERICAL SERIES: Pola harus tidak terduga namun tetap logis (Interleaved/Bertingkat).
+           3. LOGICAL REASONING: Silogisme dengan premis kontradiktif semu yang menuntut ketelitian logika formal.
+           4. SOAL CERITA: Masukkan unsur waktu, kecepatan ganda, atau perbandingan terbalik dalam satu soal.
+           5. FIGURAL: Gunakan SVG yang bersih, presisi, namun memiliki logika transformasi yang kompleks (rotasi + scaling + XOR lines).
+           6. MATRIX VARIETY: Ensure Figural Matrix questions use varied geometric logic (addition, subtraction, XOR, or incremental rotation across rows AND columns).`;
       } else if (isTkp) {
-           difficultyContext = `CONTEXT: SKD TKP (Tes Karakteristik Pribadi) - EXTREME AMBIGUITY (SANGAT MENGECOH).
+           difficultyContext = `CONTEXT: SKD TKP (Tes Karakteristik Pribadi) - ELITE KEDINASAN (ASLI FR).
            
            THEME & TOPICS (STRICTLY FOLLOW THESE):
-           - Pelayanan Publik, Jejaring Kerja, Sosial Budaya, Teknologi Informasi dan Komunikasi, Profesionalisme, Anti Radikalisme.
+           - Pelayanan Publik, Jejaring Kerja, Sosial Budaya, TIK, Profesionalisme, Anti Radikalisme.
 
            CRITICAL TKP RULES (STRICT 1-5 GRADATION & DILEMA ETIS):
            1. SISTEM SCORING WAJIB: 5-4-3-2-1.
-           2. TINGKAT KESULITAN: Kasus harus berupa DILEMA ETIS atau konflik kepentingan tingkat tinggi (misal: integritas vs target institusi, profesionalisme vs loyalitas kawan).
-           3. DISTORSI PILIHAN: Opsi poin 5 harus mencerminkan solusi paling ideal, profesional, paripurna, dan inovatif (berdampak panjang). Opsi poin 4 harus "hampir benar" dan normatif tapi bersifat reaktif/jangka pendek. Opsi poin 1 harus tampak seperti solusi instan tapi sangat merugikan institusi secara jangka panjang.
-           4. LOGIKA GRADASI: Perbedaan antara poin 5, 4, dan 3 harus SANGAT TIPIS (membutuhkan penalaran karakter ASN paripurna).
-           5. NO LENGTH BIAS: Semua opsi (A-E) harus memiliki panjang teks yang IDENTIK agar peserta tidak menebak opsi terpanjang.
-           6. CONCISE & CLEAR: Soal maksimal 70 kata, padat dengan konflik.
-           7. EXPLANATION: Jelaskan filosofi ASN di balik poin 5, dan mengapa opsi poin 4 kurang tepat (apa minusnya).`;
+           2. TINGKAT KESULITAN: Kasus harus berupa dilema profesionalisme yang sangat abu-abu (Grey Area).
+           3. DISTORSI PILIHAN: Poin 5 adalah solusi "Out of the box", Inovatif, dan Berintegritas tinggi. Poin 4 adalah solusi normatif/standar.
+           4. NO CLICHÉS: Hindari skenario "printer rusak", "teman curhat", atau "sistem error" yang standar. Gunakan skenario birokrasi modern, transformasi digital, atau integritas di tengah tekanan atasan.
+           5. IDENTICAL LENGTH: Panjang opsi A-E HARUS IDENTIK.`;
       }
 
       if (category === 'SKD' && typeof context === 'string' && (context.toUpperCase().includes('TIU') || context.toUpperCase().includes('INTELEGENSIA'))) {
@@ -1692,11 +1694,13 @@ CRITICAL:
         
         const pFig = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - FIGURAL. EXTREME DIFFICULTY. YOU MUST OUTPUT <svg> FOR ALL QUESTIONS, AND <svg> FOR EACH OPTION. NO TEXT OPTIONS. UNIQUE SEED: ${randomSeed}.
 GENERATE EXACTLY 8 QUESTIONS WITH THIS DISTRIBUTION:
-- 2 questions about "Analogi Gambar"
+- 1 questions about "Analogi Gambar"
 - 2 questions about "Serial Gambar"
-- 1 question about "Pola 9 Kotak Gambar" (Matriks 3x3)
+- 2 question about "Pola 9 Kotak Gambar" (Matriks 3x3)
 - 3 questions about "Ketidaksamaan Gambar"
-CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TIU - Analogi Gambar", "TIU - Serial Gambar", "TIU - Pola 9 Kotak Gambar", or "TIU - Ketidaksamaan Gambar".`, 8, [], stream, undefined, 'HOTS');
+CRITICAL: 
+1. For each question, set the metadata.subtest field to EXACTLY one of these strings: "TIU - Analogi Gambar", "TIU - Serial Gambar", "TIU - Pola 9 Kotak Gambar", or "TIU - Ketidaksamaan Gambar".
+2. MATRIX 3X3: Ensure the matrix follows complex 2D geometric logic (Rows & Columns dependency).`, 8, [], stream, undefined, 'HOTS');
 
         const results = await Promise.all([pVerbal, pNum, pFig]);
         
