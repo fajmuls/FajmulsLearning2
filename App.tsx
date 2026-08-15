@@ -346,12 +346,14 @@ const LoginScreen: React.FC<{
   onGoogleLogin: (rememberMe: boolean) => void;
   onGuestLogin: () => void;
   isLoading: boolean;
-}> = ({ onGoogleLogin, onGuestLogin, isLoading }) => {
+  savedAccounts: UserProfile[];
+  onRemoveAccount: (uid: string) => void;
+}> = ({ onGoogleLogin, onGuestLogin, isLoading, savedAccounts, onRemoveAccount }) => {
   const [rememberMe, setRememberMe] = useState(true);
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-6 transition-colors duration-300">
       {" "}
-      <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl w-full max-w-md border border-slate-200 dark:border-slate-700 text-center relative overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl w-full max-w-md border border-slate-200 dark:border-slate-700 relative overflow-hidden">
         {" "}
         {isLoading && (
           <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 z-20 flex flex-col items-center justify-center">
@@ -362,15 +364,15 @@ const LoginScreen: React.FC<{
             </p>{" "}
           </div>
         )}{" "}
-        <div className="mb-8 flex justify-center">
+        <div className="mb-6 flex justify-center">
           {" "}
           <img
             src={APP_LOGO_URL}
             alt="Logo"
-            className="w-24 h-24 object-contain animate-bounce-slow"
+            className="w-20 h-20 object-contain animate-bounce-slow"
           />{" "}
         </div>{" "}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           {" "}
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
             Fajmuls Learning
@@ -379,18 +381,54 @@ const LoginScreen: React.FC<{
             Platform Belajar Cerdas Terintegrasi AI
           </p>{" "}
         </div>{" "}
+
+        {savedAccounts.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-left">Pilih Akun Tersimpan</h3>
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+              {savedAccounts.map((acc) => (
+                <div key={acc.uid} className="flex items-center gap-2 group">
+                  <button
+                    onClick={() => onGoogleLogin(true)}
+                    className="flex-1 flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl hover:border-indigo-500 dark:hover:border-indigo-500 transition-all text-left"
+                  >
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
+                      {acc.photoURL ? (
+                        <img src={acc.photoURL} alt={acc.username} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-indigo-600 dark:text-indigo-300 font-bold">{acc.username?.[0]?.toUpperCase() || "U"}</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-bold text-slate-800 dark:text-white truncate">{acc.username || "User"}</div>
+                      <div className="text-[10px] text-slate-500 truncate">{acc.email}</div>
+                    </div>
+                  </button>
+                  <button 
+                    onClick={() => onRemoveAccount(acc.uid)}
+                    className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition"
+                    title="Hapus Akun dari Daftar"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4">
           {" "}
           <button
             onClick={() => onGoogleLogin(rememberMe)}
-            className="w-full py-3 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-full border border-slate-300 shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-3 relative"
+            className="w-full py-3 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-2xl border border-slate-300 shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-3 relative"
           >
             {" "}
             <div className="absolute left-4">
               <GoogleIcon />
             </div>{" "}
             <span className="text-base font-roboto font-bold">
-              Masuk dengan Google
+              {savedAccounts.length > 0 ? "Tambah Akun Lain" : "Masuk dengan Google"}
             </span>{" "}
           </button>{" "}
           <div className="flex items-center justify-center gap-2 text-sm text-slate-600 dark:text-slate-400">
@@ -402,26 +440,26 @@ const LoginScreen: React.FC<{
               onChange={(e) => setRememberMe(e.target.checked)}
               className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
             />{" "}
-            <label htmlFor="remember" className="cursor-pointer select-none">
+            <label htmlFor="remember" className="cursor-pointer select-none text-xs">
               Tetap masuk di perangkat ini
             </label>{" "}
           </div>{" "}
           <div className="relative flex py-2 items-center">
             {" "}
             <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>{" "}
-            <span className="flex-shrink-0 mx-4 text-slate-400 text-xs">
+            <span className="flex-shrink-0 mx-4 text-slate-400 text-[10px] font-bold">
               ATAU
             </span>{" "}
             <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>{" "}
           </div>{" "}
           <button
             onClick={onGuestLogin}
-            className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 shadow-lg shadow-indigo-200 dark:shadow-none transition flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-indigo-600 text-white rounded-2xl font-bold text-base hover:bg-indigo-700 shadow-lg shadow-indigo-200 dark:shadow-none transition flex items-center justify-center gap-2"
           >
             {" "}
-            Masuk sebagai Tamu <ChevronRight size={20} />{" "}
+            Masuk sebagai Tamu <ChevronRight size={18} />{" "}
           </button>{" "}
-          <p className="text-xs text-slate-400 mt-2">
+          <p className="text-[10px] text-slate-400 mt-2">
             {" "}
             *Mode Tamu: Riwayat hanya tersimpan di perangkat ini & tidak masuk
             Leaderboard.{" "}
@@ -2133,6 +2171,18 @@ function App() {
 
   const isSettingsLoadedFromCloudRef = useRef(false);
 
+  const [savedAccounts, setSavedAccounts] = useState<UserProfile[]>(() => {
+    const saved = localStorage.getItem("fajmuls_saved_accounts");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
+
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [generalInput, setGeneralInput] = useState<GeneralMaterialInput | null>(
@@ -2592,6 +2642,22 @@ function App() {
     try {
       const firebaseUser = await FirebaseService.signInWithGoogle(rememberMe);
       const profile = await FirebaseService.getUserProfile(firebaseUser.uid);
+      
+      const accountInfo: UserProfile = {
+        uid: firebaseUser.uid,
+        username: profile?.username || firebaseUser.displayName || "",
+        email: firebaseUser.email,
+        photoURL: profile?.photoURL || firebaseUser.photoURL,
+        isGuest: false,
+      };
+
+      setSavedAccounts((prev) => {
+        const filtered = prev.filter((a) => a.uid !== firebaseUser.uid);
+        const updated = [accountInfo, ...filtered].slice(0, 5); // Keep last 5 accounts
+        localStorage.setItem("fajmuls_saved_accounts", JSON.stringify(updated));
+        return updated;
+      });
+
       if (!profile) {
         setUserProfile({
           uid: firebaseUser.uid,
@@ -2694,6 +2760,15 @@ function App() {
       setAuthLoading(false);
     }
   };
+  const handleRemoveAccount = (uid: string) => {
+    SoundManager.play("click");
+    setSavedAccounts(prev => {
+      const updated = prev.filter(a => a.uid !== uid);
+      localStorage.setItem("fajmuls_saved_accounts", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const handleLogout = async () => {
     SoundManager.play("click");
     localStorage.removeItem("fajmuls_guest_mode");
@@ -4277,6 +4352,8 @@ function App() {
         onGoogleLogin={handleGoogleLogin}
         onGuestLogin={handleGuestLogin}
         isLoading={authLoading}
+        savedAccounts={savedAccounts}
+        onRemoveAccount={handleRemoveAccount}
       />
     );
   if (currentView === "USERNAME_SETUP")

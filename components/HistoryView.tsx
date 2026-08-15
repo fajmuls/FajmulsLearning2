@@ -297,7 +297,16 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
             }>
         }> = {};
         
+        const uniqueHistory: TestHistoryItem[] = [];
+        const seenIds = new Set();
         filteredHistory.forEach(item => {
+            if (!seenIds.has(item.id)) {
+                uniqueHistory.push(item);
+                seenIds.add(item.id);
+            }
+        });
+
+        uniqueHistory.forEach(item => {
             const cat = item.category || 'LAINNYA';
             
             // Determine subcategory title
@@ -311,20 +320,23 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                     subTitle = 'Materi TIU';
                 } else if (lowTitle.includes('tkp')) {
                     subTitle = 'Materi TKP';
-                } else if (lowTitle.includes('skd kedinasan')) {
+                } else if (lowTitle.includes('kedinasan')) {
                     if (lowTitle.includes('gabungan')) {
                         subTitle = 'SKD Kedinasan Full Gabungan';
-                    } else if (lowTitle.includes('to skd kedinasan') || lowTitle.includes('try out skd kedinasan')) {
+                    } else if (lowTitle.includes('to skd kedinasan') || lowTitle.includes('try out skd kedinasan') || lowTitle.includes('to ') || lowTitle.includes('try out')) {
                         subTitle = 'TO SKD Kedinasan Full';
                     } else {
                         subTitle = 'SKD Kedinasan Full';
                     }
-                } else if (lowTitle.includes('simulasi') || lowTitle.includes('lengkap')) {
+                } else if (lowTitle.includes('simulasi') || lowTitle.includes('lengkap') || lowTitle.includes('cpns full')) {
                     subTitle = 'Simulasi SKD CPNS Full';
+                } else if (item.skdStream === 'KEDINASAN') {
+                    subTitle = 'SKD Kedinasan Full';
                 } else {
                     subTitle = 'Materi SKD';
                 }
-            } else if (cat === 'UTBK') {
+            }
+ else if (cat === 'UTBK') {
                 if (lowTitle.includes('simulasi')) subTitle = 'Try Out UTBK';
                 else subTitle = 'Materi UTBK';
             } else if (cat === 'BUTAWRNA') {

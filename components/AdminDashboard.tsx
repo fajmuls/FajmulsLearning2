@@ -8,6 +8,19 @@ interface AdminDashboardProps {
 
 export const PATCH_NOTES = [
   {
+    version: "v3.3.0",
+    date: "2026-08-14",
+    type: "Feature & Security",
+    description: "Multi-Account Manager & SKD Analytics Cleanup",
+    details: [
+      "Multi-Account Support: Pengguna kini dapat menyimpan beberapa akun dan berpindah antar akun dengan cepat dari layar login.",
+      "Account Manager: Fitur untuk menghapus akun yang tersimpan dari daftar login.",
+      "SKD Analytics Deduplication: Perbaikan pada algoritma ringkasan riwayat belajar yang mencegah redundansi data SKD.",
+      "Refined Categorization: Logika pengelompokan sub-materi SKD (TWK, TIU, TKP) kini lebih presisi dan mutually exclusive.",
+      "UI Security: Pembersihan state logout yang lebih aman untuk mencegah kebocoran data antar akun."
+    ]
+  },
+  {
     version: "v3.2.0",
     date: "2026-08-14",
     type: "Feature & AI Upgrade",
@@ -429,7 +442,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
             
             <div className="mt-12 pt-12 border-t border-slate-200 dark:border-slate-800">
               <h2 className="text-xl font-black text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                <Info className="text-blue-500" /> Saran Update Paling Berguna (Next Step)
+                <Info className="text-blue-500" /> Saran Update Paling Berguna & Rencana Perbaikan
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -440,35 +453,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                   <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
                     <li className="flex gap-2">
                       <span className="text-emerald-500 font-bold">•</span>
-                      <span><strong>Dark Mode Polish:</strong> Menambahkan transisi yang lebih halus saat berpindah tema dan memastikan semua kontras teks di dark mode memenuhi standar WCAG AA.</span>
+                      <span><strong>Profile Customization:</strong> Menambahkan fitur upload foto profil kustom dan pemilihan avatar unik untuk setiap akun yang tersimpan.</span>
                     </li>
                     <li className="flex gap-2">
                       <span className="text-emerald-500 font-bold">•</span>
-                      <span><strong>Interactive Explanation:</strong> Menambahkan highlight teks pada bagian penting di penjelasan soal agar user lebih cepat menangkap inti materi.</span>
+                      <span><strong>Session Resume:</strong> Fitur untuk melanjutkan pengerjaan paket soal yang terputus (saved session) secara otomatis saat login kembali.</span>
                     </li>
                     <li className="flex gap-2">
                       <span className="text-emerald-500 font-bold">•</span>
-                      <span><strong>Game Instructions Modal:</strong> Menambahkan tombol '?' kecil di pojok setiap game card untuk menampilkan instruksi cara bermain sebelum game dimulai.</span>
+                      <span><strong>Interactive Graph:</strong> Visualisasi radar chart untuk melihat keseimbangan skor TWK, TIU, dan TKP secara lebih intuitif.</span>
                     </li>
                   </ul>
                 </div>
 
-                <div className="bg-amber-50 dark:bg-amber-900/10 p-5 rounded-2xl border border-amber-100 dark:border-amber-800">
-                  <h3 className="font-bold text-amber-800 dark:text-amber-300 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
-                    <Activity size={16} /> Fitur & Content Strategy
+                <div className="bg-rose-50 dark:bg-rose-900/10 p-5 rounded-2xl border border-rose-100 dark:border-rose-800">
+                  <h3 className="font-bold text-rose-800 dark:text-rose-300 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
+                    <AlertCircle size={16} /> Info Perbaikan Bug & Stabilitas
                   </h3>
                   <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
                     <li className="flex gap-2">
-                      <span className="text-amber-500 font-bold">•</span>
-                      <span><strong>Smart Question Bank:</strong> Implementasi sistem tagging otomatis pada soal-soal baru agar user bisa memfilter soal berdasarkan sub-materi yang spesifik.</span>
+                      <span className="text-rose-500 font-bold">•</span>
+                      <span><strong>Deduplication Fix:</strong> Kami mengidentifikasi adanya data ganda pada riwayat SKD yang kini telah diperbaiki di v3.3.0.</span>
                     </li>
                     <li className="flex gap-2">
-                      <span className="text-amber-500 font-bold">•</span>
-                      <span><strong>Global Search:</strong> Menambahkan bar pencarian di dashboard utama untuk mempermudah user mencari game atau paket soal spesifik dengan cepat.</span>
+                      <span className="text-rose-500 font-bold">•</span>
+                      <span><strong>SVG Rendering:</strong> Terus memantau rendering pola gambar agar tidak terjadi distorsi pada layar dengan resolusi non-standar.</span>
                     </li>
                     <li className="flex gap-2">
-                      <span className="text-amber-500 font-bold">•</span>
-                      <span><strong>Performance Prediction:</strong> Menggunakan data pengerjaan user untuk memprediksi probabilitas kelulusan di instansi target secara real-time.</span>
+                      <span className="text-rose-500 font-bold">•</span>
+                      <span><strong>Sync Consistency:</strong> Memperbaiki delay sinkronisasi antara skor lokal dan cloud leaderboard saat berganti akun dengan cepat.</span>
                     </li>
                   </ul>
                 </div>
