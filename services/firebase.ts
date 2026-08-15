@@ -707,6 +707,20 @@ export const finishBattle = async (battleId: string, winnerUid: string | 'DRAW')
     });
 };
 
+export const saveQuestionsToBank = async (questions: Question[]) => {
+    try {
+        const batch = questions.map(q => {
+            const cleanQ = deepClean(q);
+            return setDoc(doc(db, 'bank_soal', q.id), cleanQ);
+        });
+        await Promise.all(batch);
+        console.log(`${questions.length} questions saved to bank_soal`);
+    } catch (e) {
+        console.error("Error saving questions to bank:", e);
+        throw e;
+    }
+};
+
 export const saveChatHistory = async (uid: string, chatData: any) => {
     const chatCol = collection(db, 'chat_history');
     const cleanData = deepClean({

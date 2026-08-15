@@ -1,12 +1,38 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Activity, Info, Tag, Layers, GitCommit, FileText, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import * as FirebaseService from '../services/firebase';
+import * as Gemini from '../services/geminiService';
 
 interface AdminDashboardProps {
   onBack: () => void;
 }
 
 export const PATCH_NOTES = [
+  {
+    version: "v3.4.0",
+    date: "2026-08-14",
+    type: "Major Feature",
+    description: "Advanced Question Engine & Bank Soal Automation",
+    details: [
+      "Advanced Question Generator: Admin kini dapat membuat soal Bank Soal secara massal dengan parameter spesifik (TWK, TIU, TKP).",
+      "TWK Ratio Fix: Implementasi rasio 30% Hafalan dan 70% Penalaran Implementasi/Tugas Aktual untuk TWK yang lebih realistis.",
+      "Actual TIU Standards: Peningkatan standar TIU mencakup silogisme kompleks, deret interleaved, dan matriks figural 3x3.",
+      "Creative TKP Scenarios: Menghapus skenario klise dan menggantinya dengan dilema birokrasi modern, transformasi digital, dan integritas tinggi.",
+      "Concise AI Explanations: AI kini menghasilkan penjelasan yang lebih singkat, padat, dan mudah dipahami tanpa mengurangi akurasi.",
+      "Batch Cloud Save: Implementasi penyimpanan massal ke 'bank_soal' menggunakan Promise.all untuk kecepatan sinkronisasi."
+    ]
+  },
+  {
+    version: "v3.3.1",
+    date: "2026-08-14",
+    type: "Bug Fix & Stability",
+    description: "JSON Recovery Engine & Model Optimization",
+    details: [
+      "Robust JSON Recovery: Implementasi algoritma perbaikan JSON cerdas untuk menangani respon AI yang terpotong atau malformed (Unterminated string fix).",
+      "Model Migration: Migrasi model ke Gemini 2.0 Flash dan 1.5 Pro untuk stabilitas dan kualitas penalaran yang lebih tinggi.",
+      "Parsing Resilience: Peningkatan kemampuan ekstraksi objek dari stream respon yang tidak lengkap."
+    ]
+  },
   {
     version: "v3.3.0",
     date: "2026-08-14",
@@ -267,6 +293,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   const [genCategory, setGenCategory] = useState<'GENERAL' | 'TWK'>('GENERAL');
+  
+  // Advanced Generator States
+  const [advCategory, setAdvCategory] = useState<'TWK' | 'TIU' | 'TKP'>('TWK');
+  const [advCount, setAdvCount] = useState<number>(10);
+  const [isAdvGenerating, setIsAdvGenerating] = useState(false);
 
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -313,6 +344,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
       setStatus({ type: 'error', message: e.message || "Gagal menghasilkan soal." });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleAdvancedGenerate = async () => {
+    setIsAdvGenerating(true);
+    setStatus(null);
+    try {
+      // Use the existing /api/generate-questions or a direct call if possible
+      // Since geminiService is server-side, we should use the API route
+      // We need to pass the category to the API
+      const response = await fetch('/api/generate-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          prompt: `Generate ${advCount} high-quality ${advCategory} multiple choice questions for SKD level.`,
+          category: 'SKD',
+          difficulty: advCategory // This will trigger the specific rules in geminiService
+        })
+      });
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+
+      // Extract JSON array
+      const jsonMatch = data.text.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error("Format AI tidak valid (JSON tidak ditemukan)");
+
+      const questions = JSON.parse(jsonMatch[0]);
+      const questionsWithIds = questions.map((q: any, i: number) => ({
+        ...q,
+        id: q.id || `${advCategory.toLowerCase()}_gen_${Date.now()}_${i}`,
+        metadata: {
+          subtest: advCategory,
+          topic: q.metadata?.topic || 'General',
+          difficulty: 'ELITE'
+        }
+      }));
+
+      await Gemini.saveMultipleToBankSoal('SKD', questionsWithIds);
+      setStatus({ type: 'success', message: `Berhasil menambahkan ${questionsWithIds.length} soal ${advCategory} baru ke Bank Soal!` });
+    } catch (e: any) {
+      console.error(e);
+      setStatus({ type: 'error', message: e.message || "Gagal menghasilkan soal Bank Soal." });
+    } finally {
+      setIsAdvGenerating(false);
     }
   };
 
@@ -401,6 +477,75 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                   className="w-full py-2.5 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl font-bold text-sm transition-all"
                 >
                   Kosongkan Data
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
+            <h2 className="text-xl font-black text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+              <Layers className="text-purple-500" /> Advanced Bank Soal Generator (Elite SKD)
+            </h2>
+
+            <div className="space-y-4">
+              <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <div className="flex flex-col sm:flex-row gap-6 mb-6">
+                  <div className="flex-1">
+                    <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Pilih Kategori</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['TWK', 'TIU', 'TKP'] as const).map(cat => (
+                        <button
+                          key={cat}
+                          onClick={() => setAdvCategory(cat)}
+                          className={`py-2 text-xs font-bold rounded-xl transition-all border ${advCategory === cat ? 'bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-500/20' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-purple-300'}`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="w-full sm:w-32">
+                    <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Jumlah Soal</label>
+                    <div className="flex items-center gap-3">
+                      <button 
+                        onClick={() => setAdvCount(Math.max(1, advCount - 5))}
+                        className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg hover:border-purple-500 transition-colors"
+                      >
+                        -
+                      </button>
+                      <span className="font-black text-slate-900 dark:text-white w-8 text-center">{advCount}</span>
+                      <button 
+                        onClick={() => setAdvCount(Math.min(50, advCount + 5))}
+                        className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg hover:border-purple-500 transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-purple-50 dark:bg-purple-900/10 p-4 rounded-xl border border-purple-100 dark:border-purple-800 mb-6">
+                  <h4 className="text-xs font-black text-purple-700 dark:text-purple-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                    <Info size={14} /> Kualitas Elite Kedinasan
+                  </h4>
+                  <p className="text-[11px] text-purple-600/80 dark:text-purple-400/60 leading-relaxed font-medium">
+                    {advCategory === 'TWK' && "Rasio 30:70 (Hafalan vs Penalaran Tugas Aktual). Soal naratif kompleks dengan distractor mengecoh."}
+                    {advCategory === 'TIU' && "Standar Actual TIU Kedinasan. Silogisme, deret interleaved, dan matriks figural geometris."}
+                    {advCategory === 'TKP' && "Creative Scenarios (Dilema Grey-Area). Menghapus skenario klise, fokus pada inovasi & integritas."}
+                  </p>
+                </div>
+
+                <button
+                  disabled={isAdvGenerating}
+                  onClick={handleAdvancedGenerate}
+                  className="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-xl shadow-purple-500/20 active:scale-95"
+                >
+                  {isAdvGenerating ? (
+                    <><Loader2 size={20} className="animate-spin" /> Sedang Menghasilkan {advCount} Soal {advCategory}...</>
+                  ) : (
+                    <>Generate {advCount} Soal {advCategory} (Advanced)</>
+                  )}
                 </button>
               </div>
             </div>

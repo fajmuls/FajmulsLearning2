@@ -205,9 +205,7 @@ function extractValidObjects(text: string): any[] {
       continue;
     }
     if (char === '"') {
-      if (text[i-1] !== '\\') {
-        insideString = !insideString;
-      }
+      insideString = !insideString;
       continue;
     }
     if (!insideString) {
@@ -242,45 +240,61 @@ function extractValidObjects(text: string): any[] {
   }
 
   // RECOVERY FOR TRUNCATED JSON:
-  // If we still have active starts, they might be valid objects if we close them.
-  // This is especially true for the last object in a truncated stream.
   if (activeStarts.length > 0) {
     for (const start of activeStarts) {
       let candidate = text.substring(start.startIdx).trim();
       
-      // Try balancing it
-      let attempt = candidate;
-      
-      // If we're stuck in a string, close it first
-      if (insideString) {
-          // Check if we need to escape a trailing backslash
-          if (attempt.endsWith('\\')) attempt += '\\';
-          attempt += '"';
-      }
-      
-      // Close all open braces and brackets
-      // Note: start.depth might be slightly off if truncated inside nested structures
-      // so we try a few variations
-      let openBraces = start.depth;
-      let suffix = "";
-      for (let k = 0; k < openBraces; k++) {
-        suffix += '}';
-      }
+      const tryRepair = (base: string) => {
+          let attempt = base;
+          
+          // 1. Handle unclosed string
+          let isStillInString = insideString;
+          // Recalculate insideString for this specific candidate to be accurate
+          let sInside = false;
+          let sEscape = false;
+          for(let c of attempt) {
+              if (sEscape) { sEscape = false; continue; }
+              if (c === '\\') { sEscape = true; continue; }
+              if (c === '"') sInside = !sInside;
+          }
+          
+          if (sInside) {
+              if (attempt.endsWith('\\')) attempt += '\\';
+              attempt += '"';
+          }
 
-      const tryParsing = (s: string) => {
-        try {
-            return JSON.parse(s);
-        } catch (e) {
-            return null;
-        }
+          // 2. Remove trailing comma which is common in truncated lists
+          attempt = attempt.trim().replace(/,$/, '');
+
+          // 3. Balance braces and brackets
+          let bBraces = 0;
+          let bBrackets = 0;
+          let bInside = false;
+          let bEscape = false;
+          for(let c of attempt) {
+              if (bEscape) { bEscape = false; continue; }
+              if (c === '\\') { bEscape = true; continue; }
+              if (c === '"') bInside = !bInside;
+              if (!bInside) {
+                  if (c === '{') bBraces++;
+                  if (c === '}') bBraces--;
+                  if (c === '[') bBrackets++;
+                  if (c === ']') bBrackets--;
+              }
+          }
+
+          let suffix = "";
+          for (let k = 0; k < bBrackets; k++) suffix += ']';
+          for (let k = 0; k < bBraces; k++) suffix += '}';
+          
+          try {
+              return JSON.parse(attempt + suffix);
+          } catch (e) {
+              return null;
+          }
       };
 
-      let p = tryParsing(attempt + suffix);
-      if (!p) p = tryParsing(attempt + ']' + suffix);
-      if (!p) p = tryParsing(attempt + ']}' + suffix);
-      if (!p) p = tryParsing(attempt + '"]}' + suffix);
-      if (!p) p = tryParsing(attempt + '"}]}' + suffix);
-      
+      const p = tryRepair(candidate);
       if (p && typeof p === 'object') {
         foundObjects.push(p);
       }
@@ -331,7 +345,7 @@ function tryParsePartialQuestions(text: string): any {
 }
 
 async function callGemini<T>(prompt: string, schema?: Schema, imageBase64?: string): Promise<T> {
-  const models = ["gemini-3.5-flash", "gemini-flash-latest"];
+  const models = ["gemini-2.0-flash-exp", "gemini-1.5-flash", "gemini-1.5-pro"];
   
   const config: any = {
     temperature: 0.9, 
@@ -430,7 +444,7 @@ async function callGemini<T>(prompt: string, schema?: Schema, imageBase64?: stri
 }
 
 async function* callGeminiStream(prompt: string, schema?: Schema, imageBase64?: string): AsyncGenerator<any[], void, unknown> {
-  const models = ["gemini-3.5-flash", "gemini-flash-latest"];
+  const models = ["gemini-2.0-flash-exp", "gemini-1.5-flash", "gemini-1.5-pro"];
   
   const config: any = {
     temperature: 0.9, 
@@ -900,21 +914,21 @@ export const buildQuestionPrompt = async (
            - Bahasa Indonesia: 10-20% questions.
 
            CONTENT RATIO (CRITICAL):
-           - 10-20% Advanced Memorization: Deep constitutional history and specific article nuances.
-           - 80-90% Extreme Reasoning: Complex case studies involving ethics, geopolitics, and national integrity.
+           - 30% Advanced Memorization: Deep constitutional history, specific article nuances, and historical dates (Hafalan tingkat lanjut).
+           - 70% Actual Duty Reasoning: Complex case studies involving ethics, implementation of state values in government duty, and national integrity in modern situations (Penalaran Implementasi/Tugas Aktual).
 
            CRITICAL TWK RULES (ELITE DIFFICULTY & SANGAT MENGECOH):
            1. **NO IMAGES/SVG**: DILARANG KERAS menghasilkan gambar, SVG, atau visual apa pun. Soal TWK HARUS 100% TEKS.
-           2. FORMAT: Gunakan narasi/studi kasus nyata yang kompleks. Hindari "Soal Hafalan Langsung".
-           3. JAWABAN: Opsi jawaban harus menguji pemahaman KONSEPTUAL tingkat tinggi.
-           4. EXPLANATION: Berikan penjelasan yang mendalam namun efisien.
+           2. FORMAT: Gunakan narasi/studi kasus nyata yang kompleks. Hindari "Soal Hafalan Langsung" kecuali untuk porsi 30% tersebut.
+           3. JAWABAN: Opsi jawaban harus menguji pemahaman KONSEPTUAL tingkat tinggi dan implementasi nilai.
+           4. EXPLANATION: Berikan penjelasan yang SINGKAT, PADAT, dan JELAS (Concise but clear).
            5. DISTRACTORS: Pengecoh HARUS SUPER SULIT. Semua opsi salah harus terdengar sangat logis dan konstitusional.
-           6. ANTI-REPETITION: Do not use standard "Pancasila as the basis of state" or "UUD 1945 was amended 4 times" questions. Go deeper.`;
+           6. ANTI-REPETITION: Do not use standard "Pancasila as the basis of state" or "UUD 1945 was amended 4 times" questions. Go deeper into actual duty and implementation.`;
       } else if (isTiu) {
-           difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - ELITE KEDINASAN LEVEL (HOTS).
+           difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - ELITE KEDINASAN LEVEL (ACTUAL TIU).
            
            THEME & TOPICS (STRICTLY FOLLOW THESE):
-           - Kemampuan Verbal: Analogi (multi-variable), silogisme (complex negations), dan analitis (labyrinth logic).
+           - Kemampuan Verbal: Analogi (multi-variable), silogisme (complex negations), dan analitis (seating/queue/logic).
            - Kemampuan Numerik: Deret interleaved 3-lapis, perbandingan kuantitatif dengan variabel tersembunyi, soal cerita matematika analisis tinggi.
            - Kemampuan Figural: Serial gambar, analogi gambar, dan MATRIKS 3X3 (9 KOTAK) dengan logika geometris yang sangat menantang.
 
@@ -924,19 +938,20 @@ export const buildQuestionPrompt = async (
            3. LOGICAL REASONING: Silogisme dengan premis kontradiktif semu yang menuntut ketelitian logika formal.
            4. SOAL CERITA: Masukkan unsur waktu, kecepatan ganda, atau perbandingan terbalik dalam satu soal.
            5. FIGURAL: Gunakan SVG yang bersih, presisi, namun memiliki logika transformasi yang kompleks (rotasi + scaling + XOR lines).
-           6. MATRIX VARIETY: Ensure Figural Matrix questions use varied geometric logic (addition, subtraction, XOR, or incremental rotation across rows AND columns).`;
+           6. EXPLANATION: Berikan langkah penyelesaian yang SINGKAT, MATEMATIS, dan MUDAH DIPAHAMI.`;
       } else if (isTkp) {
-           difficultyContext = `CONTEXT: SKD TKP (Tes Karakteristik Pribadi) - ELITE KEDINASAN (ASLI FR).
+           difficultyContext = `CONTEXT: SKD TKP (Tes Karakteristik Pribadi) - ELITE KEDINASAN (CREATIVE SCENARIOS).
            
            THEME & TOPICS (STRICTLY FOLLOW THESE):
            - Pelayanan Publik, Jejaring Kerja, Sosial Budaya, TIK, Profesionalisme, Anti Radikalisme.
 
-           CRITICAL TKP RULES (STRICT 1-5 GRADATION & DILEMA ETIS):
+           CRITICAL TKP RULES (STRICT 1-5 GRADATION & CREATIVE DILEMMAS):
            1. SISTEM SCORING WAJIB: 5-4-3-2-1.
            2. TINGKAT KESULITAN: Kasus harus berupa dilema profesionalisme yang sangat abu-abu (Grey Area).
-           3. DISTORSI PILIHAN: Poin 5 adalah solusi "Out of the box", Inovatif, dan Berintegritas tinggi. Poin 4 adalah solusi normatif/standar.
-           4. NO CLICHÉS: Hindari skenario "printer rusak", "teman curhat", atau "sistem error" yang standar. Gunakan skenario birokrasi modern, transformasi digital, atau integritas di tengah tekanan atasan.
-           5. IDENTICAL LENGTH: Panjang opsi A-E HARUS IDENTIK.`;
+           3. DISTORSI PILIHAN: Poin 5 adalah solusi "Inovatif", "Adaptif", dan "Berintegritas tinggi". 
+           4. NO CLICHÉS: DILARANG menggunakan skenario klise (printer rusak, teman curhat, tamu marah standar). Gunakan skenario birokrasi modern, transformasi digital, dilema kebijakan publik, atau konflik kepentingan di dunia kerja yang unik.
+           5. CREATIVITY: Buat skenario yang belum pernah ada sebelumnya. Jangan mengulangi pola soal bank soal lama.
+           6. EXPLANATION: Berikan alasan SINGKAT mengapa opsi tersebut mendapat poin 5.`;
       }
 
       if (category === 'SKD' && typeof context === 'string' && (context.toUpperCase().includes('TIU') || context.toUpperCase().includes('INTELEGENSIA'))) {
