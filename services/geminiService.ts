@@ -345,7 +345,7 @@ function tryParsePartialQuestions(text: string): any {
 }
 
 async function callGemini<T>(prompt: string, schema?: Schema, imageBase64?: string): Promise<T> {
-  const models = ["gemini-2.0-flash-exp", "gemini-1.5-flash", "gemini-1.5-pro"];
+  const models = ["gemini-3.7-flash", "gemini-3.1-pro-preview"];
   
   const config: any = {
     temperature: 0.9, 
@@ -444,7 +444,7 @@ async function callGemini<T>(prompt: string, schema?: Schema, imageBase64?: stri
 }
 
 async function* callGeminiStream(prompt: string, schema?: Schema, imageBase64?: string): AsyncGenerator<any[], void, unknown> {
-  const models = ["gemini-2.0-flash-exp", "gemini-1.5-flash", "gemini-1.5-pro"];
+  const models = ["gemini-3.7-flash", "gemini-3.1-pro-preview"];
   
   const config: any = {
     temperature: 0.9, 

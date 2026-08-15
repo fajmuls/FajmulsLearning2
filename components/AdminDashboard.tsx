@@ -9,6 +9,16 @@ interface AdminDashboardProps {
 
 export const PATCH_NOTES = [
   {
+    version: "v3.4.1",
+    date: "2026-08-14",
+    type: "Bug Fix",
+    description: "Model API Compatibility Update",
+    details: [
+      "API Fix: Mengubah model AI utama dari gemini-2.0-flash-exp ke versi production yang stabil (gemini-3.7-flash dan gemini-3.1-pro-preview) untuk memperbaiki masalah 'Model Not Found'.",
+      "Stabilitas Generate Soal: Memastikan proses pembuatan soal baik via API maupun SDK tidak mengalami kegagalan 404 saat memanggil model."
+    ]
+  },
+  {
     version: "v3.4.0",
     date: "2026-08-14",
     type: "Major Feature",

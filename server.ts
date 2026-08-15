@@ -100,7 +100,7 @@ async function startServer() {
       }
 
       const result = await ai.models.generateContent({
-        model: "gemini-2.0-flash-exp",
+        model: "gemini-3.7-flash",
         contents: finalPrompt
       });
 
