@@ -51,7 +51,7 @@ async function startServer() {
            3. JAWABAN: High-level conceptual understanding and value implementation.
            4. EXPLANATION: Concise but clear (Singkat, Padat, Jelas).
            5. DISTRACTORS: Extreme difficulty. All options must sound plausible and constitutional.
-           6. ANTI-REPETITION: No cliches. Go deeper into actual duty.`;
+           6. ANTI-REPETITION: DILARANG MENGULANGI KONSEP YANG SAMA DALAM SATU BATCH. JANGAN membuat soal template tentang pasal UUD, BPUPKI, atau pengamalan Pancasila yang itu-itu saja. Setiap soal HARUS unik.`;
         } else if (isTiu) {
           difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - ELITE KEDINASAN LEVEL (ACTUAL TIU).
            

@@ -9,6 +9,20 @@ interface AdminDashboardProps {
 
 export const PATCH_NOTES = [
   {
+    version: "v3.4.2",
+    date: "2026-08-28",
+    type: "Feature & Polish",
+    description: "Voice Commands Expansion & Anti-Repetition AI",
+    details: [
+      "New Voice Commands: Tambah/simpan soal ke bank soal langsung via suara ('masukkan ke bank soal').",
+      "AI Tutor Voice Integration: Katakan 'bantu saya' atau 'clue' untuk otomatis memanggil AI Tutor meminta petunjuk pada soal aktif.",
+      "Eliminasi Jawaban Voice: Katakan 'eliminasi jawaban' atau 'hilangkan jawaban' untuk mencoret salah satu pilihan salah (jika didukung).",
+      "Hands-Free Navigation: Katakan 'scroll bawah' atau 'scroll atas' untuk menggerakkan layar.",
+      "Strict AI Uniqueness (Anti-Repetition): Prompt di server & client diperketat agar TIDAK MENGULANG soal yang sama dalam 1 paket Try Out (seperti template pasal UUD, BPUPKI, dsb). Setiap soal dijamin 100% unik.",
+      "UI/UX Polish: Mengganti beberapa framer-motion berat dengan Tailwind `animate-fade-in` agar performa Vercel/Vite lebih ringan."
+    ]
+  },
+  {
     version: "v3.4.1",
     date: "2026-08-14",
     type: "Bug Fix",

@@ -923,7 +923,7 @@ export const buildQuestionPrompt = async (
            3. JAWABAN: Opsi jawaban harus menguji pemahaman KONSEPTUAL tingkat tinggi dan implementasi nilai.
            4. EXPLANATION: Berikan penjelasan yang SINGKAT, PADAT, dan JELAS (Concise but clear).
            5. DISTRACTORS: Pengecoh HARUS SUPER SULIT. Semua opsi salah harus terdengar sangat logis dan konstitusional.
-           6. ANTI-REPETITION: Do not use standard "Pancasila as the basis of state" or "UUD 1945 was amended 4 times" questions. Go deeper into actual duty and implementation.`;
+           6. ANTI-REPETITION: DILARANG MENGULANGI KONSEP YANG SAMA DALAM SATU ARRAY. JANGAN membuat soal template tentang amandemen atau BPUPKI yang terus diulang. Setiap soal harus 100% BERBEDA dari soal sebelumnya di array ini.`;
       } else if (isTiu) {
            difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - ELITE KEDINASAN LEVEL (ACTUAL TIU).
            
@@ -1319,8 +1319,9 @@ export const buildQuestionPrompt = async (
         prompt += `\nGenerate ${count} distinct questions. Provide clear and concise explanations (not too long, but easy to understand). Only provide very detailed explanations if the question is extremely difficult or complex.`;
 
       } else {
-        const commonInstruction = `Generate ${count} distinct questions. ${difficultyContext}. Provide clear and concise explanations (not too long, but easy to understand). Only provide very detailed/long explanations if the question is extremely difficult (HOTS) or involves complex logic/math.
+        const commonInstruction = `Generate ${count} STRICTLY UNIQUE questions. ${difficultyContext}. Provide clear and concise explanations (not too long, but easy to understand). Only provide very detailed/long explanations if the question is extremely difficult (HOTS) or involves complex logic/math.
         CRITICAL REMINDER: ALL MULTIPLE CHOICE OPTIONS MUST BE THE EXACT SAME LENGTH. NEVER MAKE THE CORRECT ANSWER THE LONGEST OPTION. 
+        CRITICAL ANTI-REPETITION: DO NOT GENERATE DUPLICATE OR NEARLY IDENTICAL QUESTIONS IN THIS BATCH. EVERY SINGLE QUESTION MUST HAVE A DIFFERENT SCENARIO, CONCEPT, OR LOGIC FROM THE OTHERS.
         ${shapeInstructions} ${mathInstructions} ${formattingInstructions}`;
         
         if (isTkp) {

@@ -986,6 +986,39 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
             commandExecuted = true;
         }
 
+        else if (lower.includes('masukkan ke bank') || lower.includes('simpan ke bank') || lower.includes('tambah ke bank')) {
+            window.dispatchEvent(new CustomEvent('saveToBankVoiceCmd', { detail: currentQ }));
+            showToast("Meminta Admin menyimpan ke Bank Soal...", 'info');
+            commandExecuted = true;
+        }
+
+        else if (lower.includes('clue') || lower.includes('bantu saya') || lower.includes('ai tutor') || lower.includes('minta bantuan')) {
+            window.dispatchEvent(new CustomEvent('openAiTutor', { detail: { context: `Tolong beri saya clue atau petunjuk untuk menjawab soal ini tanpa memberikan jawaban langsung:\n\nSoal:\n${currentQ?.content}`}}));
+            showToast("Membuka AI Tutor untuk clue", 'info');
+            commandExecuted = true;
+        }
+
+        else if (lower.includes('eliminasi jawaban') || lower.includes('hilangkan jawaban') || lower.includes('bantu eliminasi') || lower.includes('kurangi jawaban')) {
+            // Check if eliminate button is available
+            if (currentQ.options && currentQ.options.length > 2) {
+                // There is already a handleUseHint function? Wait, we can't call handleUseHint directly if it's outside. Let's dispatch an event or just do it here if possible. 
+                // Let's dispatch an event, we'll catch it below.
+                window.dispatchEvent(new CustomEvent('eliminateVoiceCommand'));
+                showToast("Mengeleminasi pilihan salah...", 'info');
+            }
+            commandExecuted = true;
+        }
+
+        else if (lower.includes('scroll bawah') || lower.includes('ke bawah')) {
+            window.scrollBy({ top: window.innerHeight / 2, behavior: 'smooth' });
+            commandExecuted = true;
+        }
+
+        else if (lower.includes('scroll atas') || lower.includes('ke atas')) {
+            window.scrollBy({ top: -(window.innerHeight / 2), behavior: 'smooth' });
+            commandExecuted = true;
+        }
+
         // Jump to Question Number
         else {
             const numberMatch = lower.match(/(?:nomor|soal|question|ke|go to)?\s*(\d+)/);
@@ -1320,8 +1353,29 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
         };
 
         window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('eliminateVoiceCommand', handleUseEliminator);
+        };
     }, [currentIndex, activeQuestions, showFinishModal, showExitModal, showAdminModal, showFlagModal, isBreak, isPaused, showVoiceConfig, showShortcutModal]);
+
+    useEffect(() => {
+        const handleSaveToBank = async (e: any) => {
+            const q = e.detail;
+            if (q) {
+                try {
+                    await Gemini.saveToBankSoal(q.category || 'SKD', q);
+                    parentShowToast("Berhasil menyimpan ke Bank Soal!", "success");
+                } catch(err) {
+                    console.error(err);
+                    parentShowToast("Gagal menyimpan ke Bank Soal", "error");
+                }
+            }
+        };
+        window.addEventListener('saveToBankVoiceCmd', handleSaveToBank);
+        return () => window.removeEventListener('saveToBankVoiceCmd', handleSaveToBank);
+    }, []);
 
     const handleUseHint = () => {
         const currentQ = activeQuestions[currentIndex];
@@ -1346,6 +1400,11 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
             SoundManager.play('click');
         }
     };
+
+    useEffect(() => {
+        window.addEventListener('eliminateVoiceCommand', handleUseEliminator);
+        return () => window.removeEventListener('eliminateVoiceCommand', handleUseEliminator);
+    }, [handleUseEliminator]);
 
     const handleAnswer = async (option: string) => {
         const currentQ = activeQuestions[currentIndex];
@@ -1892,12 +1951,9 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                 </div>
                             ) : currentQ ? (
                                 <AnimatePresence mode="wait">
-                                    <motion.div
+                                    <div
                                         key={currentQ.id}
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        transition={{ duration: 0.15 }}
+                                        className="animate-fade-in"
                                     >
                                         {mode === StudyMode.DRILL && drillContent && (
                                             <div className="mb-6 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800 text-sm text-slate-700 dark:text-slate-300">
@@ -2148,7 +2204,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                             ) : ( 
                                 <div> <textarea className={`w-full p-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-slate-900 dark:text-white fs-${fontSize}`} placeholder="Ketik jawaban Anda..." rows={4} value={currentAns?.selectedAnswer || ''} onChange={(e) => handleAnswer(e.target.value)} /> </div> 
                             )}
-                        </motion.div>
+                        </div>
                         </AnimatePresence>
                         ) : (
                             <div className="text-center py-12 text-slate-500 flex flex-col items-center">
