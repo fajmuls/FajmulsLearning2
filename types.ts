@@ -307,6 +307,8 @@ export interface AppSettings {
     uiPreset?: AppUiPreset;
     enableAITutor?: boolean;
     buttonSoundsEnabled?: boolean;
+    autoReadQuestion?: boolean;
+    ttsVolume?: number;
 }
 
 export interface SavedSessionState {

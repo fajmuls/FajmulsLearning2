@@ -5170,6 +5170,8 @@ function App() {
                   autoNext={settings.autoNextQuestion !== false}
                   onOpenSettings={() => setSettingsOpen(true)}
                   enableAITutor={settings.enableAITutor !== false}
+                  autoReadTTS={settings.autoReadQuestion === true}
+                  ttsVolume={settings.ttsVolume ?? 1}
                 />
               )}
             </motion.div>

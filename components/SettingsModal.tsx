@@ -95,6 +95,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         onUpdate({ ...settings, volume: parseFloat(e.target.value) });
     };
 
+    const handleTtsVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        onUpdate({ ...settings, ttsVolume: parseFloat(e.target.value) });
+    };
+
     const PRESET_COLORS = [
         { id: 'white', label: 'Putih', color: '#ffffff' },
         { id: 'gray', label: 'Abu', color: '#cbd5e1' },
@@ -313,7 +317,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                                     <div className="bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl overflow-hidden border border-slate-100/50 dark:border-slate-800/50">
                                         <ToggleItem icon={<CheckCircle size={12}/>} label="Auto-Lanjut" checked={settings.autoNextQuestion !== false} onChange={() => toggle('autoNextQuestion')} color="blue" />
                                         <ToggleItem icon={<Bot size={12}/>} label="AI Tutor" checked={settings.enableAITutor !== false} onChange={() => toggle('enableAITutor')} color="indigo" />
+                                        <ToggleItem icon={<Volume2 size={12}/>} label="Auto-Baca Soal" checked={settings.autoReadQuestion === true} onChange={() => toggle('autoReadQuestion')} color="amber" />
                                         <ToggleItem icon={<Timer size={12}/>} label="Timer Fokus" checked={settings.enableTimer !== false} onChange={() => toggle('enableTimer')} color="rose" />
+                                        <div className="p-3 bg-white/40 dark:bg-slate-800/40 border-t border-slate-100/50 dark:border-slate-800/50">
+                                            <div className="flex justify-between items-center mb-2 px-1">
+                                                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tight">Volume Suara TTS</span>
+                                                <span className="text-[8px] font-black text-amber-500">{Math.round((settings.ttsVolume ?? 1) * 100)}%</span>
+                                            </div>
+                                            <input type="range" min="0" max="1" step="0.1" value={settings.ttsVolume ?? 1} onChange={handleTtsVolumeChange} className="w-full h-1 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none accent-amber-500 cursor-pointer" />
+                                        </div>
                                     </div>
                                 </div>
                                 {onOpenAdminDashboard && (

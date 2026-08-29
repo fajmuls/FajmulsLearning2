@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Timer, Zap, CheckCircle, XCircle, ChevronRight, Lightbulb, Pause, Play, Grid, Loader2, ArrowLeft, ArrowRight, Save, CloudUpload, AlertTriangle, Flag, Type, Plus, Minus, Copy, Bookmark, Mic, MicOff, Settings, Keyboard, Lock, Bot, Sparkles, RotateCcw, Shuffle, Eye, EyeOff, Eraser } from 'lucide-react';
+import { Timer, Zap, CheckCircle, XCircle, ChevronRight, Lightbulb, Pause, Play, Grid, Loader2, ArrowLeft, ArrowRight, Save, CloudUpload, AlertTriangle, Flag, Type, Plus, Minus, Copy, Bookmark, Mic, MicOff, Settings, Keyboard, Lock, Bot, Sparkles, RotateCcw, Shuffle, Eye, EyeOff, Eraser, Volume2, VolumeX } from 'lucide-react';
 import { StudyMode, Question, UserAnswer, CategoryType, DrillMaterial, TestHistoryItem, SavedSessionState, AppFontSize, MarkedQuestion } from '../types';
 import { SoundManager } from '../services/soundService';
 import * as Gemini from '../services/geminiService';
@@ -60,23 +60,43 @@ const PacingBar: React.FC<{ idealTimeSeconds: number, isActive: boolean, current
     );
 };
 
-const TTSButton = ({ text }: { text: string }) => {
+const TTSButton = ({ text, lang = 'id-ID', autoPlay = false, volume = 1 }: { text: string, lang?: string, autoPlay?: boolean, volume?: number }) => {
     const [isPlaying, setIsPlaying] = React.useState(false);
 
     React.useEffect(() => {
+        let isCancelled = false;
+        if (autoPlay) {
+            // Slight delay to allow DOM to settle
+            setTimeout(() => {
+                if (!isCancelled) play();
+            }, 300);
+        }
         return () => {
+            isCancelled = true;
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
             }
         };
-    }, []);
+    }, [autoPlay, text, lang, volume]);
 
     const play = () => {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text.replace(/:::MATRIX:::[\s\S]*?:::/, '').replace(/<svg[\s\S]*?<\/svg>/, ''));
-            utterance.lang = 'en-US';
+            
+            // Clean markdown, matrix tags, SVG, and LaTeX delimiters like $
+            const cleanText = text
+                .replace(/:::MATRIX:::[\s\S]*?:::/g, '')
+                .replace(/<svg[\s\S]*?<\/svg>/g, '')
+                .replace(/(\*\*|__|\*|_|`)/g, '')
+                .replace(/\$/g, '')
+                .replace(/\\frac{([^}]+)}{([^}]+)}/g, '$1 per $2') // Basic fraction support
+                .replace(/\\[a-zA-Z]+/g, ' ') // Remove other LaTeX commands like \left \right \text \sqrt
+                .replace(/\{|\}/g, ' ');
+
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.lang = lang;
             utterance.rate = 0.9;
+            utterance.volume = volume;
             utterance.onstart = () => setIsPlaying(true);
             utterance.onend = () => setIsPlaying(false);
             utterance.onerror = () => setIsPlaying(false);
@@ -96,10 +116,11 @@ const TTSButton = ({ text }: { text: string }) => {
     return (
         <button 
             onClick={isPlaying ? stop : play}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm mb-4 transition-all w-fit shadow-sm border ${isPlaying ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-700/50' : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-800/50 border-indigo-300 dark:border-indigo-700/50'}`}
+            title={isPlaying ? "Hentikan Suara" : "Bacakan Soal"}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs mb-4 transition-all w-fit shadow-sm border ${isPlaying ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-700/50' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 border-slate-200 dark:border-slate-700'}`}
         >
-            {isPlaying ? <MicOff size={18} /> : <Mic size={18} />}
-            {isPlaying ? 'Hentikan Audio' : 'Putar Audio Listening'}
+            {isPlaying ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            {isPlaying ? 'Berhenti' : 'Bacakan Soal'}
         </button>
     );
 };
@@ -470,6 +491,8 @@ interface SessionEngineProps {
   enableAITutor?: boolean;
   autoNext?: boolean;
   onOpenSettings?: () => void;
+  autoReadTTS?: boolean;
+  ttsVolume?: number;
 }
 
 const getTkpScore = (option: string, currentQ: Question): number => {
@@ -516,7 +539,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
     mode, questions, drillContent, onComplete, 
     isSkdSimulation, isUtbkSimulation, category, showToast: parentShowToast,
     initialState, userId, skdStream, tpaStream, packageTitle, sessionDuration, onSaveAndExit, initialFontSize = 'md',
-    isLoadingMore, isAdaptiveCat, onFetchMoreActive, enableAITutor = true, autoNext = true, onOpenSettings
+    isLoadingMore, isAdaptiveCat, onFetchMoreActive, enableAITutor = true, autoNext = true, onOpenSettings, autoReadTTS = false, ttsVolume = 1
 }) => {
     
     // Font Size State
@@ -2013,8 +2036,18 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                         <PacingBar idealTimeSeconds={scaledIdealTimeSeconds} isActive={!isPaused} currentQId={currentQ.id} />
                                     )}
 
-                                    {category === 'BAHASA' && currentQ.content && (
-                                        <TTSButton text={currentQ.content} />
+                                    {currentQ.content && (
+                                        <TTSButton 
+                                            key={`tts-${currentQ.id}`}
+                                            text={currentQ.content + (currentQ.options ? '. Pilihan jawaban: ' + currentQ.options.map((opt, i) => String.fromCharCode(65 + i) + '. ' + opt.split('||')[0]).join(', ') : '')} 
+                                            lang={
+                                                currentQ.metadata?.topic?.toLowerCase().includes('inggris') || 
+                                                currentQ.metadata?.subtest?.toLowerCase().includes('inggris') || 
+                                                category === 'BAHASA' ? 'en-US' : 'id-ID'
+                                            }
+                                            autoPlay={autoReadTTS}
+                                            volume={ttsVolume}
+                                        />
                                     )}
 
                                     <div className={`mb-4 sm:mb-6 text-slate-800 dark:text-slate-100 fs-${fontSize} leading-relaxed word-break-safe max-h-[300px] sm:max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600`}>
@@ -2317,7 +2350,13 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                 </button>
                             )}
 
-                            <button onClick={() => setShowAdminModal(true)} className="text-slate-400 hover:text-indigo-500 transition" title="Pengaturan"><Settings size={14}/></button>
+                            {/* Pengaturan Utama */}
+                            <button onClick={() => onOpenSettings?.()} className="text-slate-400 hover:text-indigo-500 transition" title="Pengaturan Utama">
+                                <Settings size={14} />
+                            </button>
+
+                            {/* Admin Menu */}
+                            <button onClick={() => setShowAdminModal(true)} className="text-slate-400 hover:text-rose-500 transition" title="Admin Menu"><Lock size={14}/></button>
                             <button onClick={() => setIsMobileGridOpen(false)} className="md:hidden text-slate-500"><XCircle size={18}/></button> 
                         </div>
                     </div>
