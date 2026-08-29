@@ -383,10 +383,10 @@ const VoiceControlConfigModal: React.FC<{
     if (!isOpen) return null;
 
     const commands = [
-        { category: "Jawaban", items: ["A / Pilihan A", "B / Pilihan B", "C / Pilihan C", "D / Pilihan D", "E / Pilihan E", "Hapus jawaban / Clear answer"] },
-        { category: "Navigasi", items: ["Lanjut / Next", "Mundur / Back", "Soal [Nomor] (misal: Soal 5)"] },
-        { category: "Kontrol", items: ["Selesaikan / Finish", "Simpan dulu / Save", "Jeda / Pause", "Ragu-ragu / Tandai"] },
-        { category: "Tampilan", items: ["Perbesar tulisan", "Perkecil tulisan"] }
+        { category: "Jawaban", items: ["A / Pilihan A", "B / Pilihan B", "C / Pilihan C", "D / Pilihan D", "E / Pilihan E", "Hapus jawaban / Clear answer", "Eliminasi jawaban / Hilangkan jawaban"] },
+        { category: "Navigasi", items: ["Lanjut / Next", "Mundur / Back", "Soal [Nomor] (misal: Soal 5)", "Scroll bawah / Scroll atas"] },
+        { category: "Kontrol", items: ["Selesaikan / Finish", "Simpan dulu / Save", "Jeda / Pause", "Ragu-ragu / Tandai", "Masukkan ke bank soal / Simpan ke bank"] },
+        { category: "Tampilan & Bantuan", items: ["Perbesar tulisan", "Perkecil tulisan", "Bantu saya / Clue / AI Tutor"] }
     ];
 
     return (
