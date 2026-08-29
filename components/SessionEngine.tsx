@@ -60,8 +60,14 @@ const PacingBar: React.FC<{ idealTimeSeconds: number, isActive: boolean, current
     );
 };
 
-const TTSButton = ({ text, lang = 'id-ID', autoPlay = false, volume = 1 }: { text: string, lang?: string, autoPlay?: boolean, volume?: number }) => {
+const TTSButton = ({ text, lang = 'id-ID', autoPlay = false, volume = 1, onPlayStateChange }: { text: string, lang?: string, autoPlay?: boolean, volume?: number, onPlayStateChange?: (playing: boolean) => void }) => {
     const [isPlaying, setIsPlaying] = React.useState(false);
+
+    React.useEffect(() => {
+        if (onPlayStateChange) {
+            onPlayStateChange(isPlaying);
+        }
+    }, [isPlaying, onPlayStateChange]);
 
     React.useEffect(() => {
         let isCancelled = false;
@@ -704,6 +710,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
     const [showVoiceConfig, setShowVoiceConfig] = useState(false);
     const [showShortcutModal, setShowShortcutModal] = useState(false);
     const [voiceEnabled, setVoiceEnabled] = useState(false);
+    const [isTTSPlaying, setIsTTSPlaying] = useState(false);
     const [voiceConfirmationPending, setVoiceConfirmationPending] = useState<'FINISH' | 'SAVE' | null>(null);
     const lastCommandTimeRef = useRef(0);
 
@@ -894,9 +901,23 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
         return currentQ.metadata.idealTimeSeconds;
     }, [currentQ, activeQuestions, isUtbkSimulation, utbkSubtestIndex, sessionDuration, mode]);
 
+    // Pause Voice Recognition while TTS is playing
+    useEffect(() => {
+        if (isTTSPlaying) {
+            if (voiceEnabled && isListening) {
+                stopListening();
+            }
+        } else {
+            if (voiceEnabled && !isListening) {
+                resetTranscript();
+                startListening();
+            }
+        }
+    }, [isTTSPlaying, voiceEnabled, isListening, stopListening, startListening, resetTranscript]);
+
     // Voice Command Handler
     useEffect(() => {
-        if (!voiceEnabled || !transcript || !currentQ || !currentQ.options) return;
+        if (!voiceEnabled || !transcript || !currentQ || !currentQ.options || isTTSPlaying) return;
 
         const now = Date.now();
         // Debounce commands to prevent double execution (1 second cooldown)
@@ -1044,9 +1065,9 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
 
         // Jump to Question Number
         else {
-            const numberMatch = lower.match(/(?:nomor|soal|question|ke|go to)?\s*(\d+)/);
-            if (numberMatch && numberMatch[1]) {
-                const targetNum = parseInt(numberMatch[1]);
+            const numberMatch = lower.match(/(nomor|soal|question|ke|go to|pindah ke)\s+(\d+)/);
+            if (numberMatch && numberMatch[2]) {
+                const targetNum = parseInt(numberMatch[2]);
                 if (!isNaN(targetNum) && targetNum >= 1 && targetNum <= activeQuestions.length) {
                     setCurrentIndex(targetNum - 1);
                     showToast(`Ke soal nomor ${targetNum}`, 'info');
@@ -2047,6 +2068,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                             }
                                             autoPlay={autoReadTTS}
                                             volume={ttsVolume}
+                                            onPlayStateChange={setIsTTSPlaying}
                                         />
                                     )}
 
