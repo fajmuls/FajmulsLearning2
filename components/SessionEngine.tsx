@@ -738,14 +738,14 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
     };
 
     const confirmUseHint = () => {
-        if (currentQ.hint && !hintUsedMap[currentQ.id]) {
+        if (currentQ && currentQ.hint && !hintUsedMap[currentQ.id]) {
             handleUseHint();
             setShowHintConfirm(false);
         }
     };
 
     const confirmUseEliminate = () => {
-        if (!eliminatedOptionsMap[currentQ.id] && currentQ.options && currentQ.options.length > 2) {
+        if (currentQ && !eliminatedOptionsMap[currentQ.id] && currentQ.options && currentQ.options.length > 2) {
             handleUseEliminator();
             setShowEliminateConfirm(false);
         }
@@ -1564,6 +1564,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
 
     const toggleDoubtful = () => {
         const currentQ = activeQuestions[currentIndex];
+        if (!currentQ) return;
         setAnswerMap(prev => {
             const existing = prev[currentQ.id];
             if (existing) {
@@ -1644,9 +1645,16 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
             }
         }} 
     />;
-    if (activeQuestions.length === 0 && !isLoadingMore) return <div className="p-10 text-center"><Loader2 className="animate-spin mx-auto"/> Menyiapkan soal subtes...</div>;
+    if (!currentQ) {
+        return (
+            <div className="min-h-screen bg-transparent flex flex-col items-center justify-center">
+                <Loader2 className="animate-spin text-indigo-500 w-8 h-8 mb-4"/> 
+                <span className="text-slate-500 font-bold">Menyiapkan soal...</span>
+            </div>
+        );
+    }
 
-    const currentAns = currentQ ? answerMap[currentQ.id] : undefined;
+    const currentAns = answerMap[currentQ.id];
 
     return (
         <div className="min-h-screen bg-transparent flex flex-col md:flex-row h-screen overflow-hidden transition-colors relative">
