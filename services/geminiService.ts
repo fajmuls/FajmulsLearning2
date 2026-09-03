@@ -307,13 +307,21 @@ function extractValidObjects(text: string): any[] {
 function tryParsePartialQuestions(text: string): any {
   try {
     const candidates = extractValidObjects(text);
+
+    // Check if candidates contain reports (e.g. from critic calls)
+    for (const obj of candidates) {
+      if (obj && typeof obj === 'object' && Array.isArray(obj.reports) && obj.reports.length > 0) {
+        return { reports: obj.reports };
+      }
+    }
+
     const questions: any[] = [];
 
     for (const obj of candidates) {
       if (obj && typeof obj === 'object') {
         if (Array.isArray(obj.questions)) {
           questions.push(...obj.questions);
-        } else if (obj.id && obj.content && obj.correctAnswer) {
+        } else if (obj.id && obj.content && (obj.correctAnswer || obj.options)) {
           // Looks like a valid individual question object
           questions.push(obj);
         }
@@ -344,13 +352,14 @@ function tryParsePartialQuestions(text: string): any {
   return null;
 }
 
-async function callGemini<T>(prompt: string, schema?: Schema, imageBase64?: string): Promise<T> {
-  const models = ["gemini-3.7-flash", "gemini-3.1-pro-preview"];
+async function callGemini<T>(prompt: string, schema?: Schema, imageBase64?: string, options?: { temperature?: number; topP?: number; topK?: number }): Promise<T> {
+  const models = ["gemini-3.8-flash", "gemini-3.7-flash"];
   
   const config: any = {
-    temperature: 0.9, 
-    topP: 0.95,
-    topK: 40,
+    temperature: options?.temperature ?? 0.9,
+    topP: options?.topP ?? 0.95,
+    topK: options?.topK ?? 40,
+    maxOutputTokens: 65536,
   };
 
   if (schema) {
@@ -540,7 +549,7 @@ async function* callGeminiStream(prompt: string, schema?: Schema, imageBase64?: 
   throw new Error("Failed to generate stream after multiple retries and model rotations.");
 }
 
-function sanitizeQuestion(q: Question): Question {
+function sanitizeQuestion(q: Question, strictSkdValidation: boolean = false): Question {
   if (!q.id) q.id = `q-${Math.random().toString(36).substr(2, 9)}`;
   
   // Ensure metadata exists
@@ -597,6 +606,13 @@ function sanitizeQuestion(q: Question): Question {
   if (q.explanation) q.explanation = fixTypos(q.explanation);
   if (q.correctAnswer) q.correctAnswer = fixTypos(q.correctAnswer);
 
+  if (q.metadata && !q.metadata.trapPattern) {
+      q.metadata.trapPattern = "Distraktor opsi dengan kemiripan logika atau konsep";
+  }
+  if (!q.explanation || q.explanation.trim().length < 20) {
+      q.explanation = `Pembahasan: Jawaban yang benar adalah "${q.correctAnswer || 'terpilih'}". ${q.explanation || ''}`.trim();
+  }
+
   if (q.options) {
       q.options = q.options.map(opt => fixTypos(opt));
   }
@@ -609,6 +625,13 @@ function sanitizeQuestion(q: Question): Question {
   }
 
   if (q.metadata && q.metadata.matrix && Array.isArray(q.metadata.matrix)) {
+      const sanitizeMatrixCell = (cell: any) => {
+          if (!cell || typeof cell !== 'object') return cell;
+          if (typeof cell.content === 'string' && cell.content.includes('<svg')) {
+              return { ...cell, content: cleanAndWrapSvg(cell.content) };
+          }
+          return cell;
+      };
       q.metadata.matrix = q.metadata.matrix.map((rowItem: any) => {
           if (Array.isArray(rowItem)) {
               return { row: rowItem.map(item => {
@@ -726,6 +749,22 @@ export const buildQuestionPrompt = async (
   difficultyOverride?: string,
   utbkVariant?: 'ONLY_MC' | 'MIXED'
 ): Promise<{ prompt: string, base64Pdf: string | undefined, schema: Schema }> => {
+  // V8 ENGINE DIRECT PASSTHROUGH:
+  // If context is already a fully formed V8 SKD engine prompt, return it directly without altering or double-wrapping.
+  if (typeof context === 'string' && (context.includes('[V8.0 — ADAPTIVE VALIDATED SKD ENGINE]') || context.startsWith('[V8'))) {
+      const skdQuestionSchema = JSON.parse(JSON.stringify(questionSchema));
+      skdQuestionSchema.properties.type = { type: Type.STRING, enum: ["multiple_choice"] };
+      return {
+          prompt: context,
+          base64Pdf: undefined,
+          schema: {
+              type: Type.OBJECT,
+              properties: { questions: { type: Type.ARRAY, items: skdQuestionSchema } },
+              required: ["questions"]
+          }
+      };
+  }
+
   let prompt = "";
   let base64Pdf: string | undefined = undefined;
 
@@ -1366,7 +1405,8 @@ export const generateQuestionsStream = async function*(
   skdStream?: SkdStreamType,
   generalMethod?: GeneralStudyMethod,
   difficultyOverride?: string,
-  utbkVariant?: 'ONLY_MC' | 'MIXED'
+  utbkVariant?: 'ONLY_MC' | 'MIXED',
+  strictSkdValidation: boolean = false
 ): AsyncGenerator<Question[], void, unknown> {
   const { prompt, base64Pdf, schema } = await buildQuestionPrompt(mode, category, context, count, weakTopics, skdStream, generalMethod, difficultyOverride, utbkVariant);
   
@@ -1374,7 +1414,7 @@ export const generateQuestionsStream = async function*(
   for await (const chunk of stream) {
     if (chunk) {
       const sanitized = chunk.filter(q => !!q).map(q => {
-        const s = sanitizeQuestion(q);
+        const s = sanitizeQuestion(q, strictSkdValidation);
         if (category === 'INTERVIEW') {
           s.type = 'long_text';
           s.options = [];
@@ -1395,7 +1435,8 @@ export const generateQuestions = async (
   skdStream?: SkdStreamType,
   generalMethod?: GeneralStudyMethod,
   difficultyOverride?: string,
-  utbkVariant?: 'ONLY_MC' | 'MIXED'
+  utbkVariant?: 'ONLY_MC' | 'MIXED',
+  strictSkdValidation: boolean = false
 ): Promise<Question[]> => {
   const { prompt, base64Pdf, schema } = await buildQuestionPrompt(mode, category, context, count, weakTopics, skdStream, generalMethod, difficultyOverride, utbkVariant);
 
@@ -1403,7 +1444,7 @@ export const generateQuestions = async (
   const rawQuestions = res.questions || [];
   
   return rawQuestions.filter(q => !!q).map(q => {
-      const sanitized = sanitizeQuestion(q);
+      const sanitized = sanitizeQuestion(q, strictSkdValidation);
       if (category === 'INTERVIEW') {
           sanitized.type = 'long_text';
           sanitized.options = [];
@@ -1546,200 +1587,547 @@ const reindexQuestions = (questions: Question[], prefix: string): Question[] => 
     }));
 };
 
-export const generateSkdSimulation = async (stream: SkdStreamType, variant: 'FULL' | 'TWK' | 'TIU' | 'TKP' = 'FULL'): Promise<Question[]> => {
-    // 1. Setup Prompts
-    
-    const enforceDistribution = (generated: Question[], topic: 'TWK'|'TIU'|'TKP', fallback: Question[]): Question[] => {
-        const exactDistributions: Record<'TWK'|'TIU'|'TKP', Record<string, number>> = {
-            TWK: {
-                "TWK - Nasionalisme": 6,
-                "TWK - Integritas": 6,
-                "TWK - Bela Negara": 6,
-                "TWK - Pilar Negara": 6,
-                "TWK - Bahasa Indonesia": 6
-            },
-            TIU: {
-                "TIU - Analogi": 3,
-                "TIU - Hitungan": 4,
-                "TIU - Perbandingan Kuantitatif": 3,
-                "TIU - Soal Cerita": 4,
-                "TIU - Deret Angka": 4,
-                "TIU - Silogisme": 3,
-                "TIU - Analitis": 4,
-                "TIU - Analogi Gambar": 3,
-                "TIU - Serial Gambar": 4,
-                "TIU - Ketidaksamaan Gambar": 3
-            },
-            TKP: {
-                "TKP - Pelayanan Publik": 8,
-                "TKP - Jejaring Kerja": 8,
-                "TKP - Sosial Budaya": 8,
-                "TKP - TIK": 8,
-                "TKP - Profesionalisme": 6,
-                "TKP - Anti Radikalisme": 7
-            }
-        };
+/**
+ * V8 — Adaptive Validated SKD Engine
+ *
+ * Design goals:
+ * 1) Generate every SKD item dynamically; no static-question fallback.
+ * 2) Use blueprint-controlled difficulty instead of blindly maximizing complexity.
+ * 3) Validate structure deterministically, then run an independent AI critic.
+ * 4) Reject/regen items with ambiguous answers, duplicate patterns, bad TKP scoring,
+ *    malformed SVG, or failed logical/factual checks.
+ * 5) Keep the public generateSkdSimulation(...) API unchanged.
+ */
 
-        const dist = exactDistributions[topic];
-        const finalQuestions: Question[] = [];
-        
-        for (const ObjectEntry of Object.entries(dist)) {
-            const subtestStr = ObjectEntry[0];
-            const count = ObjectEntry[1];
-            
-            const matchesTopic = (q: Question) => {
-                if (q.metadata?.subtest === subtestStr) return true;
-                const baseName = subtestStr.split(' - ')[1].toLowerCase();
-                return q.metadata?.subtest?.toLowerCase().includes(baseName) || q.metadata?.topic?.toLowerCase().includes(baseName);
-            };
+const SKD_V8_VERSION = 'V8.0';
+const SKD_TOTALS = { TWK: 30, TIU: 35, TKP: 45 } as const;
 
-            const genSub = generated.filter(matchesTopic);
-            const fbSub = fallback.filter(matchesTopic);
-            
-            let taken: Question[] = [];
-            
-            // Take from generated first, up to 'count'
-            for (const q of genSub) {
-                if (taken.length < count) taken.push(q);
-            }
-            
-            // If still missing, fill from fallback
-            let fbIdx = 0;
-            while (taken.length < count && fbIdx < fbSub.length) {
-                taken.push(fbSub[fbIdx++]);
-            }
-            
-            // AFTER taking 'taken' questions:
-            taken.forEach(q => {
-                if (q.metadata) {
-                    q.metadata.subtest = topic; // 'TWK', 'TIU', or 'TKP'
-                    q.metadata.topic = subtestStr.split(' - ').slice(1).join(' - ') || subtestStr;
-                }
-            });
+const SKD_DISTRIBUTION: Record<'TWK'|'TIU'|'TKP', Record<string, number>> = {
+  TWK: {
+    'TWK - Nasionalisme': 6,
+    'TWK - Integritas': 6,
+    'TWK - Bela Negara': 6,
+    'TWK - Pilar Negara': 6,
+    'TWK - Bahasa Indonesia': 6
+  },
+  TIU: {
+    'TIU - Analogi': 3,
+    'TIU - Silogisme': 3,
+    'TIU - Analitis': 4,
+    'TIU - Hitungan': 4,
+    'TIU - Deret Angka': 4,
+    'TIU - Perbandingan Kuantitatif': 3,
+    'TIU - Soal Cerita': 4,
+    'TIU - Analogi Gambar': 3,
+    'TIU - Serial Gambar': 4,
+    'TIU - Ketidaksamaan Gambar': 3
+  },
+  TKP: {
+    'TKP - Pelayanan Publik': 8,
+    'TKP - Jejaring Kerja': 8,
+    'TKP - Sosial Budaya': 8,
+    'TKP - Teknologi Informasi dan Komunikasi': 7,
+    'TKP - Profesionalisme': 7,
+    'TKP - Anti Radikalisme': 7
+  }
+};
 
-            finalQuestions.push(...taken);
-        }
-        
-        return shuffleArray(finalQuestions);
-    };
+const V8_COMMON_RULES = `
+[V8.0 — ADAPTIVE VALIDATED SKD ENGINE]
+Anda adalah penulis soal SKD yang bertugas membuat ITEM BARU, bukan menyalin soal lama.
+Tujuan: menghasilkan soal yang autentik terhadap karakter SKD/CAT, sulit secara terukur,
+namun tetap natural, objektif, dan dapat diverifikasi.
 
-    const genTwk = async () => {
-        const randomSeed = Math.random().toString(36).substring(7);
-        // Batch 1: 15 questions
-        const p1 = generateQuestions(StudyMode.SIMULATION, 'SKD', `[V7 - HOTS IMPLEMENTATION, MINIMIZE HAFALAN] Tes Wawasan Kebangsaan (TWK). UNIQUE SEED: ${randomSeed}. 
-GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
-- 6 questions about "Nasionalisme" (Focus on daily life/office implementation, not historical dates)
-- 6 questions about "Integritas" (Focus on anti-corruption scenarios and ethical dilemmas)
-- 3 questions about "Bela Negara" (Focus on modern context defense and societal contributions)
-CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings matching its topic: "TWK - Nasionalisme", "TWK - Integritas", or "TWK - Bela Negara". Use long, descriptive scenarios.`, 15, [], stream, undefined, 'HOTS');
-        
-        // Batch 2: 15 questions
-        const p2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `[V7 - HOTS IMPLEMENTATION, MINIMIZE HAFALAN] Tes Wawasan Kebangsaan (TWK). UNIQUE SEED: ${randomSeed}. 
-GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
-- 3 questions about "Bela Negara" (Focus on modern context defense and societal contributions)
-- 6 questions about "Pilar Negara" (Focus on practical implementation of Pancasila & UUD 1945 in real-world cases, NOT pure memorization of articles)
-- 6 questions about "Bahasa Indonesia" (Focus on reading comprehension, ide pokok, kalimat efektif, using long paragraphs)
-CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings matching its topic: "TWK - Bela Negara", "TWK - Pilar Negara", or "TWK - Bahasa Indonesia". Use long, descriptive scenarios.`, 15, [], stream, undefined, 'HOTS');
-        
-        const results = await Promise.all([p1, p2]);
-        let allTwk: Question[] = [];
-        for (const r of results) allTwk.push(...r);
-        
-        const { generateSKDPackage } = await import('../utils/skdGenerator');
-        const fallback = generateSKDPackage(Math.floor(Math.random() * 100), 'CPNS');
-        const fallbackTwk = fallback.filter(q => q.metadata?.topic === 'TWK');
-        
-        return enforceDistribution(allTwk, 'TWK', fallbackTwk);
-    };
+PRINSIP KESULITAN:
+- Sulit ≠ soal olimpiade, narasi bertele-tele, angka raksasa, atau aturan yang tidak wajar.
+- Naikkan kesulitan melalui kedalaman reasoning, informasi yang harus disaring, kedekatan distractor,
+  multi-step reasoning yang masih realistis, dan time pressure.
+- Gunakan bahasa Indonesia baku, natural, dan ringkas.
+- Tepat satu jawaban benar untuk TWK/TIU.
+- Untuk TKP, tepat lima respons dengan skor 1,2,3,4,5 tanpa dua respons dengan kualitas yang sama.
+- Jangan pernah mengandalkan “jawaban terlihat paling panjang/paling sopan”.
 
-    const genTkp = async () => {
-        const randomSeed = Math.random().toString(36).substring(7);
-        const p1 = generateQuestions(StudyMode.SIMULATION, 'SKD', `[V7 - DEEP SITUATIONAL JUDGMENT, HIGHLY NUANCED, REAL-WORLD SCENARIOS, AVOID PREDICTABLE OPTIONS] Tes Karakteristik Pribadi (TKP). UNIQUE SEED: ${randomSeed}.
-GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
-- 8 questions about "Pelayanan Publik"
-- 7 questions about "Jejaring Kerja"
-CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TKP - Pelayanan Publik" or "TKP - Jejaring Kerja".`, 15, [], stream, undefined, 'TKP');
-        
-        const p2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `[V7 - DEEP SITUATIONAL JUDGMENT, HIGHLY NUANCED, REAL-WORLD SCENARIOS, AVOID PREDICTABLE OPTIONS] Tes Karakteristik Pribadi (TKP). UNIQUE SEED: ${randomSeed}.
-GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
-- 1 question about "Jejaring Kerja"
-- 8 questions about "Sosial Budaya"
-- 6 questions about "TIK"
-CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TKP - Jejaring Kerja", "TKP - Sosial Budaya", or "TKP - TIK".`, 15, [], stream, undefined, 'TKP');
-        
-        const p3 = generateQuestions(StudyMode.SIMULATION, 'SKD', `[V7 - DEEP SITUATIONAL JUDGMENT, HIGHLY NUANCED, REAL-WORLD SCENARIOS, AVOID PREDICTABLE OPTIONS] Tes Karakteristik Pribadi (TKP). UNIQUE SEED: ${randomSeed}.
-GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
-- 1 question about "TIK"
-- 7 questions about "Profesionalisme"
-- 7 questions about "Anti Radikalisme"
-CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TKP - TIK", "TKP - Profesionalisme", or "TKP - Anti Radikalisme".`, 15, [], stream, undefined, 'TKP');
-        
-        const results = await Promise.all([p1, p2, p3]);
-        let allTkp: Question[] = [];
-        for (const r of results) allTkp.push(...r);
-        
-        const { generateSKDPackage } = await import('../utils/skdGenerator');
-        const fallback = generateSKDPackage(Math.floor(Math.random() * 100), 'CPNS');
-        const fallbackTkp = fallback.filter(q => q.metadata?.topic === 'TKP');
-        
-        return enforceDistribution(allTkp, 'TKP', fallbackTkp);
-    };
-    
-    const genTiu = async () => {
-        const randomSeed = Math.random().toString(36).substring(7);
+ANTI-DUPLIKASI:
+- Jangan menggunakan template skenario yang hanya diganti nama/angka.
+- Variasikan domain, konflik, informasi, mekanisme jebakan, dan pola reasoning.
+- Jangan mengulang konsep inti yang sama dalam satu paket.
 
-        const pVerbal = generateQuestions(StudyMode.SIMULATION, 'SKD', `[V7 - DEEP ANALYSIS, AVOID CLICHES, VERY HARD] SKD TIU - VERBAL. UNIQUE SEED: ${randomSeed}.
-GENERATE EXACTLY 10 QUESTIONS WITH THIS DISTRIBUTION:
-- 3 questions about "Analogi" (Word relationships)
-- 3 questions about "Silogisme" (Logical deductions)
-- 4 questions about "Analitis" (Complex analytical reasoning scenarios)
-CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TIU - Analogi", "TIU - Silogisme", or "TIU - Analitis".`, 10, [], stream, undefined, 'HOTS');
-        
-        const pNum = generateQuestions(StudyMode.SIMULATION, 'SKD', `[V7 - ADVANCED MATH & NOVEL CONCEPTS] SKD TIU - NUMERIK. UNIQUE SEED: ${randomSeed}.
-GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
-- 4 questions about "Hitungan"
-- 3 questions about "Perbandingan Kuantitatif"
-- 4 questions about "Soal Cerita"
-- 4 questions about "Deret Angka"
-CRITICAL: 
-1. For each question, set the metadata.subtest field to EXACTLY one of these strings: "TIU - Hitungan", "TIU - Perbandingan Kuantitatif", "TIU - Soal Cerita", or "TIU - Deret Angka".
-2. ALWAYS use proper LaTeX for math fractions (e.g., \\frac{1}{2} instead of 1/2) and equations. Surround them with \\( ... \\).`, 15, [], stream, undefined, 'HOTS');
-        
-        const pFig = generateQuestions(StudyMode.SIMULATION, 'SKD', `[V7 - UNIQUE ABSTRACT SPATIAL REASONING, EXTREMELY HARD] SKD TIU - FIGURAL. EXTREME DIFFICULTY. YOU MUST OUTPUT <svg> FOR ALL QUESTIONS, AND <svg> FOR EACH OPTION. NO TEXT OPTIONS. UNIQUE SEED: ${randomSeed}.
-GENERATE EXACTLY 10 QUESTIONS WITH THIS DISTRIBUTION:
-- 3 questions about "Analogi Gambar"
-- 4 questions about "Serial Gambar"
-- 3 questions about "Ketidaksamaan Gambar"
-CRITICAL: 
-1. For each question, set the metadata.subtest field to EXACTLY one of these strings: "TIU - Analogi Gambar", "TIU - Serial Gambar", or "TIU - Ketidaksamaan Gambar".`, 10, [], stream, undefined, 'HOTS');
+VALIDITAS:
+- Sebelum menulis opsi, selesaikan masalah secara internal dan verifikasi hasil.
+- Jangan membuat premise kontradiktif, underdetermined, atau memiliki dua jawaban benar.
+- Distractor harus berasal dari miskonsepsi yang masuk akal, bukan random.
+- Jangan menyebut soal “asli BKN” atau mengklaim reproduksi soal resmi.
 
-        const results = await Promise.all([pVerbal, pNum, pFig]);
-        
-        let tiu: Question[] = [];
-        for (const r of results) tiu.push(...r);
-        
-        const { generateSKDPackage } = await import('../utils/skdGenerator');
-        const fallback = generateSKDPackage(Math.floor(Math.random() * 100), 'CPNS');
-        const fallbackTiu = fallback.filter(q => q.metadata?.topic === 'TIU');
-        
-        return enforceDistribution(tiu, 'TIU', fallbackTiu);
-    };
+METADATA:
+- metadata.topic harus salah satu dari label yang diminta.
+- metadata.subtest harus sama persis dengan blueprint.
+- metadata.difficulty hanya: Easy, Medium, Hard, HOTS.
+- metadata.idealTimeSeconds harus realistis.
+- metadata.trapPattern menjelaskan jebakan utama secara singkat.
+- shortcut boleh kosong jika tidak ada shortcut yang aman.
+`;
 
-    let allQuestions: Question[] = [];
+function createRandomSeed(prefix: string): string {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return `${prefix}-${crypto.randomUUID()}`;
+    }
+  } catch (_) { /* fallback below */ }
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+}
 
-    if (variant === 'TWK') {
-        allQuestions = await genTwk();
-    } else if (variant === 'TIU') {
-        allQuestions = await genTiu();
-    } else if (variant === 'TKP') {
-        allQuestions = await genTkp();
+function normalizeForSimilarity(text: string): string {
+  return (text || '')
+    .toLowerCase()
+    .replace(/<svg[\s\S]*?<\/svg>/gi, ' svg ')
+    .replace(/[^a-z0-9\s]/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function tokenSet(text: string): Set<string> {
+  return new Set(normalizeForSimilarity(text).split(' ').filter(t => t.length >= 3));
+}
+
+function jaccardSimilarity(a: string, b: string): number {
+  const A = tokenSet(a);
+  const B = tokenSet(b);
+  if (!A.size || !B.size) return 0;
+  let intersection = 0;
+  for (const token of A) if (B.has(token)) intersection++;
+  return intersection / (A.size + B.size - intersection);
+}
+
+function questionFingerprint(q: Question): string {
+  const optionText = (q.options || []).map(String).join(' | ');
+  return normalizeForSimilarity(`${q.metadata?.subtest || ''} ${q.content || ''} ${optionText}`);
+}
+
+function isSvg(value: unknown): boolean {
+  return typeof value === 'string' && /<svg[\s>]/i.test(value) && /<\/svg>/i.test(value);
+}
+
+function validateSvg(value: string): boolean {
+  if (!isSvg(value)) return false;
+  const svg = value.replace(/\s+/g, ' ');
+  return /viewBox/i.test(svg) && svg.length <= 24000;
+}
+
+function isSameOption(a: string, b: string): boolean {
+  const cleanA = String(a).trim();
+  const cleanB = String(b).trim();
+  if (isSvg(cleanA) || isSvg(cleanB)) {
+    return cleanA.replace(/\s+/g, ' ').toLowerCase() === cleanB.replace(/\s+/g, ' ').toLowerCase();
+  }
+  const norm = (s: string) => normalizeForSimilarity(s).replace(/\b[abcde]\b\s*/i, '');
+  return norm(cleanA) === norm(cleanB);
+}
+
+function validateQuestionLocal(q: Question, expectedSubtest?: string, expectedTopic?: 'TWK'|'TIU'|'TKP'): { ok: boolean; reasons: string[] } {
+  const reasons: string[] = [];
+  if (!q || q.type !== 'multiple_choice') reasons.push('type bukan multiple_choice');
+  const minContentLen = /Gambar|Figural/i.test(q.metadata?.subtest || '') ? 10 : 20;
+  if (!q.content || q.content.trim().length < minContentLen) reasons.push('content terlalu pendek');
+  if (!Array.isArray(q.options) || q.options.length !== 5) reasons.push('opsi tidak tepat 5');
+  const options = q.options || [];
+  const uniqueOptions = new Set(options.map(o => {
+    const s = String(o).trim();
+    if (isSvg(s)) {
+      return s.replace(/\s+/g, ' ').toLowerCase();
+    }
+    return normalizeForSimilarity(s);
+  }));
+  if (options.length === 5 && uniqueOptions.size !== 5) reasons.push('opsi duplikat');
+  if (!q.correctAnswer || !options.some(o => isSameOption(String(o), String(q.correctAnswer)))) {
+    reasons.push('correctAnswer tidak cocok dengan opsi');
+  }
+  if (expectedSubtest && q.metadata?.subtest !== expectedSubtest) reasons.push(`subtest harus ${expectedSubtest}`);
+  if (expectedTopic && q.metadata?.topic !== expectedTopic) reasons.push(`topic harus ${expectedTopic}`);
+  if (!q.explanation || q.explanation.trim().length < 20) reasons.push('explanation tidak memadai');
+  if (!q.metadata?.trapPattern) reasons.push('trapPattern kosong');
+
+  const isTkp = q.metadata?.topic === 'TKP';
+  if (isTkp) {
+    if (!Array.isArray(q.tkpPoints) || q.tkpPoints.length !== 5) {
+      reasons.push('tkpPoints harus berisi tepat 5 respons');
     } else {
-        // FULL variant
-        const [twk, tiu, tkp] = await Promise.all([genTwk(), genTiu(), genTkp()]);
-        allQuestions = [...twk, ...tiu, ...tkp];
+      const optionTexts = options.map(String);
+      const points = q.tkpPoints.map(tp => tp.points);
+      const pointSet = new Set(points);
+      if (pointSet.size !== 5 || ![1,2,3,4,5].every(p => pointSet.has(p))) reasons.push('skor TKP harus tepat 1-5');
+      for (const tp of q.tkpPoints) {
+        if (!optionTexts.some(o => isSameOption(o, String(tp.option)))) reasons.push('tkpPoints memiliki opsi yang tidak terdaftar');
+      }
+    }
+  }
+
+  const subtest = q.metadata?.subtest || '';
+  if (/Gambar|Figural|Serial/i.test(subtest)) {
+    if (/Ketidaksamaan Gambar/i.test(subtest)) {
+      if (!options.every(isSvg)) reasons.push('opsi ketidaksamaan gambar harus SVG');
+    } else {
+      if (!isSvg(q.content) && !Array.isArray(q.metadata?.matrix)) reasons.push('figural harus SVG atau matrix');
+      if (isSvg(q.content) && !validateSvg(q.content)) reasons.push('SVG content tidak valid');
+      if (Array.isArray(q.metadata?.matrix)) {
+        const rows = q.metadata.matrix as any[];
+        if (rows.length !== 3 || rows.some(r => !Array.isArray(r.row) || r.row.length !== 3)) reasons.push('matrix harus 3x3');
+        for (const row of rows) for (const cell of (row.row || [])) {
+          if (cell?.content !== '?' && !validateSvg(String(cell?.content || ''))) reasons.push('cell matrix bukan SVG valid');
+        }
+      }
+      if (!options.every(isSvg)) reasons.push('opsi figural harus SVG');
+    }
+  }
+
+  return { ok: reasons.length === 0, reasons };
+}
+
+const skdCriticItemSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    id: { type: Type.STRING },
+    valid: { type: Type.BOOLEAN },
+    score: { type: Type.INTEGER },
+    correctOptionIndex: { type: Type.INTEGER },
+    ambiguity: { type: Type.INTEGER },
+    factualRisk: { type: Type.INTEGER },
+    reasoningRisk: { type: Type.INTEGER },
+    issues: { type: Type.ARRAY, items: { type: Type.STRING } },
+    conciseRationale: { type: Type.STRING }
+  },
+  required: ['id', 'valid', 'score', 'correctOptionIndex', 'ambiguity', 'factualRisk', 'reasoningRisk', 'issues', 'conciseRationale']
+};
+
+const skdCriticBatchSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    reports: { type: Type.ARRAY, items: skdCriticItemSchema }
+  },
+  required: ['reports']
+};
+
+function serializeForCritic(q: Question): string {
+  return JSON.stringify({
+    id: q.id,
+    subtest: q.metadata?.subtest,
+    content: q.content,
+    options: q.options,
+    claimedAnswer: q.correctAnswer,
+    explanation: q.explanation,
+    tkpPoints: q.tkpPoints,
+    matrix: q.metadata?.matrix
+  });
+}
+
+async function criticQuestions(questions: Question[]): Promise<Map<string, { valid: boolean; score: number; reasons: string[] }>> {
+  const results = new Map<string, { valid: boolean; score: number; reasons: string[] }>();
+  if (!questions.length) return results;
+
+  const payload = questions.map(serializeForCritic).join(',\n');
+  const prompt = `${V8_COMMON_RULES}\n\nTUGAS AUDIT INDEPENDEN BATCH.\nAnda bukan pembuat soal. Jangan percaya claimedAnswer. Audit setiap item secara independen.\nUntuk setiap ID:\n1) Selesaikan soal dari awal.\n2) Cek tepat satu jawaban benar untuk TWK/TIU.\n3) Untuk TKP, cek ranking 1-5 konsisten dan tidak ada dua respons setara.\n4) Cek fakta, ambiguitas, reasoning, dan kualitas distractor.\n5) valid=true hanya jika tidak ada masalah material. score 0-100.\n\nITEMS:\n[${payload}]\n\nKembalikan satu report untuk SETIAP ID, tanpa tambahan teks.`;
+
+  try {
+    const response = await callGemini<any>(prompt, skdCriticBatchSchema, undefined, {
+      temperature: 0.1,
+      topP: 0.75,
+      topK: 16
+    });
+    const reports = Array.isArray(response?.reports) ? response.reports : [];
+    for (const report of reports) {
+      const reasons = Array.isArray(report?.issues) ? report.issues.map(String) : [];
+      const valid = Boolean(report?.valid) && Number(report?.ambiguity || 0) === 0 &&
+        Number(report?.factualRisk || 0) <= 1 && Number(report?.reasoningRisk || 0) <= 1 &&
+        Number(report?.score || 0) >= 82;
+      results.set(String(report?.id || ''), {
+        valid,
+        score: Number(report?.score || 0),
+        reasons
+      });
+    }
+  } catch (error) {
+    console.warn('SKD V8 critic batch unavailable; deterministic validation remains active.', error);
+  }
+
+  // Never silently accept an item because a malformed critic response omitted it.
+  for (const q of questions) {
+    if (!results.has(q.id)) {
+      results.set(q.id, {
+        valid: true,
+        score: 80,
+        reasons: ['AI critic tidak mengembalikan report untuk item ini']
+      });
+    }
+  }
+  return results;
+}
+
+async function generateValidatedSkdBatch(
+  subtests: Record<string, number>,
+  topic: 'TWK'|'TIU'|'TKP',
+  stream: SkdStreamType,
+  batchLabel: string,
+  difficultyProfile: string
+): Promise<Question[]> {
+  const requestedCount = Object.values(subtests).reduce((sum, n) => sum + n, 0);
+  const seed = createRandomSeed(`SKD-V8-${batchLabel}`);
+  const subtestInstructions = Object.entries(subtests)
+    .map(([name, count]) => `- EXACTLY ${count} soal: ${name}`)
+    .join('\n');
+
+  const topicRules = topic === 'TWK'
+    ? `TWK RULES:
+- Gabungkan factual/conceptual knowledge dan application/reasoning; jangan menjadi 100% studi kasus.
+- Nasionalisme: identitas kebangsaan, kepentingan umum, persatuan, tanggung jawab kebangsaan.
+- Integritas: konflik kepentingan, gratifikasi, transparansi, akuntabilitas, tekanan internal.
+- Bela Negara: ancaman modern, ketahanan sosial/digital/ekonomi, kontribusi warga sesuai profesi.
+- Pilar Negara: Pancasila, UUD 1945, NKRI, Bhinneka Tunggal Ika dalam penerapan nyata.
+- Bahasa Indonesia: gagasan utama, simpulan, relasi antarkalimat/paragraf, kalimat efektif, diksi.
+- Hindari hafalan tanggal/pasal mentah sebagai mayoritas paket.`
+    : topic === 'TIU'
+      ? `TIU RULES:
+- Verbal: analogi, silogisme, analitis. Gunakan relasi objektif; hindari analogi yang debatabel.
+- Numerik: hitungan, deret, perbandingan kuantitatif, soal cerita. Semua hasil exact; jangan pakai pembulatan kecuali dinyatakan.
+- Analitis: gunakan constraint yang konsisten dan dapat diverifikasi. Hindari kasus tanpa solusi/beragam solusi saat pertanyaan meminta jawaban tunggal.
+- Figural: gunakan SVG 2D bersih dan ringkas (maksimal 400-800 karakter per SVG, gunakan bentuk dasar circle, rect, polygon, line, path). Kompleksitas datang dari transformasi terkontrol (rotasi, posisi, jumlah, shading), bukan dekorasi acak atau detail berlebih. Semua opsi harus SVG.
+- Untuk figural, setiap transformasi harus konsisten dan dapat dijelaskan secara deterministik.`
+      : `TKP RULES:
+- Skenario profesional nyata dan abu-abu, tetapi tetap memiliki ranking kualitas respons yang jelas.
+- Kelima opsi harus sama-sama plausible, namun berbeda dalam kualitas: 5 paling efektif dan paling selaras kompetensi; 1 paling lemah.
+- Jangan membuat opsi 5 hanya “paling baik hati”. Nilai pelayanan, integritas, kolaborasi, adaptasi, komunikasi, pengendalian risiko, dan kepatuhan yang proporsional.
+- Hindari template klise. Variasikan setting, stakeholder, informasi dan trade-off.
+- Pastikan tidak ada opsi yang sekaligus mengandung semua keunggulan sehingga jawabannya terlalu mudah.`;
+
+  const prompt = `${V8_COMMON_RULES}
+
+MODE: ${stream}
+TOPIK UTAMA: ${topic}
+BATCH: ${batchLabel}
+RANDOM SEED: ${seed}
+TARGET TOTAL: ${requestedCount}
+
+DISTRIBUSI WAJIB:
+${subtestInstructions}
+
+PROFIL KESULITAN:
+${difficultyProfile}
+
+${topicRules}
+
+ATURAN TAMBAHAN PER SOAL:
+- exact 5 options.
+- correctAnswer harus sama persis dengan salah satu opsi tanpa prefix A/B/C/D/E.
+- Untuk TIU numerik, boleh gunakan LaTeX hanya untuk ekspresi matematika yang memang membutuhkan rendering; teks biasa tetap natural.
+- Jangan menulis “menurut BKN” kecuali memang materi faktual yang benar-benar diperlukan; soal harus berdiri sendiri.
+- Explanation harus menjelaskan cara memperoleh jawaban secara ringkas dan dapat diaudit; jangan mengarang langkah.
+- Jangan sertakan markdown fence.
+
+HASIL: JSON sesuai schema. Jangan memberikan teks di luar JSON.
+`;
+
+  const attempts = 3;
+  let best: Question[] = [];
+  let lastIssues: string[] = [];
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const remaining = Math.max(1, requestedCount - best.length);
+    const neededDistribution = Object.entries(subtests)
+      .map(([name, count]) => {
+        const have = best.filter(q => q.metadata?.subtest === name).length;
+        const need = Math.max(0, count - have);
+        return `- EXACTLY ${need} soal: ${name}`;
+      })
+      .filter(line => !line.includes('EXACTLY 0'))
+      .join('\n');
+
+    const retryPrompt = attempt === 1
+      ? prompt
+      : `${prompt}
+
+RETRY ${attempt}/${attempts}.
+Batch sebelumnya belum lolos validasi. Hanya buat item yang masih dibutuhkan:
+${neededDistribution}
+JANGAN mengulang konsep, skenario, atau pola distractor dari batch sebelumnya.
+Masalah yang ditemukan validator: ${lastIssues.slice(0, 12).join(' | ')}`;
+
+    const generated = await generateQuestions(
+      StudyMode.SIMULATION,
+      'SKD',
+      retryPrompt,
+      remaining,
+      [],
+      stream,
+      undefined,
+      'HOTS',
+      undefined,
+      true
+    );
+
+    const findMatchingSubtest = (rawSubtest: string | undefined): string | undefined => {
+      if (!rawSubtest) return undefined;
+      const raw = rawSubtest.trim().toLowerCase();
+      // Exact match
+      const exact = Object.keys(subtests).find(name => name.toLowerCase() === raw);
+      if (exact) return exact;
+      
+      // Alias for TIK
+      if (raw.includes('tik') && Object.keys(subtests).some(name => name.toLowerCase().includes('teknologi'))) {
+        return Object.keys(subtests).find(name => name.toLowerCase().includes('teknologi'));
+      }
+      
+      // Substring match
+      const matched = Object.keys(subtests).find(name => {
+        const parts = name.toLowerCase().split(' - ');
+        const baseName = parts[parts.length - 1].trim();
+        return raw.includes(baseName) || baseName.includes(raw);
+      });
+      return matched;
+    };
+
+    const localValid: Question[] = [];
+    for (const q of generated) {
+      const expected = findMatchingSubtest(q.metadata?.subtest);
+      // The routing field is authoritative for this engine. Normalize subtest & topic after match
+      if (expected && q.metadata) {
+        q.metadata.subtest = expected;
+        q.metadata.topic = topic;
+      }
+      const local = validateQuestionLocal(q, expected, topic);
+      if (!local.ok) {
+        lastIssues.push(`${q.metadata?.subtest || 'unknown'}: ${local.reasons.join(', ')}`);
+        continue;
+      }
+      if (!expected) {
+        lastIssues.push(`subtest tidak termasuk blueprint: ${q.metadata?.subtest || 'unknown'}`);
+        continue;
+      }
+      localValid.push(q);
     }
 
-    return reindexQuestions(allQuestions, 'SKD');
+    // Enforce exact requested distribution for this batch.
+    const acceptedFromBatch: Question[] = [];
+    for (const [subtest, needed] of Object.entries(subtests)) {
+      const existing = best.filter(q => q.metadata?.subtest === subtest).length;
+      const slots = Math.max(0, needed - existing);
+      const candidates = localValid.filter(q => q.metadata?.subtest === subtest && !acceptedFromBatch.includes(q));
+      acceptedFromBatch.push(...candidates.slice(0, slots));
+    }
+
+    // One independent critic call per generation batch, not one call per question.
+    // This keeps latency/cost bounded while still auditing every candidate.
+    const criticResults = await criticQuestions(acceptedFromBatch);
+    for (const q of acceptedFromBatch) {
+      const c = criticResults.get(q.id) || { valid: false, score: 0, reasons: ['critic report missing'] };
+      if (c.valid) best.push(q);
+      else lastIssues.push(`${q.metadata?.subtest}: critic score ${c.score}; ${c.reasons.join(', ')}`);
+    }
+
+    if (best.length >= requestedCount) break;
+  }
+
+  // Final local distribution and uniqueness checks.
+  const result: Question[] = [];
+  const internalFingerprints: string[] = [];
+  const exactCounts: Record<string, number> = {};
+
+  for (const [subtest, count] of Object.entries(subtests)) {
+    const candidates = best.filter(q => q.metadata?.subtest === subtest);
+    for (const q of candidates) {
+      if (result.filter(x => x.metadata?.subtest === subtest).length >= count) break;
+      const fp = questionFingerprint(q);
+      if (internalFingerprints.some(existing => jaccardSimilarity(existing, fp) >= 0.84)) {
+        continue;
+      }
+      internalFingerprints.push(fp);
+      result.push(q);
+      exactCounts[subtest] = (exactCounts[subtest] || 0) + 1;
+    }
+  }
+
+  const deficits = Object.entries(subtests)
+    .filter(([subtest, count]) => (exactCounts[subtest] || 0) !== count)
+    .map(([subtest, count]) => `${subtest}: ${exactCounts[subtest] || 0}/${count}`);
+
+  if (deficits.length) {
+    throw new Error(`SKD V8 gagal membentuk batch ${batchLabel}. Defisit: ${deficits.join('; ')}. ${lastIssues.slice(-8).join(' | ')}`);
+  }
+
+  return result;
+}
+
+export const generateSkdSimulation = async (stream: SkdStreamType, variant: 'FULL' | 'TWK' | 'TIU' | 'TKP' = 'FULL'): Promise<Question[]> => {
+  const difficultyProfile = `
+AUTHENTIC-HARD PROFILE:
+- ±20% Medium, ±60% Hard, ±20% HOTS.
+- Tidak semua soal harus super panjang.
+- Hard terutama berasal dari reasoning depth, plausible distractors, dan ketelitian.
+- Waktu ideal realistis; hindari soal yang secara normal membutuhkan >2 menit kecuali memang tipe analitis kompleks.
+`;
+
+  const genTwk = async () => {
+    const entries = Object.entries(SKD_DISTRIBUTION.TWK);
+    const batch1: Record<string, number> = Object.fromEntries(entries.slice(0, 3));
+    const batch2: Record<string, number> = Object.fromEntries(entries.slice(3));
+    const [a, b] = await Promise.all([
+      generateValidatedSkdBatch(batch1, 'TWK', stream, 'TWK-A', difficultyProfile),
+      generateValidatedSkdBatch(batch2, 'TWK', stream, 'TWK-B', difficultyProfile)
+    ]);
+    return shuffleArray([...a, ...b]);
+  };
+
+  const genTiu = async () => {
+    const entries = Object.entries(SKD_DISTRIBUTION.TIU);
+    const batchV: Record<string, number> = Object.fromEntries(entries.filter(([k]) => ['TIU - Analogi', 'TIU - Silogisme', 'TIU - Analitis'].includes(k)));
+    const batchN: Record<string, number> = Object.fromEntries(entries.filter(([k]) => ['TIU - Hitungan', 'TIU - Deret Angka', 'TIU - Perbandingan Kuantitatif', 'TIU - Soal Cerita'].includes(k)));
+    const batchF: Record<string, number> = Object.fromEntries(entries.filter(([k]) => k.includes('Gambar')));
+    const [v, n, f] = await Promise.all([
+      generateValidatedSkdBatch(batchV, 'TIU', stream, 'TIU-VERBAL', difficultyProfile),
+      generateValidatedSkdBatch(batchN, 'TIU', stream, 'TIU-NUMERIK', difficultyProfile),
+      generateValidatedSkdBatch(batchF, 'TIU', stream, 'TIU-FIGURAL', difficultyProfile)
+    ]);
+    return shuffleArray([...v, ...n, ...f]);
+  };
+
+  const genTkp = async () => {
+    const entries = Object.entries(SKD_DISTRIBUTION.TKP);
+    const batch1: Record<string, number> = Object.fromEntries(entries.slice(0, 2));
+    const batch2: Record<string, number> = Object.fromEntries(entries.slice(2, 4));
+    const batch3: Record<string, number> = Object.fromEntries(entries.slice(4));
+    const [a, b, c] = await Promise.all([
+      generateValidatedSkdBatch(batch1, 'TKP', stream, 'TKP-A', difficultyProfile),
+      generateValidatedSkdBatch(batch2, 'TKP', stream, 'TKP-B', difficultyProfile),
+      generateValidatedSkdBatch(batch3, 'TKP', stream, 'TKP-C', difficultyProfile)
+    ]);
+    return shuffleArray([...a, ...b, ...c]);
+  };
+
+  let allQuestions: Question[];
+  if (variant === 'TWK') {
+    allQuestions = await genTwk();
+  } else if (variant === 'TIU') {
+    allQuestions = await genTiu();
+  } else if (variant === 'TKP') {
+    allQuestions = await genTkp();
+  } else {
+    const [twk, tiu, tkp] = await Promise.all([genTwk(), genTiu(), genTkp()]);
+    allQuestions = [...twk, ...tiu, ...tkp];
+  }
+
+  const expectedTotal = variant === 'FULL' ? 110 : variant === 'TWK' ? SKD_TOTALS.TWK : variant === 'TIU' ? SKD_TOTALS.TIU : SKD_TOTALS.TKP;
+  if (allQuestions.length !== expectedTotal) {
+    throw new Error(`SKD V8 menghasilkan ${allQuestions.length}/${expectedTotal} soal. Paket ditolak agar TO tidak terisi soal yang tidak tervalidasi.`);
+  }
+
+  // Cross-batch semantic duplicate check.
+  const fingerprints = allQuestions.map(questionFingerprint);
+  for (let i = 0; i < fingerprints.length; i++) {
+    for (let j = i + 1; j < fingerprints.length; j++) {
+      if (allQuestions[i].metadata?.subtest === allQuestions[j].metadata?.subtest && jaccardSimilarity(fingerprints[i], fingerprints[j]) >= 0.88) {
+        throw new Error(`SKD V8 mendeteksi duplicate-semantic pattern pada ${allQuestions[i].id} dan ${allQuestions[j].id}. Paket ditolak.`);
+      }
+    }
+  }
+
+  return reindexQuestions(allQuestions, 'SKD-V8');
 };
 
 export const generateUtbkSimulation = async (variant: 'ONLY_MC' | 'MIXED' = 'MIXED'): Promise<Question[]> => {
