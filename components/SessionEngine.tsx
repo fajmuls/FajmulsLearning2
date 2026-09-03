@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Timer, Zap, CheckCircle, XCircle, ChevronRight, Lightbulb, Pause, Play, Grid, Loader2, ArrowLeft, ArrowRight, Save, CloudUpload, AlertTriangle, Flag, Type, Plus, Minus, Copy, Bookmark, Mic, MicOff, Settings, Keyboard, Lock, Bot, Sparkles, RotateCcw, Shuffle, Eye, EyeOff, Eraser, Volume2, VolumeX } from 'lucide-react';
+import { Timer, Zap, CheckCircle, XCircle, ChevronRight, ChevronLeft, Lightbulb, Pause, Play, Grid, Loader2, ArrowLeft, ArrowRight, Save, CloudUpload, AlertTriangle, Flag, Type, Plus, Minus, Copy, Bookmark, Mic, MicOff, Settings, Keyboard, Lock, Bot, Sparkles, RotateCcw, Shuffle, Eye, EyeOff, Eraser, Volume2, VolumeX } from 'lucide-react';
 import { StudyMode, Question, UserAnswer, CategoryType, DrillMaterial, TestHistoryItem, SavedSessionState, AppFontSize, MarkedQuestion } from '../types';
 import { SoundManager } from '../services/soundService';
 import * as Gemini from '../services/geminiService';
@@ -1919,59 +1919,20 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                 {/* Mobile Header */}
                 <div className="md:hidden bg-white dark:bg-slate-800 p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center shadow-sm z-20">
                     <div className="font-bold text-slate-700 dark:text-white text-sm">No. {currentIndex + 1}</div>
-                    <div className="flex items-center gap-1.5">
-                         {currentQ?.hint && !hintUsedMap[currentQ.id] && (
-                             <button onClick={() => setShowHintConfirm(true)} className="p-2 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg border border-amber-200 dark:border-amber-800 transition" title="Gunakan Clue">
-                                 <Lightbulb size={18} />
-                             </button>
-                         )}
-                         {!eliminatedOptionsMap[currentQ.id] && currentQ.options && currentQ.options.length > 2 && (
-                             <button onClick={() => setShowEliminateConfirm(true)} className="p-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-800 transition" title="Eliminasi 1 Opsi Salah">
-                                 <Eraser size={18} />
-                             </button>
-                         )}
-                         {currentAns?.selectedAnswer && (
-                             <button onClick={handleClearAnswer} className="p-2 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-lg border border-slate-200 dark:border-slate-600 transition" title="Hapus Jawaban">
-                                 <XCircle size={18} />
-                             </button>
-                         )}
-                         {focusTimerType === 'STANDARD' && mode === StudyMode.SIMULATION && (
-                            <>
-                                <div className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs font-mono font-bold dark:text-white">{formatTime(timeLeft)}</div>
-                                <button onClick={handlePause} className="p-1.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-500 rounded text-xs font-bold hover:bg-amber-200 flex items-center justify-center">
-                                    <Pause size={14}/>
-                                </button>
-                            </>
-                         )}
-                         {focusTimerType === 'DEEP_WORK' && (
-                            <>
-                                <div className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded text-xs font-mono font-bold flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-ping"></span>
-                                    {formatTime(deepWorkTimeLeft)}
-                                </div>
-                                <button onClick={() => setIsDeepWorkRunning(!isDeepWorkRunning)} className="p-1.5 bg-indigo-50 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 rounded text-xs font-bold flex items-center justify-center">
-                                    {isDeepWorkRunning ? <Pause size={14}/> : <Play size={14}/>}
-                                </button>
-                            </>
-                         )}
-                         {focusTimerType === 'POMODORO' && (
-                            <>
-                                <div className={`px-2 py-1 rounded text-xs font-mono font-bold flex items-center gap-1 ${pomodoroMode === 'focus' ? 'bg-rose-150 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400'}`}>
-                                    🍅 {formatTime(pomodoroTimeLeft)}
-                                </div>
-                                <button onClick={() => setIsPomodoroRunning(!isPomodoroRunning)} className="p-1.5 bg-slate-100 dark:bg-slate-700 rounded text-xs font-bold flex items-center justify-center">
-                                    {isDeepWorkRunning ? <Pause size={14}/> : <Play size={14}/>}
-                                </button>
-                            </>
-                         )}
-                        <button onClick={() => setIsMobileGridOpen(!isMobileGridOpen)} className="p-1.5 bg-indigo-50 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 rounded transition-transform hover:scale-110 active:scale-95" title="Grid Soal"><Grid size={18} /></button>
-                        <button onClick={() => onOpenSettings?.()} className="p-1.5 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 rounded transition-transform hover:scale-110 active:scale-95" title="Pengaturan"><Settings size={18} /></button>
+                    <div className="flex items-center gap-2">
+                        {mode === StudyMode.SIMULATION && (
+                            <div className="bg-slate-100 dark:bg-slate-700 px-2.5 py-1 rounded-md text-xs font-mono font-bold dark:text-white shadow-inner flex items-center gap-1.5">
+                                ⏱️ {formatTime(timeLeft)}
+                            </div>
+                        )}
+                        <button onClick={() => setIsMobileGridOpen(!isMobileGridOpen)} className="p-1.5 bg-indigo-50 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 rounded-lg transition-transform hover:scale-105 active:scale-95 shadow-sm" title="Grid Soal"><Grid size={18} /></button>
+                        <button onClick={() => onOpenSettings?.()} className="p-1.5 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 rounded-lg transition-transform hover:scale-105 active:scale-95 shadow-sm border border-slate-200 dark:border-slate-700" title="Pengaturan"><Settings size={18} /></button>
                     </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-1.5 sm:p-4 md:p-6 lg:p-8">
                     <div className="max-w-3xl mx-auto pb-16 sm:pb-24">
-                        {focusTimerType === 'DEEP_WORK' && (
+                        {focusTimerType === 'DEEP_WORK' && window.innerWidth < 768 && (
                             <div className="mb-4 p-3 bg-indigo-50/50 dark:bg-indigo-950/10 border border-indigo-100/55 dark:border-indigo-900/30 rounded-2xl text-center animate-fade-in">
                                 <span className="text-[10px] uppercase font-bold tracking-widest text-indigo-500 gap-1.5 flex items-center justify-center">
                                     <span className="inline-block w-2 h-2 rounded-full bg-indigo-500 animate-ping"></span>
@@ -1983,11 +1944,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                             </div>
                         )}
                         <div className="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800/60 sm:border-slate-200 sm:dark:border-slate-700 p-3 sm:p-5 md:p-6 mb-3 sm:mb-6 relative overflow-hidden">
-                            {/* Academic Hub Integrity Label */}
-                            <div className="absolute -top-1 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 opacity-20"></div>
-                            <div className="absolute top-2 left-6 text-[9px] font-black tracking-widest text-slate-300 dark:text-slate-600 select-none hidden sm:block pointer-events-none">
-                                KERJAKAN DENGAN JUJUR DAN TELITI • © ACADEMIC HUB 2024
-                            </div>
+                            
                             
                             {(!currentQ && isLoadingMore) ? (
                                 <div className="animate-pulse flex flex-col gap-4">
@@ -2036,24 +1993,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                                     <Zap size={10} fill="currentColor"/> HOTS
                                                 </span>
                                             )}
-                                            {/* Desktop Help Buttons */}
-                                            <div className="hidden sm:flex items-center gap-1.5 ml-2">
-                                                {currentQ?.hint && !hintUsedMap[currentQ.id] && (
-                                                    <button onClick={() => setShowHintConfirm(true)} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl border border-amber-200 dark:border-amber-800 text-[10px] font-black hover:bg-amber-100 transition shadow-sm uppercase tracking-tighter">
-                                                        <Lightbulb size={14} /> Clue
-                                                    </button>
-                                                )}
-                                                {!eliminatedOptionsMap[currentQ.id] && currentQ.options && currentQ.options.length > 2 && (
-                                                    <button onClick={() => setShowEliminateConfirm(true)} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl border border-rose-200 dark:border-rose-800 text-[10px] font-black hover:bg-rose-100 transition shadow-sm uppercase tracking-tighter">
-                                                        <Eraser size={14} /> Eliminasi
-                                                    </button>
-                                                )}
-                                                {currentAns?.selectedAnswer && (
-                                                    <button onClick={handleClearAnswer} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 rounded-xl border border-slate-200 dark:border-slate-700 text-[10px] font-black hover:bg-slate-100 transition shadow-sm uppercase tracking-tighter">
-                                                        <XCircle size={14} /> Reset
-                                                    </button>
-                                                )}
-                                            </div>
+                                            {/* Desktop Help Buttons Removed */}
                                         </div>
                                         <div className="text-right shrink-0">
                                             <span className="text-xs sm:text-sm font-black text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-750 px-2 py-0.5 rounded">No. {currentIndex + 1}</span>
@@ -2065,20 +2005,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                         <PacingBar idealTimeSeconds={scaledIdealTimeSeconds} isActive={!isPaused} currentQId={currentQ.id} />
                                     )}
 
-                                    {currentQ.content && (
-                                        <TTSButton 
-                                            key={`tts-${currentQ.id}`}
-                                            text={currentQ.content + (currentQ.options ? '. Pilihan jawaban: ' + currentQ.options.map((opt, i) => String.fromCharCode(65 + i) + '. ' + opt.split('||')[0]).join(', ') : '')} 
-                                            lang={
-                                                currentQ.metadata?.topic?.toLowerCase().includes('inggris') || 
-                                                currentQ.metadata?.subtest?.toLowerCase().includes('inggris') || 
-                                                category === 'BAHASA' ? 'en-US' : 'id-ID'
-                                            }
-                                            autoPlay={autoReadTTS}
-                                            volume={ttsVolume}
-                                            onPlayStateChange={setIsTTSPlaying}
-                                        />
-                                    )}
+                                    
 
                                     <div className={`mb-4 sm:mb-6 text-slate-800 dark:text-slate-100 fs-${fontSize} leading-relaxed word-break-safe max-h-[300px] sm:max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600`}>
                                         {(currentQ.content && currentQ.content.includes(':::MATRIX:::')) || (currentQ.metadata && currentQ.metadata.matrix && currentQ.metadata.matrix.length > 0) ? (
@@ -2310,6 +2237,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                             <button onClick={toggleDoubtful} className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-3 py-1 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs md:text-sm border transition shrink-0 ${currentAns?.isDoubtful ? 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700' : 'bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600'}`}>
                                 <input type="checkbox" checked={currentAns?.isDoubtful || false} readOnly className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 accent-amber-500 cursor-pointer shrink-0"/><span className="hidden sm:inline ml-1 font-bold">Ragu-ragu</span><span className="inline sm:hidden font-medium ml-1">Ragu</span>
                             </button>
+
                             {isAdminAuthenticated && currentQ && (
                                 <button 
                                     onClick={handleSaveToBank}
@@ -2352,63 +2280,13 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
             </div>
 
             <div className={`fixed inset-y-0 right-0 w-72 sm:w-80 bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 transform transition-transform duration-300 z-[100] md:z-40 flex flex-col order-2 ${isMobileGridOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0 md:relative md:w-80`}>
-                <div className="p-3.5 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex flex-col gap-2 bg-slate-50 dark:bg-slate-800"> 
-                    <div className="flex justify-between items-center">
-                        <h3 className="font-black text-xs sm:text-sm text-slate-700 dark:text-slate-300">Navigasi Soal</h3>
-                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                            {/* Font Size */}
-                            <div className="flex gap-0.5 bg-slate-100 dark:bg-slate-700 p-0.5 rounded-md mr-1">
-                                <button onClick={() => changeFontSize('down')} disabled={fontSize === 'xs'} className="p-0.5 hover:text-indigo-600"><Minus size={12} className="text-slate-600 dark:text-slate-300"/></button>
-                                <span className="text-[10px] font-black w-6 flex justify-center text-slate-700 dark:text-slate-200">{fontSize === 'xs' ? 'A--' : fontSize === 'sm' ? 'A-' : fontSize === 'md' ? 'A' : fontSize === 'lg' ? 'A+' : 'A++'}</span>
-                                <button onClick={() => changeFontSize('up')} disabled={fontSize === 'xl'} className="p-0.5 hover:text-indigo-600"><Plus size={12} className="text-slate-600 dark:text-slate-300"/></button>
-                            </div>
-
-                            {/* Flag Question */}
-                            <button onClick={() => setShowFlagModal(true)} className="text-slate-400 hover:text-amber-500 transition" title="Tandai Soal">
-                                <Flag size={14} />
-                            </button>
-
-                            {/* Shortcut Keyboard */}
-                            <button onClick={() => setShowShortcutModal(true)} className="text-slate-400 hover:text-indigo-500 transition" title="Shortcut Keyboard">
-                                <Keyboard size={14} />
-                            </button>
-
-                            {/* Voice Control (Activate Sound) */}
-                            {isSupported && (
-                                <button onClick={toggleVoiceControl} className={`transition ${voiceEnabled ? 'text-indigo-600 animate-pulse' : 'text-slate-400 hover:text-indigo-500'}`} title="Perintah Suara">
-                                    {voiceEnabled ? <Mic size={14} /> : <MicOff size={14} />}
-                                </button>
-                            )}
-
-                            {/* Pengaturan Utama */}
-                            <button onClick={() => onOpenSettings?.()} className="text-slate-400 hover:text-indigo-500 transition" title="Pengaturan Utama">
-                                <Settings size={14} />
-                            </button>
-
-                            {/* Admin Menu */}
-                            <button onClick={() => setShowAdminModal(true)} className="text-slate-400 hover:text-rose-500 transition" title="Admin Menu"><Lock size={14}/></button>
-                            <button onClick={() => setIsMobileGridOpen(false)} className="md:hidden text-slate-500"><XCircle size={18}/></button> 
-                        </div>
-                    </div>
-                    
-                    {!userId?.startsWith('guest-') && (
-                        <button 
-                            onClick={handleSaveToCloud}
-                            disabled={isSavingToCloud}
-                            className="w-full flex items-center justify-center gap-1.5 py-1.5 bg-emerald-600 text-white rounded-md font-bold text-[10px] sm:text-xs hover:bg-emerald-700 disabled:opacity-50 transition"
-                        >
-                            {isSavingToCloud ? <Loader2 size={12} className="animate-spin"/> : <CloudUpload size={12}/>}
-                            Simpan Cloud
-                        </button>
-                    )}
-
-                    <button onClick={handleEarlyExit} className="w-full flex items-center justify-center gap-1.5 py-1.5 border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 rounded-md font-bold text-[10px] sm:text-xs hover:bg-rose-50 dark:hover:bg-rose-900/20 transition">
-                        <ArrowLeft size={12}/> Keluar (Lokal)
-                    </button>
+                <div className="p-3 sm:p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800 shrink-0"> 
+                    <h3 className="font-black text-sm text-slate-800 dark:text-white">Navigasi</h3>
+                    <button onClick={() => setIsMobileGridOpen(false)} className="md:hidden p-1 bg-slate-200 dark:bg-slate-700 rounded-md text-slate-600 dark:text-slate-300"><XCircle size={16}/></button> 
                 </div>
                 
                 {/* TIMER MENU SELECTION */}
-                <div className="p-3.5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 hidden md:block">
+                <div className="p-3.5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 shrink-0">
                     <div className="flex justify-between items-center mb-2.5">
                         <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5 dark:text-slate-400">
                             <Timer size={12} className="text-indigo-500" />
@@ -2416,7 +2294,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                         </span>
                         
                         {/* Selector Tab Pills */}
-                        <div className="flex bg-slate-200 dark:bg-slate-700 p-0.5 rounded-lg text-[9px] font-extrabold gap-0.5">
+                        <div className="md:hidden flex bg-slate-200 dark:bg-slate-700 p-0.5 rounded-lg text-[9px] font-extrabold gap-0.5">
                             <button 
                                 onClick={() => { setFocusTimerType('STANDARD'); }} 
                                 className={`px-1.5 py-0.5 rounded transition ${focusTimerType === 'STANDARD' ? 'bg-white dark:bg-slate-600 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}
@@ -2457,7 +2335,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                         </div>
                     )}
 
-                    {focusTimerType === 'DEEP_WORK' && (
+                    {focusTimerType === 'DEEP_WORK' && window.innerWidth < 768 && (
                         <div className="space-y-1.5 animate-fade-in">
                             <div className="flex justify-between items-center">
                                 <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 dark:bg-indigo-950/50 dark:text-indigo-400 px-1 py-0.5 rounded flex items-center gap-1.5 uppercase">
@@ -2486,7 +2364,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                         </div>
                     )}
 
-                    {focusTimerType === 'POMODORO' && (
+                    {focusTimerType === 'POMODORO' && window.innerWidth < 768 && (
                         <div className="space-y-1.5 animate-fade-in">
                             <div className="flex justify-between items-center">
                                 <span className={`text-[9px] font-black px-1.5 py-0.5 rounded flex items-center gap-1 uppercase ${pomodoroMode === 'focus' ? 'bg-rose-50 text-rose-500 dark:bg-rose-950/40 dark:text-rose-450' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400'}`}>
@@ -2548,8 +2426,88 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                     )}
                 </div>
 
-                <div className="p-3 border-t border-slate-200 dark:border-slate-700 md:hidden"> 
-                    <button onClick={handleRequestFinish} className="w-full py-2 bg-rose-600 text-white rounded-lg font-black text-xs transition active:scale-95">Hentikan Ujian</button> 
+                {/* ACTION BUTTONS & CONTROLS DI BAGIAN PALING BAWAH */}
+                <div className="p-3 sm:p-3.5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 shrink-0 space-y-2.5">
+                    {/* Action Icon Buttons */}
+                    <div className="flex flex-wrap items-center justify-center gap-1.5">
+                        {/* Tandai */}
+                        <button onClick={() => setShowFlagModal(true)} className="flex items-center justify-center w-7 h-7 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded flex-shrink-0 hover:border-amber-400 hover:text-amber-500 transition shadow-sm group" title="Tandai Soal">
+                            <Flag size={14} className="text-slate-400 group-hover:text-amber-500 transition-colors" />
+                        </button>
+                        
+                        {/* Clue */}
+                        {currentQ?.hint && !hintUsedMap[currentQ.id] && (
+                            <button onClick={() => setShowHintConfirm(true)} className="flex items-center justify-center w-7 h-7 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded flex-shrink-0 hover:border-amber-400 text-amber-600 dark:text-amber-400 transition shadow-sm group" title="Gunakan Clue">
+                                <Lightbulb size={14} className="group-hover:scale-110 transition-transform" />
+                            </button>
+                        )}
+                        
+                        {/* Eliminasi */}
+                        {!eliminatedOptionsMap[currentQ.id] && currentQ.options && currentQ.options.length > 2 && (
+                            <button onClick={() => setShowEliminateConfirm(true)} className="flex items-center justify-center w-7 h-7 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded flex-shrink-0 hover:border-rose-400 text-rose-600 dark:text-rose-400 transition shadow-sm group" title="Eliminasi Opsi">
+                                <Eraser size={14} className="group-hover:scale-110 transition-transform" />
+                            </button>
+                        )}
+
+                        {/* Hapus Jawaban */}
+                        {currentAns?.selectedAnswer && (
+                            <button onClick={handleClearAnswer} className="flex items-center justify-center w-7 h-7 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded flex-shrink-0 hover:border-slate-400 text-slate-500 dark:text-slate-400 transition shadow-sm group" title="Hapus Jawaban">
+                                <XCircle size={14} className="group-hover:scale-110 transition-transform" />
+                            </button>
+                        )}
+                        
+                        {/* Baca Soal */}
+                        <button onClick={() => {
+                            if ('speechSynthesis' in window) {
+                                window.speechSynthesis.cancel();
+                                const cleanText = (currentQ?.content || '').replace(/:::MATRIX:::[\s\S]*?:::/g, '').replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/(\*\*|__|\*|_|`)/g, '').replace(/\$/g, '').replace(/\{|\}/g, ' ');
+                                const utterance = new SpeechSynthesisUtterance(cleanText);
+                                utterance.lang = 'id-ID';
+                                window.speechSynthesis.speak(utterance);
+                            }
+                        }} className="flex items-center justify-center w-7 h-7 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded flex-shrink-0 hover:border-indigo-400 text-indigo-600 dark:text-indigo-400 transition shadow-sm group" title="Bacakan Soal">
+                            <Volume2 size={14} className="group-hover:scale-110 transition-transform" />
+                        </button>
+                        
+                        {/* Suara */}
+                        {isSupported && (
+                            <button onClick={toggleVoiceControl} className={`flex items-center justify-center w-7 h-7 bg-white dark:bg-slate-700 border rounded flex-shrink-0 hover:border-indigo-400 hover:text-indigo-500 transition shadow-sm group ${voiceEnabled ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600' : 'border-slate-200 dark:border-slate-600'}`} title="Perintah Suara">
+                                {voiceEnabled ? <Mic size={14} className="animate-pulse" /> : <MicOff size={14} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />}
+                            </button>
+                        )}
+                        
+                        {/* Setelan */}
+                        <button onClick={() => onOpenSettings?.()} className="flex items-center justify-center w-7 h-7 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded flex-shrink-0 hover:border-indigo-400 hover:text-indigo-500 transition shadow-sm group" title="Pengaturan Utama">
+                            <Settings size={14} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                        </button>
+
+                        {/* Admin */}
+                        <button onClick={() => setShowAdminModal(true)} className="flex items-center justify-center w-7 h-7 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded flex-shrink-0 hover:border-rose-400 hover:text-rose-500 transition shadow-sm group" title="Admin Menu">
+                            <Lock size={14} className="text-slate-400 group-hover:text-rose-500 transition-colors"/>
+                        </button>
+                    </div>
+
+                    {/* Cloud & Keluar */}
+                    <div className="flex gap-2">
+                        {!userId?.startsWith('guest-') && (
+                            <button 
+                                onClick={handleSaveToCloud}
+                                disabled={isSavingToCloud}
+                                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 sm:py-2 bg-emerald-600 text-white rounded-xl font-bold text-[10px] md:text-xs hover:bg-emerald-700 disabled:opacity-50 transition shadow-sm"
+                            >
+                                {isSavingToCloud ? <Loader2 size={13} className="animate-spin"/> : <CloudUpload size={13}/>}
+                                Cloud
+                            </button>
+                        )}
+                        <button onClick={handleEarlyExit} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 sm:py-2 border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl font-bold text-[10px] md:text-xs hover:bg-rose-100 dark:hover:bg-rose-900/40 transition shadow-sm">
+                            <ArrowLeft size={13}/> Keluar
+                        </button>
+                    </div>
+
+                    {/* Mobile Only Hentikan Ujian */}
+                    <div className="md:hidden">
+                        <button onClick={handleRequestFinish} className="w-full py-2 bg-rose-600 text-white rounded-lg font-black text-xs transition active:scale-95 shadow-sm">Hentikan Ujian</button> 
+                    </div>
                 </div>
             </div>
             
