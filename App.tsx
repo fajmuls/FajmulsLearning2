@@ -3991,7 +3991,7 @@ function App() {
           questions: newQuestions,
           durationMinutes: duration,
           isAiGenerated: true,
-          version: "v6",
+          version: "v7",
           createdAt: new Date().toISOString(),
         };
 

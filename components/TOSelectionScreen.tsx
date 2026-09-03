@@ -74,7 +74,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
     const [showSkdVariantModal, setShowSkdVariantModal] = useState(false);
     const [skdMenuMode, setSkdMenuMode] = useState<'MAIN' | 'SUBTEST'>('MAIN');
     const [selectedSkdVariant, setSelectedSkdVariant] = useState<'FULL' | 'TWK' | 'TIU' | 'TKP'>('FULL');
-    const [skdSubtestFilter, setSkdSubtestFilter] = useState<'SEMUA' | 'FULL' | 'TWK' | 'TIU' | 'TKP'>('FULL');
+    const [skdSubtestFilter, setSkdSubtestFilter] = useState<'SEMUA' | 'FULL' | 'TWK' | 'TIU' | 'TKP' | 'COMBINED'>('FULL');
     const [expandedPackageId, setExpandedPackageId] = useState<string | null>(null);
     const [pendingPackage, setPendingPackage] = useState<StaticTestPackage | null>(null);
     
@@ -311,11 +311,13 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
             if (category === 'SKD' && skdStream) {
                 if (p.skdStream !== skdStream) return false;
                 const isSubtest = p.id.includes('-twk-') || p.id.includes('-tiu-') || p.id.includes('-tkp-');
+                const isCombined = p.id.includes('combined');
                 
-                if (skdSubtestFilter === 'FULL' && isSubtest) return false;
-                if (skdSubtestFilter === 'TWK' && !p.id.includes('-twk-')) return false;
-                if (skdSubtestFilter === 'TIU' && !p.id.includes('-tiu-')) return false;
-                if (skdSubtestFilter === 'TKP' && !p.id.includes('-tkp-')) return false;
+                if (skdSubtestFilter === 'FULL' && (isSubtest || isCombined)) return false;
+                if (skdSubtestFilter === 'COMBINED' && !isCombined) return false;
+                if (skdSubtestFilter === 'TWK' && (!p.id.includes('-twk-') || isCombined)) return false;
+                if (skdSubtestFilter === 'TIU' && (!p.id.includes('-tiu-') || isCombined)) return false;
+                if (skdSubtestFilter === 'TKP' && (!p.id.includes('-tkp-') || isCombined)) return false;
                 
                 return true;
             }
@@ -469,6 +471,8 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
         
         const buckets = new Map<string, StaticTestPackage[]>();
         filteredPackages.forEach(pkg => {
+            if (pkg.id.includes('combined')) return;
+            
             // Precise bucketing based on properties + variant logic
             let subType = 'full';
             const idLower = pkg.id.toLowerCase();
@@ -727,7 +731,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                 </div>
             )}
 
-            <div className="max-w-4xl w-full">
+            <div className="max-w-[1600px] w-full">
                 <div className="flex justify-between items-center gap-2 mb-4">
                     <button onClick={onBack} className="flex items-center gap-1.5 text-slate-500 hover:text-indigo-600 transition-colors font-bold text-[10px] sm:text-xs bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
                         <ArrowLeft size={16}/> 
@@ -909,6 +913,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                             >
                                 <option value="SEMUA">Semua Jenis</option>
                                 <option value="FULL">Hanya Simulasi Full</option>
+                                <option value="COMBINED">Hanya Paket Gabungan</option>
                                 <option value="TWK">Hanya Latihan TWK</option>
                                 <option value="TIU">Hanya Latihan TIU</option>
                                 <option value="TKP">Hanya Latihan TKP</option>
@@ -942,7 +947,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                         <p className="text-xs mt-2">Gunakan tombol "Buat Paket AI" untuk generate soal baru.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 w-full max-w-7xl mx-auto pb-32">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 w-full max-w-[1600px] mx-auto pb-32">
                         {/* Render active generation task inline if matched */}
                         {activeGenTask && 
                          activeGenTask.category === category && 
@@ -951,7 +956,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                          (category !== 'PELAJARAN' || activeGenTask.tkaLevel === tkaLevel) && 
                          (category !== 'TKA' || activeGenTask.tkaLevel === tkaLevel) && 
                          activeGenTask.status === 'generating' && (
-                             <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-xl border-2 border-indigo-500 shadow-lg shadow-indigo-500/5 animate-pulse relative overflow-hidden flex flex-col justify-between min-h-[140px] sm:min-h-[180px]">
+                             <div className="bg-white dark:bg-slate-800 p-4 sm:p-5 rounded-2xl border-2 border-indigo-500 shadow-xl shadow-indigo-500/10 animate-pulse relative overflow-hidden flex flex-col justify-between min-h-[160px] sm:min-h-[220px]">
                                  <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[8px] font-black px-2 py-0.5 rounded-bl-lg uppercase tracking-widest">AI GEN</div>
                                  <div>
                                      <div className="flex items-center gap-2 mb-2">
@@ -994,7 +999,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                                     onClick={() => {
                                         if (isSelectionMode) toggleSelection(pkg.id);
                                     }}
-                                    className={`bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-xl sm:rounded-2xl border transition-all text-left group relative overflow-hidden flex flex-col justify-between h-full min-h-[140px] sm:min-h-[160px] shadow-sm ${
+                                    className={`bg-white dark:bg-slate-800 p-4 sm:p-5 rounded-2xl border transition-all text-left group relative overflow-hidden flex flex-col justify-between h-full min-h-[160px] sm:min-h-[220px] shadow-sm ${
                                         selectedIds.has(pkg.id) 
                                             ? 'border-indigo-600 ring-4 ring-indigo-500/5 bg-indigo-50/20 dark:bg-indigo-900/10 shadow-lg z-10' 
                                             : 'border-slate-100 dark:border-slate-700 hover:border-indigo-300 hover:shadow-md hover:-translate-y-1'
@@ -1053,6 +1058,7 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                                                 {pkg.version === 'v4' && <span className="px-1 py-0.5 bg-cyan-100 text-cyan-600 rounded-md text-[7px] font-black uppercase">v4</span>}
                                                 {pkg.version === 'v5' && <span className="px-1 py-0.5 bg-emerald-100 text-emerald-600 rounded-md text-[7px] font-black uppercase">v5</span>}
                                                 {pkg.version === 'v6' && <span className="px-1 py-0.5 bg-indigo-600 text-white rounded-md text-[7px] font-black uppercase shadow-sm shadow-indigo-200">v6</span>}
+                                                {pkg.version === 'v7' && <span className="px-1.5 py-0.5 bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-md text-[7px] font-black uppercase shadow-md shadow-orange-500/20 flex items-center gap-0.5"><Flame size={8} /> V7</span>}
                                             </div>
                                         </div>
 

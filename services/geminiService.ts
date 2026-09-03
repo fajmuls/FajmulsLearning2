@@ -1239,7 +1239,7 @@ export const buildQuestionPrompt = async (
            difficultyContext = `DIFFICULTY DISTRIBUTION:
            - ${hotsPercent} of questions MUST be HOTS (Higher Order Thinking Skills).
            - ${hardPercent} of questions MUST be Difficult to Very Difficult.
-           - ${contextStr.includes('TWK') || contextStr.includes('WAWASAN') ? "For TWK, approximately 50% MUST BE 'Hafalan' (factual recall, memorization, history, UUD 1945 articles) as per actual real-world FR tests. Do NOT make them all HOTS." : "ABSOLUTELY NO Easy or simple recall questions."}
+           - ${contextStr.includes('TWK') || contextStr.includes('WAWASAN') ? "For TWK, minimize 'Hafalan' (memorization) and focus heavily on HOTS, reading comprehension, and real-world implementation of values (implementasi nilai Pancasila/UUD) as per the latest real-world test formats." : "ABSOLUTELY NO Easy or simple recall questions."}
            - For TIU/Figural: Use COMPLEX visual patterns with the symbols defined in shapeInstructions. Avoid simple 1-step patterns.
            - For TIU/Verbal (Analogi/Silogisme): DO NOT use simple, ambiguous, or debatable analogies (e.g., "Televisi : Gambar : Suara"). Provide a huge variety of relationships (cause-effect, function, part-whole, synonym/antonym, sequence). Ensure the logical bridge is flawless and securely connected to the answer.
            - For TIU/Logika/Analitis (Posisi/Urutan/Jadwal): Construct airtight, non-contradictory logic puzzles. ALWAYS solve the arrangement internally FIRST in the explanation. Ensure exactly ONE valid arrangement exists without logical flaws or impossible scenarios (like circular round-robins that conflict, or queues that overlap).
@@ -1269,8 +1269,8 @@ export const buildQuestionPrompt = async (
                ${isEnglish ? '- Use NATURAL, standard academic English. AVOID overly obscure or archaic vocabulary that is too advanced for high school students. Keep it medium to difficult, but accessible.' : '- Use formal Indonesian. Balance between straightforward and analysis-intensive questions.'}
             5. **VARIETY**: Use different types of questions (main idea, tone, specific facts, inference, purpose).
             5. **SPECIFIC SUBTEST FOCUS**:
-               - **PBM (Pemahaman Bacaan dan Menulis)**: Focus on EDITING (correcting errors), grammar, sentence structure, punctuation, spelling (EYD), and effective writing in context.
-               - **PPU (Pengetahuan dan Pemahaman Umum)**: Focus on semantics, contextual meaning, word relationships (synonym/antonym in context), and general knowledge derived from texts.
+               - **PBM ([V7 - COMPLEX PASSAGES] Pemahaman Bacaan dan Menulis)**: Focus on EDITING (correcting errors), grammar, sentence structure, punctuation, spelling (EYD), and effective writing in context.
+               - **PPU ([V7 - HIGH DIFFICULTY TEXTS] Pengetahuan dan Pemahaman Umum)**: Focus on semantics, contextual meaning, word relationships (synonym/antonym in context), and general knowledge derived from texts.
             6. **FORMAT VARIANT**: ${isMixed ? 'Mix "multiple_choice" (60%), "multiple_choice_complex" (choice of multiple valid statements or True/False lists - 30%), and "short_answer" (for specific word/fact retrieval - 10%).' : 'STRICTLY use "multiple_choice" (A-E) only.'}
             
             Language: ${isEnglish ? 'English' : 'Bahasa Indonesia'}.
@@ -1559,17 +1559,15 @@ export const generateSkdSimulation = async (stream: SkdStreamType, variant: 'FUL
                 "TWK - Bahasa Indonesia": 6
             },
             TIU: {
-                "TIU - Analogi Kata": 2,
-                "TIU - Analogi Kalimat": 2,
+                "TIU - Analogi": 3,
                 "TIU - Hitungan": 4,
                 "TIU - Perbandingan Kuantitatif": 3,
                 "TIU - Soal Cerita": 4,
                 "TIU - Deret Angka": 4,
-                "TIU - Silogisme": 5,
-                "TIU - Analitis": 3,
-                "TIU - Analogi Gambar": 2,
-                "TIU - Serial Gambar": 2,
-                "TIU - Pola 9 Kotak Gambar": 1,
+                "TIU - Silogisme": 3,
+                "TIU - Analitis": 4,
+                "TIU - Analogi Gambar": 3,
+                "TIU - Serial Gambar": 4,
                 "TIU - Ketidaksamaan Gambar": 3
             },
             TKP: {
@@ -1628,20 +1626,20 @@ export const generateSkdSimulation = async (stream: SkdStreamType, variant: 'FUL
     const genTwk = async () => {
         const randomSeed = Math.random().toString(36).substring(7);
         // Batch 1: 15 questions
-        const p1 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Wawasan Kebangsaan (TWK). UNIQUE SEED: ${randomSeed}. 
+        const p1 = generateQuestions(StudyMode.SIMULATION, 'SKD', `[V7 - HOTS IMPLEMENTATION, MINIMIZE HAFALAN] Tes Wawasan Kebangsaan (TWK). UNIQUE SEED: ${randomSeed}. 
 GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
-- 6 questions about "Nasionalisme"
-- 6 questions about "Integritas"
-- 3 questions about "Bela Negara"
-CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings matching its topic: "TWK - Nasionalisme", "TWK - Integritas", or "TWK - Bela Negara". MUST BE HIGHLY UNIQUE AND NOT REPEAT COMMON PATTERNS.`, 15, [], stream, undefined, 'HOTS');
+- 6 questions about "Nasionalisme" (Focus on daily life/office implementation, not historical dates)
+- 6 questions about "Integritas" (Focus on anti-corruption scenarios and ethical dilemmas)
+- 3 questions about "Bela Negara" (Focus on modern context defense and societal contributions)
+CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings matching its topic: "TWK - Nasionalisme", "TWK - Integritas", or "TWK - Bela Negara". Use long, descriptive scenarios.`, 15, [], stream, undefined, 'HOTS');
         
         // Batch 2: 15 questions
-        const p2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Wawasan Kebangsaan (TWK). UNIQUE SEED: ${randomSeed}. 
+        const p2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `[V7 - HOTS IMPLEMENTATION, MINIMIZE HAFALAN] Tes Wawasan Kebangsaan (TWK). UNIQUE SEED: ${randomSeed}. 
 GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
-- 3 questions about "Bela Negara"
-- 6 questions about "Pilar Negara"
-- 6 questions about "Bahasa Indonesia"
-CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings matching its topic: "TWK - Bela Negara", "TWK - Pilar Negara", or "TWK - Bahasa Indonesia". MUST BE HIGHLY UNIQUE AND NOT REPEAT COMMON PATTERNS.`, 15, [], stream, undefined, 'HOTS');
+- 3 questions about "Bela Negara" (Focus on modern context defense and societal contributions)
+- 6 questions about "Pilar Negara" (Focus on practical implementation of Pancasila & UUD 1945 in real-world cases, NOT pure memorization of articles)
+- 6 questions about "Bahasa Indonesia" (Focus on reading comprehension, ide pokok, kalimat efektif, using long paragraphs)
+CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings matching its topic: "TWK - Bela Negara", "TWK - Pilar Negara", or "TWK - Bahasa Indonesia". Use long, descriptive scenarios.`, 15, [], stream, undefined, 'HOTS');
         
         const results = await Promise.all([p1, p2]);
         let allTwk: Question[] = [];
@@ -1656,23 +1654,23 @@ CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of th
 
     const genTkp = async () => {
         const randomSeed = Math.random().toString(36).substring(7);
-        const p1 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Karakteristik Pribadi (TKP). UNIQUE SEED: ${randomSeed}.
+        const p1 = generateQuestions(StudyMode.SIMULATION, 'SKD', `[V7 - DEEP SITUATIONAL JUDGMENT, HIGHLY NUANCED, REAL-WORLD SCENARIOS, AVOID PREDICTABLE OPTIONS] Tes Karakteristik Pribadi (TKP). UNIQUE SEED: ${randomSeed}.
 GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
 - 8 questions about "Pelayanan Publik"
 - 7 questions about "Jejaring Kerja"
 CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TKP - Pelayanan Publik" or "TKP - Jejaring Kerja".`, 15, [], stream, undefined, 'TKP');
         
-        const p2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Karakteristik Pribadi (TKP). UNIQUE SEED: ${randomSeed}.
+        const p2 = generateQuestions(StudyMode.SIMULATION, 'SKD', `[V7 - DEEP SITUATIONAL JUDGMENT, HIGHLY NUANCED, REAL-WORLD SCENARIOS, AVOID PREDICTABLE OPTIONS] Tes Karakteristik Pribadi (TKP). UNIQUE SEED: ${randomSeed}.
 GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
 - 1 question about "Jejaring Kerja"
 - 8 questions about "Sosial Budaya"
 - 6 questions about "TIK"
 CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TKP - Jejaring Kerja", "TKP - Sosial Budaya", or "TKP - TIK".`, 15, [], stream, undefined, 'TKP');
         
-        const p3 = generateQuestions(StudyMode.SIMULATION, 'SKD', `Tes Karakteristik Pribadi (TKP). UNIQUE SEED: ${randomSeed}.
+        const p3 = generateQuestions(StudyMode.SIMULATION, 'SKD', `[V7 - DEEP SITUATIONAL JUDGMENT, HIGHLY NUANCED, REAL-WORLD SCENARIOS, AVOID PREDICTABLE OPTIONS] Tes Karakteristik Pribadi (TKP). UNIQUE SEED: ${randomSeed}.
 GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
-- 2 questions about "TIK"
-- 6 questions about "Profesionalisme"
+- 1 question about "TIK"
+- 7 questions about "Profesionalisme"
 - 7 questions about "Anti Radikalisme"
 CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TKP - TIK", "TKP - Profesionalisme", or "TKP - Anti Radikalisme".`, 15, [], stream, undefined, 'TKP');
         
@@ -1690,15 +1688,14 @@ CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of th
     const genTiu = async () => {
         const randomSeed = Math.random().toString(36).substring(7);
 
-        const pVerbal = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - VERBAL. UNIQUE SEED: ${randomSeed}.
-GENERATE EXACTLY 12 QUESTIONS WITH THIS DISTRIBUTION:
-- 2 questions about "Analogi Kata"
-- 2 questions about "Analogi Kalimat"
-- 5 questions about "Silogisme"
-- 3 questions about "Analitis"
-CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TIU - Analogi Kata", "TIU - Analogi Kalimat", "TIU - Silogisme", or "TIU - Analitis".`, 12, [], stream, undefined, 'HOTS');
+        const pVerbal = generateQuestions(StudyMode.SIMULATION, 'SKD', `[V7 - DEEP ANALYSIS, AVOID CLICHES, VERY HARD] SKD TIU - VERBAL. UNIQUE SEED: ${randomSeed}.
+GENERATE EXACTLY 10 QUESTIONS WITH THIS DISTRIBUTION:
+- 3 questions about "Analogi" (Word relationships)
+- 3 questions about "Silogisme" (Logical deductions)
+- 4 questions about "Analitis" (Complex analytical reasoning scenarios)
+CRITICAL: For each question, set the metadata.subtest field to EXACTLY one of these strings: "TIU - Analogi", "TIU - Silogisme", or "TIU - Analitis".`, 10, [], stream, undefined, 'HOTS');
         
-        const pNum = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - NUMERIK. UNIQUE SEED: ${randomSeed}.
+        const pNum = generateQuestions(StudyMode.SIMULATION, 'SKD', `[V7 - ADVANCED MATH & NOVEL CONCEPTS] SKD TIU - NUMERIK. UNIQUE SEED: ${randomSeed}.
 GENERATE EXACTLY 15 QUESTIONS WITH THIS DISTRIBUTION:
 - 4 questions about "Hitungan"
 - 3 questions about "Perbandingan Kuantitatif"
@@ -1708,15 +1705,13 @@ CRITICAL:
 1. For each question, set the metadata.subtest field to EXACTLY one of these strings: "TIU - Hitungan", "TIU - Perbandingan Kuantitatif", "TIU - Soal Cerita", or "TIU - Deret Angka".
 2. ALWAYS use proper LaTeX for math fractions (e.g., \\frac{1}{2} instead of 1/2) and equations. Surround them with \\( ... \\).`, 15, [], stream, undefined, 'HOTS');
         
-        const pFig = generateQuestions(StudyMode.SIMULATION, 'SKD', `SKD TIU - FIGURAL. EXTREME DIFFICULTY. YOU MUST OUTPUT <svg> FOR ALL QUESTIONS, AND <svg> FOR EACH OPTION. NO TEXT OPTIONS. UNIQUE SEED: ${randomSeed}.
-GENERATE EXACTLY 8 QUESTIONS WITH THIS DISTRIBUTION:
-- 1 questions about "Analogi Gambar"
-- 2 questions about "Serial Gambar"
-- 2 question about "Pola 9 Kotak Gambar" (Matriks 3x3)
+        const pFig = generateQuestions(StudyMode.SIMULATION, 'SKD', `[V7 - UNIQUE ABSTRACT SPATIAL REASONING, EXTREMELY HARD] SKD TIU - FIGURAL. EXTREME DIFFICULTY. YOU MUST OUTPUT <svg> FOR ALL QUESTIONS, AND <svg> FOR EACH OPTION. NO TEXT OPTIONS. UNIQUE SEED: ${randomSeed}.
+GENERATE EXACTLY 10 QUESTIONS WITH THIS DISTRIBUTION:
+- 3 questions about "Analogi Gambar"
+- 4 questions about "Serial Gambar"
 - 3 questions about "Ketidaksamaan Gambar"
 CRITICAL: 
-1. For each question, set the metadata.subtest field to EXACTLY one of these strings: "TIU - Analogi Gambar", "TIU - Serial Gambar", "TIU - Pola 9 Kotak Gambar", or "TIU - Ketidaksamaan Gambar".
-2. MATRIX 3X3: Ensure the matrix follows complex 2D geometric logic (Rows & Columns dependency).`, 8, [], stream, undefined, 'HOTS');
+1. For each question, set the metadata.subtest field to EXACTLY one of these strings: "TIU - Analogi Gambar", "TIU - Serial Gambar", or "TIU - Ketidaksamaan Gambar".`, 10, [], stream, undefined, 'HOTS');
 
         const results = await Promise.all([pVerbal, pNum, pFig]);
         
@@ -1749,22 +1744,22 @@ CRITICAL:
 
 export const generateUtbkSimulation = async (variant: 'ONLY_MC' | 'MIXED' = 'MIXED'): Promise<Question[]> => {
     // Penalaran Umum: 30 soal (Induktif 10, Deduktif 10, Kuantitatif 10)
-    const pPU_Induktif = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Penalaran Umum (Penalaran Induktif)', 10, [], undefined, undefined, 'HOTS', variant);
-    const pPU_Deduktif = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Penalaran Umum (Penalaran Deduktif)', 10, [], undefined, undefined, 'HOTS', variant);
-    const pPU_Kuantitatif = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Penalaran Umum (Penalaran Kuantitatif). ALWAYS use proper LaTeX for math fractions (e.g., \\frac{1}{2} instead of 1/2) and equations. Surround them with \\( ... \\).', 10, [], undefined, undefined, 'HOTS', variant);
+    const pPU_Induktif = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. [V7 - DEEP ANALYSIS, FRESH SCENARIOS] Penalaran Umum (Penalaran Induktif)', 10, [], undefined, undefined, 'HOTS', variant);
+    const pPU_Deduktif = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. [V7 - DEEP ANALYSIS, FRESH SCENARIOS] Penalaran Umum (Penalaran Deduktif)', 10, [], undefined, undefined, 'HOTS', variant);
+    const pPU_Kuantitatif = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. [V7 - DEEP ANALYSIS, ADVANCED] Penalaran Umum (Penalaran Kuantitatif). ALWAYS use proper LaTeX for math fractions (e.g., \\frac{1}{2} instead of 1/2) and equations. Surround them with \\( ... \\).', 10, [], undefined, undefined, 'HOTS', variant);
 
-    const pPPU = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Pengetahuan dan Pemahaman Umum', 20, [], undefined, undefined, 'HOTS', variant);
-    const pPBM = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Pemahaman Bacaan dan Menulis', 20, [], undefined, undefined, 'HOTS', variant);
-    const pPK = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Pengetahuan Kuantitatif. ALWAYS use proper LaTeX for math fractions (e.g., \\frac{1}{2} instead of 1/2) and equations. Surround them with \\( ... \\).', 20, [], undefined, undefined, 'HOTS', variant);
+    const pPPU = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. [V7 - HIGH DIFFICULTY TEXTS] Pengetahuan dan Pemahaman Umum', 20, [], undefined, undefined, 'HOTS', variant);
+    const pPBM = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. [V7 - COMPLEX PASSAGES] Pemahaman Bacaan dan Menulis', 20, [], undefined, undefined, 'HOTS', variant);
+    const pPK = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. [V7 - EXTREME MATH DIFFICULTY] Pengetahuan Kuantitatif. ALWAYS use proper LaTeX for math fractions (e.g., \\frac{1}{2} instead of 1/2) and equations. Surround them with \\( ... \\).', 20, [], undefined, undefined, 'HOTS', variant);
     
-    // Literasi Bahasa Indonesia: 30 soal
-    const pLitIndo = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Literasi Bahasa Indonesia', 30, [], undefined, undefined, 'HOTS', variant);
+    // [V7 - ACADEMIC/SCIENTIFIC LEVEL TEXTS] Literasi Bahasa Indonesia: 30 soal
+    const pLitIndo = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. [V7 - ACADEMIC/SCIENTIFIC LEVEL TEXTS] Literasi Bahasa Indonesia', 30, [], undefined, undefined, 'HOTS', variant);
     
-    // Literasi Bahasa Inggris: 20 soal
-    const pLitIng = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Literasi Bahasa Inggris', 20, [], undefined, undefined, 'HOTS', variant);
+    // [V7 - TOEFL/IELTS ACADEMIC READING LEVEL] Literasi Bahasa Inggris: 20 soal
+    const pLitIng = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. [V7 - TOEFL/IELTS ACADEMIC READING LEVEL] Literasi Bahasa Inggris', 20, [], undefined, undefined, 'HOTS', variant);
     
-    // Penalaran Matematika: 20 soal
-    const pPM = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'Penalaran Matematika. ALWAYS use proper LaTeX for math fractions (e.g., \\frac{1}{2} instead of 1/2) and equations. Surround them with \\( ... \\).', 20, [], undefined, undefined, 'HOTS', variant);
+    // [V7 - NOVEL REAL WORLD MATH PROBLEMS] Penalaran Matematika: 20 soal
+    const pPM = generateQuestions(StudyMode.SIMULATION, 'UTBK', 'V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. [V7 - NOVEL REAL WORLD MATH PROBLEMS] Penalaran Matematika. ALWAYS use proper LaTeX for math fractions (e.g., \\frac{1}{2} instead of 1/2) and equations. Surround them with \\( ... \\).', 20, [], undefined, undefined, 'HOTS', variant);
 
     const [puInd, puDed, puKuan, ppu, pbm, pk, lind, ling, pm] = await Promise.all([
         pPU_Induktif, pPU_Deduktif, pPU_Kuantitatif, 
@@ -1774,22 +1769,22 @@ export const generateUtbkSimulation = async (variant: 'ONLY_MC' | 'MIXED' = 'MIX
     const pu = [...puInd, ...puDed, ...puKuan];
     pu.forEach(q => q.metadata.subtest = 'Penalaran Umum');
     
-    ppu.forEach(q => q.metadata.subtest = 'Pengetahuan dan Pemahaman Umum');
-    pbm.forEach(q => q.metadata.subtest = 'Pemahaman Bacaan dan Menulis');
-    pk.forEach(q => q.metadata.subtest = 'Pengetahuan Kuantitatif');
-    lind.forEach(q => q.metadata.subtest = 'Literasi Bahasa Indonesia');
-    ling.forEach(q => q.metadata.subtest = 'Literasi Bahasa Inggris');
-    pm.forEach(q => q.metadata.subtest = 'Penalaran Matematika');
+    ppu.forEach(q => q.metadata.subtest = '[V7 - HIGH DIFFICULTY TEXTS] Pengetahuan dan Pemahaman Umum');
+    pbm.forEach(q => q.metadata.subtest = '[V7 - COMPLEX PASSAGES] Pemahaman Bacaan dan Menulis');
+    pk.forEach(q => q.metadata.subtest = '[V7 - EXTREME MATH DIFFICULTY] Pengetahuan Kuantitatif');
+    lind.forEach(q => q.metadata.subtest = '[V7 - ACADEMIC/SCIENTIFIC LEVEL TEXTS] Literasi Bahasa Indonesia');
+    ling.forEach(q => q.metadata.subtest = '[V7 - TOEFL/IELTS ACADEMIC READING LEVEL] Literasi Bahasa Inggris');
+    pm.forEach(q => q.metadata.subtest = '[V7 - NOVEL REAL WORLD MATH PROBLEMS] Penalaran Matematika');
 
     const allQuestions = [...pu, ...ppu, ...pbm, ...pk, ...lind, ...ling, ...pm];
     return reindexQuestions(allQuestions, 'UTBK');
 };
 
 export const generateTpaTbiSimulation = async (): Promise<Question[]> => {
-    const tpaVerbal = generateQuestions(StudyMode.SIMULATION, 'TPA', `TPA - Verbal (HOTS). Complex analogies and syllogisms.`, 15, [], undefined, undefined, 'HOTS');
-    const tpaQuant = generateQuestions(StudyMode.SIMULATION, 'TPA', `TPA - Kuantitatif (HOTS). Advanced arithmetic, algebra, and geometry. ALWAYS use proper LaTeX for math fractions (e.g., \\frac{1}{2} instead of 1/2) and equations. Surround them with \\( ... \\).`, 15, [], undefined, undefined, 'HOTS');
-    const tpaLogic = generateQuestions(StudyMode.SIMULATION, 'TPA', `TPA - Penalaran (HOTS). Complex logical deduction and spatial reasoning.`, 15, [], undefined, undefined, 'HOTS');
-    const tbi = generateQuestions(StudyMode.SIMULATION, 'TPA', `TBI - Bahasa Inggris (TOEFL Style). Advanced grammar and reading comprehension.`, 20, [], undefined, undefined, 'HOTS');
+    const tpaVerbal = generateQuestions(StudyMode.SIMULATION, 'TPA', `V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. TPA - Verbal (HOTS). Complex analogies and syllogisms.`, 15, [], undefined, undefined, 'HOTS');
+    const tpaQuant = generateQuestions(StudyMode.SIMULATION, 'TPA', `V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. TPA - Kuantitatif (HOTS). Advanced arithmetic, algebra, and geometry. ALWAYS use proper LaTeX for math fractions (e.g., \\frac{1}{2} instead of 1/2) and equations. Surround them with \\( ... \\).`, 15, [], undefined, undefined, 'HOTS');
+    const tpaLogic = generateQuestions(StudyMode.SIMULATION, 'TPA', `V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. TPA - Penalaran (HOTS). Complex logical deduction and spatial reasoning.`, 15, [], undefined, undefined, 'HOTS');
+    const tbi = generateQuestions(StudyMode.SIMULATION, 'TPA', `V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. TBI - Bahasa Inggris (TOEFL Style). Advanced grammar and reading comprehension.`, 20, [], undefined, undefined, 'HOTS');
 
     const [resVerbal, resQuant, resLogic, resTbi] = await Promise.all([tpaVerbal, tpaQuant, tpaLogic, tbi]);
 
@@ -1803,9 +1798,9 @@ export const generateTpaTbiSimulation = async (): Promise<Question[]> => {
 };
 
 export const generatePsikotestKedinasanSimulation = async (): Promise<Question[]> => {
-    const tiu = generateQuestions(StudyMode.SIMULATION, 'TPA', `PSIKOTEST KEDINASAN (TIU V3). HARD DIFFICULTY.`, 30, [], undefined, undefined, 'HOTS');
-    const figural = generateQuestions(StudyMode.SIMULATION, 'TPA', `PSIKOTEST KEDINASAN (LOGIKA GAMBAR V3). EXTREME DIFFICULTY. YOU MUST USE <svg> FOR ALL QUESTIONS AND ALL 5 OPTIONS. DO NOT USE EMOJIS OR TEXT SHAPES. Abstract geometric patterns ONLY. Include 3x3 matrices, paper folding (spasial), and 3D rotations. NO semantic/fruit/animal questions.`, 15, [], undefined, undefined, 'HOTS');
-    const personality = generateQuestions(StudyMode.SIMULATION, 'TPA', `PSIKOTEST KEDINASAN (KEPRIBADIAN)`, 20, [], undefined, undefined, 'TKP');
+    const tiu = generateQuestions(StudyMode.SIMULATION, 'TPA', `V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. PSIKOTEST KEDINASAN (TIU V3). HARD DIFFICULTY.`, 30, [], undefined, undefined, 'HOTS');
+    const figural = generateQuestions(StudyMode.SIMULATION, 'TPA', `V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. PSIKOTEST KEDINASAN (LOGIKA GAMBAR V3). EXTREME DIFFICULTY. YOU MUST USE <svg> FOR ALL QUESTIONS AND ALL 5 OPTIONS. DO NOT USE EMOJIS OR TEXT SHAPES. Abstract geometric patterns ONLY. Include 3x3 matrices, paper folding (spasial), and 3D rotations. NO semantic/fruit/animal questions.`, 15, [], undefined, undefined, 'HOTS');
+    const personality = generateQuestions(StudyMode.SIMULATION, 'TPA', `V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. PSIKOTEST KEDINASAN (KEPRIBADIAN)`, 20, [], undefined, undefined, 'TKP');
 
     const [resTiu, resFigural, resPersonality] = await Promise.all([tiu, figural, personality]);
 
@@ -1834,8 +1829,8 @@ export const calculateWordSimilarity = async (target: string, guess: string) => 
 };
 
 export const generateTkaSimulation = async (level: string): Promise<Question[]> => {
-    const math = generateQuestions(StudyMode.SIMULATION, 'TKA', `TKA ${level} - Matematika. 80% HOTS. Include a mix of 'multiple_choice', 'multiple_choice_complex', and 'matching' question types.`, 30, [], undefined, undefined, 'HOTS');
-    const indonesian = generateQuestions(StudyMode.SIMULATION, 'TKA', `TKA ${level} - Bahasa Indonesia. 80% HOTS. Include a mix of 'multiple_choice', 'multiple_choice_complex', and 'matching' question types.`, 30, [], undefined, undefined, 'HOTS');
+    const math = generateQuestions(StudyMode.SIMULATION, 'TKA', `[V7 - DEEP ANALYSIS, FRESH CONCEPTS] TKA ${level} - Matematika. 80% HOTS. Include a mix of 'multiple_choice', 'multiple_choice_complex', and 'matching' question types.`, 30, [], undefined, undefined, 'HOTS');
+    const indonesian = generateQuestions(StudyMode.SIMULATION, 'TKA', `[V7 - DEEP ANALYSIS, FRESH CONCEPTS] TKA ${level} - Bahasa Indonesia. 80% HOTS. Include a mix of 'multiple_choice', 'multiple_choice_complex', and 'matching' question types.`, 30, [], undefined, undefined, 'HOTS');
     
     let allQuestions: Question[] = [];
 
@@ -1845,7 +1840,7 @@ export const generateTkaSimulation = async (level: string): Promise<Question[]> 
         resIndo.forEach(q => q.metadata.subtest = 'Bahasa Indonesia');
         allQuestions = [...resMath, ...resIndo];
     } else {
-        const english = generateQuestions(StudyMode.SIMULATION, 'TKA', `TKA ${level} - Bahasa Inggris. 80% HOTS. Include a mix of 'multiple_choice', 'multiple_choice_complex', and 'matching' question types.`, 30, [], undefined, undefined, 'HOTS');
+        const english = generateQuestions(StudyMode.SIMULATION, 'TKA', `[V7 - DEEP ANALYSIS, FRESH CONCEPTS] TKA ${level} - Bahasa Inggris. 80% HOTS. Include a mix of 'multiple_choice', 'multiple_choice_complex', and 'matching' question types.`, 30, [], undefined, undefined, 'HOTS');
         const [resMath, resIndo, resEng] = await Promise.all([math, indonesian, english]);
         resMath.forEach(q => q.metadata.subtest = 'Matematika');
         resIndo.forEach(q => q.metadata.subtest = 'Bahasa Indonesia');
@@ -1858,9 +1853,9 @@ export const generateTkaSimulation = async (level: string): Promise<Question[]> 
 
 export const generatePsikotestSimulation = async () => {
     // Splitting into batches to ensure the prompt accurately triggers verbal, numeric, and spatial (IQ) components
-    const verbal = generateQuestions(StudyMode.SIMULATION, 'PSIKOTEST', 'SIMULATION - Tes Verbal Psikotes (Analogi, Sinonim, Silogisme). EXTREME DIFFICULTY.', 14, [], undefined, undefined, 'HOTS');
-    const numerik = generateQuestions(StudyMode.SIMULATION, 'PSIKOTEST', 'SIMULATION - Tes Numerik Psikotes (Deret, Aritmatika, Logika Angka). EXTREME DIFFICULTY.', 13, [], undefined, undefined, 'HOTS');
-    const spatial = generateQuestions(StudyMode.SIMULATION, 'PSIKOTEST', 'SIMULATION - IQ & Spatial Logic. EXTREME DIFFICULTY. YOU MUST USE <svg> FOR ALL QUESTIONS AND ALL 5 OPTIONS. DO NOT USE EMOJIS.', 13, [], undefined, undefined, 'HOTS');
+    const verbal = generateQuestions(StudyMode.SIMULATION, 'PSIKOTEST', 'V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. [V7 - NOVEL ANALOGIES & SILOGISM] SIMULATION - Tes Verbal Psikotes (Analogi, Sinonim, Silogisme). EXTREME DIFFICULTY.', 14, [], undefined, undefined, 'HOTS');
+    const numerik = generateQuestions(StudyMode.SIMULATION, 'PSIKOTEST', 'V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. [V7 - UNIQUE NUMBER PATTERNS] SIMULATION - Tes Numerik Psikotes (Deret, Aritmatika, Logika Angka). EXTREME DIFFICULTY.', 13, [], undefined, undefined, 'HOTS');
+    const spatial = generateQuestions(StudyMode.SIMULATION, 'PSIKOTEST', 'V7 - DEEP ANALYSIS. FRESH & UNIQUE SCENARIOS. TAKE YOUR TIME TO ANALYZE DEEPLY. DO NOT REPEAT PREVIOUS GENERATIONS. EXTREME DIFFICULTY. AVOID CLICHÉ QUESTIONS. CREATE HIGH-QUALITY, NOVEL PROBLEMS. [V7 - EXTREME UNSEEN 3D/SPATIAL PROBLEMS] SIMULATION - IQ & Spatial Logic. EXTREME DIFFICULTY. YOU MUST USE <svg> FOR ALL QUESTIONS AND ALL 5 OPTIONS. DO NOT USE EMOJIS.', 13, [], undefined, undefined, 'HOTS');
     
     const [r1, r2, r3] = await Promise.all([verbal, numerik, spatial]);
     
@@ -1926,10 +1921,10 @@ Berikan breakdown nilai target untuk masing-masing subtes:
 ${category === 'UTBK' ? `- Penalaran Umum (PU) (skor maksimal 1000)
 - Pengetahuan & Pemahaman Umum (PPU) (skor maksimal 1000)
 - Memahami Bacaan & Menulis (PBM) (skor maksimal 1000)
-- Pengetahuan Kuantitatif (PK) (skor maksimal 1000)
-- Literasi Bahasa Indonesia (LBI) (skor maksimal 1000)
-- Literasi Bahasa Inggris (LBE) (skor maksimal 1000)
-- Penalaran Matematika (PM) (skor maksimal 1000)` : `- Tes Wawasan Kebangsaan (TWK) (ambang batas passing grade 65, nilai maksimal 150)
+- [V7 - EXTREME MATH DIFFICULTY] Pengetahuan Kuantitatif (PK) (skor maksimal 1000)
+- [V7 - ACADEMIC/SCIENTIFIC LEVEL TEXTS] Literasi Bahasa Indonesia (LBI) (skor maksimal 1000)
+- [V7 - TOEFL/IELTS ACADEMIC READING LEVEL] Literasi Bahasa Inggris (LBE) (skor maksimal 1000)
+- [V7 - NOVEL REAL WORLD MATH PROBLEMS] Penalaran Matematika (PM) (skor maksimal 1000)` : `- Tes Wawasan Kebangsaan (TWK) (ambang batas passing grade 65, nilai maksimal 150)
 - Tes Intelegensia Umum (TIU) (ambang batas passing grade 80, nilai maksimal 175)
 - Tes Karakteristik Pribadi (TKP) (ambang batas passing grade 166, nilai maksimal 225)`}
 
