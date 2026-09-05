@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Timer, Zap, CheckCircle, XCircle, ChevronRight, ChevronLeft, Lightbulb, Pause, Play, Grid, Loader2, ArrowLeft, ArrowRight, Save, CloudUpload, AlertTriangle, Flag, Type, Plus, Minus, Copy, Bookmark, Mic, MicOff, Settings, Keyboard, Lock, Bot, Sparkles, RotateCcw, Shuffle, Eye, EyeOff, Eraser, Volume2, VolumeX } from 'lucide-react';
 import { StudyMode, Question, UserAnswer, CategoryType, DrillMaterial, TestHistoryItem, SavedSessionState, AppFontSize, MarkedQuestion } from '../types';
 import { SoundManager } from '../services/soundService';
@@ -1082,6 +1082,92 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
         }
     }, [transcript, currentQ, voiceEnabled, voiceConfirmationPending]);
 
+    // TTS Control: Stop speech synthesis
+    const stopTTS = useCallback(() => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            setIsTTSPlaying(false);
+        }
+    }, []);
+
+    // TTS Control: Speak question content and all options clearly in Indonesian
+    const speakQuestion = useCallback((q: Question, qNum: number) => {
+        if (!('speechSynthesis' in window) || !q) return;
+
+        window.speechSynthesis.cancel();
+
+        const cleanForSpeech = (txt: string) => {
+            return (txt || '')
+                .replace(/:::MATRIX:::[\s\S]*?:::END_MATRIX:::/g, 'Soal matriks pola gambar. ')
+                .replace(/:::MATRIX:::[\s\S]*?:::/g, 'Soal matriks pola gambar. ')
+                .replace(/<svg[\s\S]*?<\/svg>/gi, 'Gambar grafik atau diagram. ')
+                .replace(/```[\s\S]*?```/g, '')
+                .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1 per $2')
+                .replace(/\\sqrt\{([^}]+)\}/g, 'akar dari $1')
+                .replace(/\\times/g, ' kali ')
+                .replace(/\\div/g, ' bagi ')
+                .replace(/\\pm/g, ' plus minus ')
+                .replace(/\\le/g, ' kurang dari atau sama dengan ')
+                .replace(/\\ge/g, ' lebih dari atau sama dengan ')
+                .replace(/\\neq/g, ' tidak sama dengan ')
+                .replace(/\\([a-zA-Z]+)/g, ' ')
+                .replace(/\\\(|\\\)|\\\[|\\\]|\$|\$\$/g, '')
+                .replace(/(\*\*|__|\*|_|`)/g, '')
+                .replace(/\{|\}/g, ' ')
+                .replace(/([0-9]+)\/([0-9]+)/g, '$1 per $2')
+                .replace(/\s+/g, ' ')
+                .trim();
+        };
+
+        let fullSpeech = `Soal nomor ${qNum}. ${cleanForSpeech(q.content)}. `;
+
+        if (q.options && q.options.length > 0) {
+            fullSpeech += "Pilihan jawaban: ";
+            q.options.forEach((opt, idx) => {
+                const label = String.fromCharCode(65 + idx);
+                fullSpeech += `Pilihan ${label}: ${cleanForSpeech(opt)}. `;
+            });
+        }
+
+        const utterance = new SpeechSynthesisUtterance(fullSpeech);
+        utterance.lang = 'id-ID';
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = Math.max(0, Math.min(1, ttsVolume ?? 1));
+
+        utterance.onstart = () => setIsTTSPlaying(true);
+        utterance.onend = () => setIsTTSPlaying(false);
+        utterance.onerror = () => setIsTTSPlaying(false);
+
+        window.speechSynthesis.speak(utterance);
+    }, [ttsVolume]);
+
+    // Auto Read Effect on Question Change
+    useEffect(() => {
+        if (!autoReadTTS || isPaused || isBreak || isFinishedRef.current) {
+            stopTTS();
+            return;
+        }
+
+        const currentQItem = activeQuestions[currentIndex];
+        if (currentQItem) {
+            const timer = setTimeout(() => {
+                speakQuestion(currentQItem, currentIndex + 1);
+            }, 400);
+            return () => {
+                clearTimeout(timer);
+                stopTTS();
+            };
+        }
+    }, [currentIndex, autoReadTTS, isPaused, isBreak, activeQuestions, speakQuestion, stopTTS]);
+
+    // Clean up TTS on unmount
+    useEffect(() => {
+        return () => {
+            stopTTS();
+        };
+    }, [stopTTS]);
+
     // Timer Tick (Using Absolute Time)
     useEffect(() => {
         let timer: any = null;
@@ -1151,10 +1237,11 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
 
         questionsToCheck.forEach(q => {
             const ans = answerMap[q.id];
+            if (ans?.isDoubtful) {
+                doubtful++;
+            }
             if (!ans || !ans.selectedAnswer) {
                 unanswered++;
-            } else if (ans.isDoubtful) {
-                doubtful++;
             }
         });
 
@@ -1534,21 +1621,26 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
 
         const timeTaken = (Date.now() - startTimeRef.current) / 1000;
 
-        const newAnswer: UserAnswer = {
-            questionId: currentQ.id,
-            selectedAnswer: option,
-            isCorrect,
-            scoreEarned: score,
-            timeTakenSeconds: (existing?.timeTakenSeconds || 0) + timeTaken,
-            isOverthinking: false,
-            isGuessing: timeTaken < 5,
-            aiEvaluation: aiEval,
-            isDoubtful: existing?.isDoubtful || false,
-            hintsUsed: hintUsedMap[currentQ.id] ? 1 : 0,
-            eliminatorsUsed: eliminatedOptionsMap[currentQ.id]?.length > 0 ? 1 : 0
-        };
+        setAnswerMap(prev => {
+            const currentExisting = prev[currentQ.id];
+            const wasDoubtful = currentExisting?.isDoubtful ?? existing?.isDoubtful ?? false;
+            
+            const newAnswer: UserAnswer = {
+                questionId: currentQ.id,
+                selectedAnswer: option,
+                isCorrect,
+                scoreEarned: score,
+                timeTakenSeconds: (currentExisting?.timeTakenSeconds || existing?.timeTakenSeconds || 0) + timeTaken,
+                isOverthinking: false,
+                isGuessing: timeTaken < 5,
+                aiEvaluation: aiEval,
+                isDoubtful: wasDoubtful,
+                hintsUsed: hintUsedMap[currentQ.id] ? 1 : 0,
+                eliminatorsUsed: eliminatedOptionsMap[currentQ.id]?.length > 0 ? 1 : 0
+            };
 
-        setAnswerMap(prev => ({ ...prev, [currentQ.id]: newAnswer }));
+            return { ...prev, [currentQ.id]: newAnswer };
+        });
         startTimeRef.current = Date.now(); 
 
         // Auto Next Logic (Fixed: Consolidated and added safety checks)
@@ -1606,21 +1698,24 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                         const trueIndex = activeQuestions.findIndex(aq => aq.id === q.id);
                         const ans = answerMap[q.id];
                         let bgClass = "bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300";
-                        if (ans?.selectedAnswer && ans?.isDoubtful) {
-                            bgClass = "bg-emerald-500 border-emerald-500 text-white";
+                        if (ans?.isDoubtful) {
+                            bgClass = "bg-amber-500 border-amber-500 text-white font-bold shadow-sm";
                         } else if (ans?.selectedAnswer) {
-                            bgClass = "bg-emerald-500 border-emerald-500 text-white";
-                        } else if (ans?.isDoubtful) {
-                            bgClass = "bg-amber-400 border-amber-400 text-white";
+                            bgClass = "bg-emerald-500 border-emerald-500 text-white font-bold";
                         }
                         if (trueIndex === currentIndex) bgClass += " ring-2 ring-indigo-500 ring-offset-1 dark:ring-offset-slate-800";
                         
                         return ( 
                             <button key={q.id} onClick={() => { setCurrentIndex(trueIndex); setIsMobileGridOpen(false); }} className={`relative aspect-square rounded-md sm:rounded-lg border flex items-center justify-center font-bold text-xs sm:text-sm transition-all ${bgClass}`}>
                                 {trueIndex + 1}
+                                {ans?.isDoubtful && (
+                                    <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-400 border border-white dark:border-slate-800 rounded-full flex items-center justify-center shadow-sm" title="Ditandai Ragu-ragu">
+                                        <Flag size={7} className="text-amber-950" />
+                                    </div>
+                                )}
                                 {ans?.isDoubtful && ans?.selectedAnswer && (
-                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-400 border border-white dark:border-slate-800 rounded-full flex items-center justify-center shadow-sm" title="Ditandai Ragu-ragu">
-                                        <Flag size={6} className="text-amber-950" />
+                                    <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-600 border border-white dark:border-slate-800 rounded-full flex items-center justify-center shadow-sm" title="Sudah dijawab (Ragu-ragu)">
+                                        <span className="text-[8px] text-white font-black leading-none">✓</span>
                                     </div>
                                 )}
                             </button> 
@@ -2005,197 +2100,221 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                         <PacingBar idealTimeSeconds={scaledIdealTimeSeconds} isActive={!isPaused} currentQId={currentQ.id} />
                                     )}
 
-                                    
-
-                                    <div className={`mb-4 sm:mb-6 text-slate-800 dark:text-slate-100 fs-${fontSize} leading-relaxed word-break-safe max-h-[300px] sm:max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600`}>
-                                        {(currentQ.content && currentQ.content.includes(':::MATRIX:::')) || (currentQ.metadata && currentQ.metadata.matrix && currentQ.metadata.matrix.length > 0) ? (
-                                            <MatrixQuestionRenderer 
-                                                content={currentQ.content} 
-                                                metadataMatrix={currentQ.metadata?.matrix} 
-                                                selectedOptionContent={answerMap[currentQ.id]?.selectedAnswer || null} 
-                                            />
-                                        ) : (
-                                            <SimpleMarkdown 
-                                                text={currentQ.content || ''} 
-                                                allowIndent={
-                                                    !!currentQ.metadata?.subtest?.includes('Bahasa') || 
-                                                    !!currentQ.metadata?.subtest?.includes('Verbal') ||
-                                                    !!currentQ.metadata?.topic?.includes('Bacaan') ||
-                                                    (!!currentQ.content && currentQ.content.length > 350)
-                                                }
-                                            />
-                                        )}
-                                    </div>
-
-                                    {/* Hint Display (When Used) */}
-                                    {hintUsedMap[currentQ.id] && (
-                                        <div className="w-full p-3 mb-4 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 text-amber-800 dark:text-amber-300 text-sm animate-fade-in">
-                                            <strong className="flex items-center gap-1.5 mb-1"><Lightbulb size={14} /> Clue:</strong>
-                                            <SimpleMarkdown text={currentQ.hint || ''} />
-                                        </div>
-                                    )}
-
-                                    {/* Options */}
-                                    {currentQ.type === 'multiple_choice' ? (
-                                        <div className="space-y-2 sm:space-y-3">
-                                            {currentQ.options?.map((opt, idx) => {
-                                                const isEliminated = eliminatedOptionsMap[currentQ.id]?.includes(opt);
-                                                if (isEliminated) return null; // Or render disabled
-
-                                                const optLabel = String.fromCharCode(65 + idx);
-                                                const isSelected = currentAns?.selectedAnswer === opt;
-                                                let containerClass = "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750";
-                                                let labelClass = "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-600";
-                                                
-                                                if (isSelected) { 
-                                                    containerClass = "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 dark:border-indigo-500"; 
-                                                    labelClass = "bg-indigo-600 text-white"; 
-                                                }
-                                                
-                                                if (mode !== StudyMode.SIMULATION && currentAns) {
-                                                    let isCorrect = false;
-                                                    if (currentQ.tkpPoints && currentQ.tkpPoints.length > 0) {
-                                                        const pScore = getTkpScore(opt, currentQ);
-                                                        isCorrect = pScore === 5;
-                                                    } else {
-                                                        isCorrect = opt === currentQ.correctAnswer;
-                                                    }
-                                                    
-                                                    if (isCorrect) {
-                                                        containerClass = "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"; 
-                                                        labelClass = "bg-emerald-500 text-white";
-                                                    } else if (isSelected) {
-                                                        containerClass = "border-rose-500 bg-rose-50 dark:bg-rose-900/20"; 
-                                                        labelClass = "bg-rose-500 text-white";
-                                                    }
-                                                }
-
-                                                return ( 
-                                                    <div 
-                                                        key={idx} 
-                                                        onClick={() => handleAnswer(opt)} 
-                                                        role="button"
-                                                        tabIndex={0}
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                                e.preventDefault();
-                                                                handleAnswer(opt);
-                                                            }
-                                                        }}
-                                                        className={`w-full flex items-center sm:items-start py-1.5 sm:py-2.5 px-2.5 sm:px-4 rounded-lg sm:rounded-xl border-2 transition-all duration-75 group text-left cursor-pointer active:scale-[0.98] ${containerClass}`}
-                                                    > 
-                                                        <div className={`w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-md sm:rounded-lg flex items-center justify-center font-bold text-[10px] sm:text-xs md:text-sm mr-2 sm:mr-3 md:mr-4 flex-shrink-0 transition-colors select-none ${labelClass}`}>
-                                                           <span>{optLabel}</span>
-                                                        </div> 
-                                                        <div className={`flex-1 pt-0 sm:pt-0.5 md:pt-1 text-slate-700 dark:text-slate-200 fs-${fontSize} min-w-0 word-break-safe pointer-events-auto`}><SimpleMarkdown text={opt} isOption={true} /></div> 
-                                                    </div> 
-                                                );
-                                            })}
-                                        </div>
-                                    ) : currentQ.type === 'multiple_choice_complex' ? (
-                                        <div className="space-y-2 sm:space-y-3">
-                                    {currentQ.options?.map((opt, idx) => {
-                                        const isSelected = currentAns?.selectedAnswer?.includes(opt);
-                                        let containerClass = "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750";
-                                        
-                                        if (isSelected) { 
-                                            containerClass = "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 dark:border-indigo-500"; 
-                                        }
-                                        
-                                        if (mode !== StudyMode.SIMULATION && currentAns && currentAns.selectedAnswer) {
-                                            const correctAnswers = currentQ.correctAnswer.split('||');
-                                            const isCorrect = correctAnswers.includes(opt);
-                                            
-                                            if (isCorrect) {
-                                                containerClass = "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20"; 
-                                            } else if (isSelected) {
-                                                containerClass = "border-rose-500 bg-rose-50 dark:bg-rose-950/20"; 
-                                            }
-                                        }
-
-                                        return ( 
-                                            <div key={idx} 
-                                                role="button"
-                                                tabIndex={0}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter' || e.key === ' ') {
-                                                        e.preventDefault();
-                                                        let currentSelected = currentAns?.selectedAnswer ? currentAns.selectedAnswer.split('||') : [];
-                                                        if (currentSelected.includes(opt)) {
-                                                            currentSelected = currentSelected.filter(item => item !== opt);
-                                                        } else {
-                                                            currentSelected.push(opt);
-                                                        }
-                                                        handleAnswer(currentSelected.join('||'));
-                                                    }
-                                                }}
-                                                onClick={() => {
-                                                let currentSelected = currentAns?.selectedAnswer ? currentAns.selectedAnswer.split('||') : [];
-                                                if (currentSelected.includes(opt)) {
-                                                    currentSelected = currentSelected.filter(item => item !== opt);
-                                                } else {
-                                                    currentSelected.push(opt);
-                                                }
-                                                handleAnswer(currentSelected.join('||'));
-                                            }} className={`w-full flex items-center sm:items-start py-1.5 sm:py-2 px-2.5 sm:px-4 rounded-lg sm:rounded-xl border-2 transition-all group text-left cursor-pointer ${containerClass}`}> 
-                                                <div className={`w-4 h-4 sm:w-5 sm:h-5 mt-0 rounded flex items-center justify-center border-2 mr-2.5 sm:mr-3.5 flex-shrink-0 transition-colors ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300 dark:border-slate-600'}`}>
-                                                    {isSelected && <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
-                                                </div> 
-                                                <div className={`flex-1 pt-0 text-slate-700 dark:text-slate-200 fs-${fontSize} min-w-0 word-break-safe pointer-events-auto`}><SimpleMarkdown text={opt} isOption={true} /></div> 
-                                            </div> 
+                                    {(() => {
+                                        const hasVisualGraphic = Boolean(
+                                            (currentQ.content && (
+                                                currentQ.content.includes('<svg') || 
+                                                currentQ.content.includes(':::MATRIX:::') || 
+                                                currentQ.content.includes('![') ||
+                                                /<img/i.test(currentQ.content)
+                                            )) || 
+                                            (currentQ.metadata && (
+                                                (currentQ.metadata.matrix && currentQ.metadata.matrix.length > 0) ||
+                                                currentQ.metadata.subtest?.includes('Figural') ||
+                                                currentQ.metadata.subtest?.includes('Spasial') ||
+                                                currentQ.metadata.topic?.includes('Figural') ||
+                                                currentQ.metadata.topic?.includes('Gambar')
+                                            ))
                                         );
-                                    })}
-                                </div>
-                            ) : currentQ.type === 'matching' ? (
-                                <div className="space-y-2.5 sm:space-y-4">
-                                    {currentQ.options?.map((opt, idx) => {
-                                        const [left, right] = opt.split('||');
-                                        const currentSelected = currentAns?.selectedAnswer ? currentAns.selectedAnswer.split(';;') : [];
-                                        const selectedMatch = currentSelected.find(s => s.startsWith(left + '||'));
-                                        const selectedRight = selectedMatch ? selectedMatch.split('||')[1] : '';
 
                                         return (
-                                            <div key={idx} className="flex flex-col sm:flex-row gap-2.5 sm:gap-4 items-center p-2.5 sm:p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                                                <div className={`flex-1 w-full text-slate-700 dark:text-slate-200 fs-${fontSize} word-break-safe`}><SimpleMarkdown text={left} /></div>
-                                                <div className="hidden sm:block text-slate-400"><ArrowRight size={20}/></div>
-                                                <div className="w-full sm:w-1/2">
-                                                    <select 
-                                                        value={selectedRight}
-                                                        onChange={(e) => {
-                                                            const newRight = e.target.value;
-                                                            let newSelected = [...currentSelected];
-                                                            const matchIndex = newSelected.findIndex(s => s.startsWith(left + '||'));
-                                                            
-                                                            if (newRight) {
-                                                                if (matchIndex !== -1) {
-                                                                    newSelected[matchIndex] = `${left}||${newRight}`;
-                                                                } else {
-                                                                    newSelected.push(`${left}||${newRight}`);
+                                            <div className={`w-full ${hasVisualGraphic ? 'lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start' : ''}`}>
+                                                <div className={hasVisualGraphic ? 'lg:col-span-6 xl:col-span-5' : 'w-full'}>
+                                                    <div className={`mb-4 sm:mb-6 text-slate-800 dark:text-slate-100 fs-${fontSize} leading-relaxed word-break-safe ${hasVisualGraphic ? 'max-h-[360px] lg:max-h-[550px]' : 'max-h-[300px] sm:max-h-[400px]'} overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600`}>
+                                                        {(currentQ.content && currentQ.content.includes(':::MATRIX:::')) || (currentQ.metadata && currentQ.metadata.matrix && currentQ.metadata.matrix.length > 0) ? (
+                                                            <MatrixQuestionRenderer 
+                                                                content={currentQ.content} 
+                                                                metadataMatrix={currentQ.metadata?.matrix} 
+                                                                selectedOptionContent={answerMap[currentQ.id]?.selectedAnswer || null} 
+                                                            />
+                                                        ) : (
+                                                            <SimpleMarkdown 
+                                                                text={currentQ.content || ''} 
+                                                                allowIndent={
+                                                                    !!currentQ.metadata?.subtest?.includes('Bahasa') || 
+                                                                    !!currentQ.metadata?.subtest?.includes('Verbal') ||
+                                                                    !!currentQ.metadata?.topic?.includes('Bacaan') ||
+                                                                    (!!currentQ.content && currentQ.content.length > 350)
                                                                 }
-                                                            } else {
-                                                                if (matchIndex !== -1) {
-                                                                    newSelected.splice(matchIndex, 1);
+                                                            />
+                                                        )}
+                                                    </div>
+
+                                                    {/* Hint Display (When Used) */}
+                                                    {hintUsedMap[currentQ.id] && (
+                                                        <div className="w-full p-3 mb-4 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 text-amber-800 dark:text-amber-300 text-sm animate-fade-in">
+                                                            <strong className="flex items-center gap-1.5 mb-1"><Lightbulb size={14} /> Clue:</strong>
+                                                            <SimpleMarkdown text={currentQ.hint || ''} />
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className={hasVisualGraphic ? 'lg:col-span-6 xl:col-span-7' : 'w-full'}>
+                                                    {/* Options */}
+                                                    {currentQ.type === 'multiple_choice' ? (
+                                                        <div className="space-y-2 sm:space-y-3">
+                                                            {currentQ.options?.map((opt, idx) => {
+                                                                const isEliminated = eliminatedOptionsMap[currentQ.id]?.includes(opt);
+                                                                if (isEliminated) return null; // Or render disabled
+
+                                                                const optLabel = String.fromCharCode(65 + idx);
+                                                                const isSelected = currentAns?.selectedAnswer === opt;
+                                                                let containerClass = "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750";
+                                                                let labelClass = "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-600";
+                                                                
+                                                                if (isSelected) { 
+                                                                    containerClass = "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 dark:border-indigo-500"; 
+                                                                    labelClass = "bg-indigo-600 text-white"; 
                                                                 }
-                                                            }
-                                                            handleAnswer(newSelected.join(';;'));
-                                                        }}
-                                                        className={`w-full p-3 border-2 border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-slate-900 dark:text-white fs-${fontSize}`}
-                                                    >
-                                                        <option value="">Pilih Pasangan...</option>
-                                                        {currentQ.options?.map(o => o.split('||')[1]).sort().map((r, rIdx) => (
-                                                            <option key={rIdx} value={r}>{r}</option>
-                                                        ))}
-                                                    </select>
+                                                                
+                                                                if (mode !== StudyMode.SIMULATION && currentAns) {
+                                                                    let isCorrect = false;
+                                                                    if (currentQ.tkpPoints && currentQ.tkpPoints.length > 0) {
+                                                                        const pScore = getTkpScore(opt, currentQ);
+                                                                        isCorrect = pScore === 5;
+                                                                    } else {
+                                                                        isCorrect = opt === currentQ.correctAnswer;
+                                                                    }
+                                                                    
+                                                                    if (isCorrect) {
+                                                                        containerClass = "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"; 
+                                                                        labelClass = "bg-emerald-500 text-white";
+                                                                    } else if (isSelected) {
+                                                                        containerClass = "border-rose-500 bg-rose-50 dark:bg-rose-900/20"; 
+                                                                        labelClass = "bg-rose-500 text-white";
+                                                                    }
+                                                                }
+
+                                                                return ( 
+                                                                    <div 
+                                                                        key={idx} 
+                                                                        onClick={() => handleAnswer(opt)} 
+                                                                        role="button"
+                                                                        tabIndex={0}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                                                e.preventDefault();
+                                                                                handleAnswer(opt);
+                                                                            }
+                                                                        }}
+                                                                        className={`w-full flex items-center sm:items-start py-1.5 sm:py-2.5 px-2.5 sm:px-4 rounded-lg sm:rounded-xl border-2 transition-all duration-75 group text-left cursor-pointer active:scale-[0.98] ${containerClass}`}
+                                                                    > 
+                                                                        <div className={`w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-md sm:rounded-lg flex items-center justify-center font-bold text-[10px] sm:text-xs md:text-sm mr-2 sm:mr-3 md:mr-4 flex-shrink-0 transition-colors select-none ${labelClass}`}>
+                                                                           <span>{optLabel}</span>
+                                                                        </div> 
+                                                                        <div className={`flex-1 pt-0 sm:pt-0.5 md:pt-1 text-slate-700 dark:text-slate-200 fs-${fontSize} min-w-0 word-break-safe pointer-events-auto`}><SimpleMarkdown text={opt} isOption={true} /></div> 
+                                                                    </div> 
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : currentQ.type === 'multiple_choice_complex' ? (
+                                                        <div className="space-y-2 sm:space-y-3">
+                                                            {currentQ.options?.map((opt, idx) => {
+                                                                const isSelected = currentAns?.selectedAnswer?.includes(opt);
+                                                                let containerClass = "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750";
+                                                                
+                                                                if (isSelected) { 
+                                                                    containerClass = "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 dark:border-indigo-500"; 
+                                                                }
+                                                                
+                                                                if (mode !== StudyMode.SIMULATION && currentAns && currentAns.selectedAnswer) {
+                                                                    const correctAnswers = currentQ.correctAnswer.split('||');
+                                                                    const isCorrect = correctAnswers.includes(opt);
+                                                                    
+                                                                    if (isCorrect) {
+                                                                        containerClass = "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20"; 
+                                                                    } else if (isSelected) {
+                                                                        containerClass = "border-rose-500 bg-rose-50 dark:bg-rose-950/20"; 
+                                                                    }
+                                                                }
+
+                                                                return ( 
+                                                                    <div key={idx} 
+                                                                        role="button"
+                                                                        tabIndex={0}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                                                e.preventDefault();
+                                                                                let currentSelected = currentAns?.selectedAnswer ? currentAns.selectedAnswer.split('||') : [];
+                                                                                if (currentSelected.includes(opt)) {
+                                                                                    currentSelected = currentSelected.filter(item => item !== opt);
+                                                                                } else {
+                                                                                    currentSelected.push(opt);
+                                                                                }
+                                                                                handleAnswer(currentSelected.join('||'));
+                                                                            }
+                                                                        }}
+                                                                        onClick={() => {
+                                                                        let currentSelected = currentAns?.selectedAnswer ? currentAns.selectedAnswer.split('||') : [];
+                                                                        if (currentSelected.includes(opt)) {
+                                                                            currentSelected = currentSelected.filter(item => item !== opt);
+                                                                        } else {
+                                                                            currentSelected.push(opt);
+                                                                        }
+                                                                        handleAnswer(currentSelected.join('||'));
+                                                                    }} className={`w-full flex items-center sm:items-start py-1.5 sm:py-2 px-2.5 sm:px-4 rounded-lg sm:rounded-xl border-2 transition-all group text-left cursor-pointer ${containerClass}`}> 
+                                                                        <div className={`w-4 h-4 sm:w-5 sm:h-5 mt-0 rounded flex items-center justify-center border-2 mr-2.5 sm:mr-3.5 flex-shrink-0 transition-colors ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300 dark:border-slate-600'}`}>
+                                                                            {isSelected && <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
+                                                                        </div> 
+                                                                        <div className={`flex-1 pt-0 text-slate-700 dark:text-slate-200 fs-${fontSize} min-w-0 word-break-safe pointer-events-auto`}><SimpleMarkdown text={opt} isOption={true} /></div> 
+                                                                    </div> 
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : currentQ.type === 'matching' ? (
+                                                        <div className="space-y-2.5 sm:space-y-4">
+                                                            {currentQ.options?.map((opt, idx) => {
+                                                                const [left, right] = opt.split('||');
+                                                                const currentSelected = currentAns?.selectedAnswer ? currentAns.selectedAnswer.split(';;') : [];
+                                                                const selectedMatch = currentSelected.find(s => s.startsWith(left + '||'));
+                                                                const selectedRight = selectedMatch ? selectedMatch.split('||')[1] : '';
+
+                                                                return (
+                                                                    <div key={idx} className="flex flex-col sm:flex-row gap-2.5 sm:gap-4 items-center p-2.5 sm:p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                                                                        <div className={`flex-1 w-full text-slate-700 dark:text-slate-200 fs-${fontSize} word-break-safe`}><SimpleMarkdown text={left} /></div>
+                                                                        <div className="hidden sm:block text-slate-400"><ArrowRight size={20}/></div>
+                                                                        <div className="w-full sm:w-1/2">
+                                                                            <select 
+                                                                                value={selectedRight}
+                                                                                onChange={(e) => {
+                                                                                    const newRight = e.target.value;
+                                                                                    let newSelected = [...currentSelected];
+                                                                                    const matchIndex = newSelected.findIndex(s => s.startsWith(left + '||'));
+                                                                                    
+                                                                                    if (newRight) {
+                                                                                        if (matchIndex !== -1) {
+                                                                                            newSelected[matchIndex] = `${left}||${newRight}`;
+                                                                                        } else {
+                                                                                            newSelected.push(`${left}||${newRight}`);
+                                                                                        }
+                                                                                    } else {
+                                                                                        if (matchIndex !== -1) {
+                                                                                            newSelected.splice(matchIndex, 1);
+                                                                                        }
+                                                                                    }
+                                                                                    handleAnswer(newSelected.join(';;'));
+                                                                                }}
+                                                                                className={`w-full p-3 border-2 border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-slate-900 dark:text-white fs-${fontSize}`}
+                                                                            >
+                                                                                <option value="">Pilih Pasangan...</option>
+                                                                                {currentQ.options?.map(o => o.split('||')[1]).sort().map((r, rIdx) => (
+                                                                                    <option key={rIdx} value={r}>{r}</option>
+                                                                                ))}
+                                                                            </select>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : ( 
+                                                        <div> <textarea className={`w-full p-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-slate-900 dark:text-white fs-${fontSize}`} placeholder="Ketik jawaban Anda..." rows={4} value={currentAns?.selectedAnswer || ''} onChange={(e) => handleAnswer(e.target.value)} /> </div> 
+                                                    )}
                                                 </div>
                                             </div>
                                         );
-                                    })}
+                                    })()}
                                 </div>
-                            ) : ( 
-                                <div> <textarea className={`w-full p-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-slate-900 dark:text-white fs-${fontSize}`} placeholder="Ketik jawaban Anda..." rows={4} value={currentAns?.selectedAnswer || ''} onChange={(e) => handleAnswer(e.target.value)} /> </div> 
-                            )}
-                        </div>
-                        </AnimatePresence>
+                            </AnimatePresence>
                         ) : (
                             <div className="text-center py-12 text-slate-500 flex flex-col items-center">
                                  <Sparkles size={48} className="text-slate-300 mb-4" />
@@ -2457,16 +2576,22 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                         )}
                         
                         {/* Baca Soal */}
-                        <button onClick={() => {
-                            if ('speechSynthesis' in window) {
-                                window.speechSynthesis.cancel();
-                                const cleanText = (currentQ?.content || '').replace(/:::MATRIX:::[\s\S]*?:::/g, '').replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/(\*\*|__|\*|_|`)/g, '').replace(/\$/g, '').replace(/\{|\}/g, ' ');
-                                const utterance = new SpeechSynthesisUtterance(cleanText);
-                                utterance.lang = 'id-ID';
-                                window.speechSynthesis.speak(utterance);
-                            }
-                        }} className="flex items-center justify-center w-7 h-7 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded flex-shrink-0 hover:border-indigo-400 text-indigo-600 dark:text-indigo-400 transition shadow-sm group" title="Bacakan Soal">
-                            <Volume2 size={14} className="group-hover:scale-110 transition-transform" />
+                        <button 
+                            onClick={() => {
+                                if (isTTSPlaying) {
+                                    stopTTS();
+                                } else if (currentQ) {
+                                    speakQuestion(currentQ, currentIndex + 1);
+                                }
+                            }} 
+                            className={`flex items-center justify-center w-7 h-7 rounded flex-shrink-0 transition shadow-sm group ${
+                                isTTSPlaying 
+                                    ? 'bg-rose-500 border border-rose-600 text-white animate-pulse' 
+                                    : 'bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 hover:border-indigo-400'
+                            }`} 
+                            title={isTTSPlaying ? "Hentikan Suara" : "Bacakan Soal dan Pilihan"}
+                        >
+                            <Volume2 size={14} className={isTTSPlaying ? "animate-bounce" : "group-hover:scale-110 transition-transform"} />
                         </button>
                         
                         {/* Suara */}

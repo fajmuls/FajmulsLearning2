@@ -1504,15 +1504,15 @@ export const ReviewView: React.FC<{ item: TestHistoryItem, onBack: () => void, o
         });
 
         return (
-            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-                <h3 className="font-bold text-slate-800 dark:text-white mb-4 text-sm uppercase tracking-wider flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-800 p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col max-h-[calc(100vh-2.5rem)]">
+                <h3 className="font-bold text-slate-800 dark:text-white mb-3 text-sm uppercase tracking-wider flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-2"><Grid size={16}/> Navigasi Soal</div>
                     {/* Close button for mobile inside the grid */}
                     <button onClick={() => setNavOpen(false)} className="lg:hidden text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                         <XCircle size={20}/>
                     </button>
                 </h3>
-                <div className="lg:max-h-[75vh] overflow-y-auto pr-1 custom-scrollbar space-y-4">
+                <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-4 min-h-0">
                     {groupedQuestions.map((group, gIdx) => (
                         <div key={gIdx}>
                             <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 truncate border-b border-slate-100 dark:border-slate-700 pb-1" title={group.subtest}>
@@ -1595,7 +1595,7 @@ export const ReviewView: React.FC<{ item: TestHistoryItem, onBack: () => void, o
                     </button>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 relative">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 items-start relative">
                     {/* MAIN CONTENT */}
                     <div className="lg:col-span-3 space-y-4 sm:space-y-6">
                         <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
@@ -1921,10 +1921,8 @@ export const ReviewView: React.FC<{ item: TestHistoryItem, onBack: () => void, o
                     </div>
 
                     {/* RIGHT SIDEBAR (Navigation) */}
-                    <div className="hidden lg:block lg:col-span-1">
-                        <div className="sticky top-6">
-                            {renderNavigationGrid()}
-                        </div>
+                    <div className="hidden lg:block lg:col-span-1 sticky top-4 z-20 self-start">
+                        {renderNavigationGrid()}
                     </div>
                 </div>
             </div>

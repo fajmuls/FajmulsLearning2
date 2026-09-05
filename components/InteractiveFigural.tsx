@@ -114,7 +114,7 @@ export const InteractiveFigural: React.FC<InteractiveFiguralProps> = ({ svgStrin
                     }
                 }
                 
-                const sizeClass = isOption ? 'max-h-[80px] sm:max-h-[100px] max-w-[80px] sm:max-w-[100px] mx-auto' : isInline ? 'w-full h-full object-contain' : `max-h-[220px] md:max-h-[300px] object-contain ${isWide ? 'w-auto h-[120px] sm:h-[150px]' : 'w-full'}`;
+                const sizeClass = isOption ? 'max-h-[75px] sm:max-h-[90px] max-w-[75px] sm:max-w-[90px] mx-auto' : isInline ? 'w-full h-full object-contain' : `max-h-[150px] sm:max-h-[180px] lg:max-h-[210px] object-contain ${isWide ? 'w-auto h-[100px] sm:h-[130px]' : 'max-w-full mx-auto'}`;
                 
                 if (isWide && !isOption && !isInline) {
                      svgElement.removeAttribute('width');

@@ -680,15 +680,16 @@ function sanitizeQuestion(q: Question, strictSkdValidation: boolean = false): Qu
       q.options = q.options.map(opt => {
           // Replace literal \n and real newlines with space
           let clean = opt.replace(/(\\n|\n|\r)/g, ' ').trim(); 
-          // Remove A., B., etc prefixes
-          clean = clean.replace(/^[A-Ea-e1-5][\.\)\s]+/, '').trim();
-          return clean;
+          // Remove A., B., 1., etc prefixes only when followed by explicit delimiters (. ) : -)
+          const stripped = clean.replace(/^(?:\(?[A-Ea-e1-5]\)?[\.\)\:\-]\s*|\(?[A-Ea-e]\)\s*)/, '').trim();
+          return stripped.length > 0 ? stripped : clean;
       });
 
       // Also clean correctAnswer if it has a prefix (e.g. "A. Answer")
       if (q.correctAnswer) {
           q.correctAnswer = q.correctAnswer.replace(/(\\n|\n|\r)/g, ' ').trim();
-          q.correctAnswer = q.correctAnswer.replace(/^[A-Ea-e1-5][\.\)\s]+/, '').trim();
+          const strippedAns = q.correctAnswer.replace(/^(?:\(?[A-Ea-e1-5]\)?[\.\)\:\-]\s*|\(?[A-Ea-e]\)\s*)/, '').trim();
+          q.correctAnswer = strippedAns.length > 0 ? strippedAns : q.correctAnswer;
       }
 
       // Self-heal alignment issues: make sure correctAnswer matches one of the options perfectly.
@@ -1378,7 +1379,11 @@ export const buildQuestionPrompt = async (
         
         if (isTkp) {
            prompt = `SKD TKP MODE. ${commonInstruction} SCORING: 1-5 points via 'tkpPoints'. Ensure high ambiguity between top choices.
-           CRITICAL TKP OPTION LENGTH REQUIREMENT: All 5 options MUST be balanced in word count (roughly equal length, within 2-4 words of each other). NEVER make option 5 the longest or most verbose option! Low-scoring options (1-4) must also be fully formed, convincing professional statements, not short dismissive phrases. The 'option' field in tkpPoints MUST BE THE EXACT FULL TEXT of the option, NOT A/B/C/D/E.`;
+           CRITICAL MANDATE - KESEIMBANGAN PANJANG OPSI TKP (ANTI-OBVIOUS):
+           1. Kelima pilihan jawaban (A, B, C, D, E) HARUS memiliki jumlah kata yang hampir persis sama (selisih antar opsi maksimal 1-3 kata).
+           2. DILARANG KERAS membuat pilihan bernilai 5 poin menjadi pilihan terpanjang atau paling detail! Opsi 5 harus tersamarkan secara sempurna di antara opsi lainnya.
+           3. Pilihan bernilai 1, 2, 3, dan 4 juga HARUS dirumuskan sebagai tindakan profesional yang lengkap, formal, dan meyakinkan (bukan kalimat pendek acuh tak acuh).
+           4. Nilai 'option' pada objek tkpPoints HARUS teks lengkap opsi tersebut secara persis, bukan hanya huruf A/B/C/D/E.`;
         } else {
             prompt = `TRY OUT / PRACTICE V5. Category: ${category}. Context: ${JSON.stringify(context)}. ${commonInstruction}. For Figural, Spatial, or TPA logic: YOU MUST USE <svg> FOR ALL GRAPHICS. DO NOT USE EMOJIS (📦, 🧊) OR UNICODE SHAPES IN PLACE OF ACTUAL <svg> GRAPHICS. Ensure all fractions use Unicode characters (e.g. ½, ⅓).`;
         }
@@ -1732,9 +1737,11 @@ function normalizeOptionText(text: string): string {
   if (isSvg(s)) {
     return s.replace(/\s+/g, ' ').toLowerCase();
   }
-  return s
+  // Only strip option prefix if it is followed by explicit delimiters (., ), :, -)
+  const stripped = s.replace(/^(?:\(?[a-e1-5]\)?[\.\)\:\-]\s*|\(?[a-e]\)\s*)/i, '').trim();
+  const effective = stripped.length > 0 ? stripped : s;
+  return effective
     .toLowerCase()
-    .replace(/^[a-e][.)\-:\s]+/i, '') // strip leading option letter prefix like "A.", "A)", "A: "
     .replace(/[.,;:\s]+$/, '')        // strip trailing punctuation/spaces
     .replace(/\s+/g, ' ')             // collapse whitespace
     .trim();
@@ -1792,9 +1799,12 @@ function validateQuestionLocal(q: Question, expectedSubtest?: string, expectedTo
         const otherOptions = q.tkpPoints.filter(tp => tp.points !== 5);
         const otherWords = otherOptions.map(tp => String(tp.option || '').trim().split(/\s+/).filter(Boolean).length);
         const maxOtherWords = Math.max(...otherWords, 1);
+        const minOtherWords = Math.min(...otherWords, 1);
         const avgOtherWords = otherWords.reduce((a, b) => a + b, 0) / Math.max(1, otherWords.length);
 
-        if (words5 > maxOtherWords + 5 && words5 > avgOtherWords * 1.35) {
+        // Opsi 5 tidak boleh melebihi opsi terpanjang lain lebih dari 3 kata,
+        // dan tidak boleh lebih panjang 25% dari rata-rata opsi lain jika selisihnya > 2 kata
+        if (words5 > maxOtherWords + 3 || (words5 > avgOtherWords * 1.25 && words5 - avgOtherWords > 2) || (words5 > minOtherWords * 1.6 && words5 - minOtherWords > 5)) {
           reasons.push(`opsi TKP skor 5 terlalu panjang/obvious (${words5} kata vs rata-rata opsi lain ${Math.round(avgOtherWords)} kata)`);
         }
       }
@@ -2148,7 +2158,13 @@ Catatan validator pada percobaan sebelumnya: ${lastIssues.slice(-6).join(' | ')}
                              currentAccepted.filter(x => x.metadata?.subtest === name).length;
         return currentCount < required;
       });
-      if (deficits.length === 1) {
+      if (deficits.length > 0) {
+        // Assign to the subtest with the largest deficit
+        deficits.sort((a, b) => {
+          const needA = (subtests[a] || 0) - (best.filter(x => x.metadata?.subtest === a).length + currentAccepted.filter(x => x.metadata?.subtest === a).length);
+          const needB = (subtests[b] || 0) - (best.filter(x => x.metadata?.subtest === b).length + currentAccepted.filter(x => x.metadata?.subtest === b).length);
+          return needB - needA;
+        });
         return deficits[0];
       }
 
