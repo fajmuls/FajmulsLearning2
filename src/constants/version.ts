@@ -5,9 +5,19 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "3.4.3";
+export const APP_VERSION = "3.4.4";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "3.4.4",
+    date: "2026-09-11",
+    type: "patch",
+    notes: [
+      "Pembersihan root project: memindahkan skrip maintenance/helper sementara ke direktori dedicated /scripts",
+      "Penyatuan struktur modul /utils ke /src/utils (skdGenerator, speechRecognition) dengan backward-compatibility layer",
+      "Konsolidasi referensi APP_VERSION dan metadata patch notes ke dalam /constants terpusat"
+    ]
+  },
   {
     version: "3.4.3",
     date: "2026-09-05",

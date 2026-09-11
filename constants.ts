@@ -501,3 +501,6 @@ export const TKA_EXAM_CONFIG = [
     {name: 'Bahasa Indonesia', duration: 30, count: 30},
     {name: 'Bahasa Inggris', duration: 30, count: 30}
 ];
+
+export { APP_VERSION, PATCH_NOTES } from './src/constants/version';
+export type { PatchNote } from './src/constants/version';

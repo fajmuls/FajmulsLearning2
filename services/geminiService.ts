@@ -2443,7 +2443,7 @@ export const generatePsikotestSimulation = async () => {
     
     // Pad with fallback if truncated
     if (allQuestions.length < 40) {
-        const { generateSKDPackage } = await import('../utils/skdGenerator');
+        const { generateSKDPackage } = await import('../src/utils/skdGenerator');
         const fallback = generateSKDPackage(Math.floor(Math.random() * 100), 'CPNS');
         const fallbackTiu = fallback.filter(q => q.metadata?.topic === 'TIU');
         while (allQuestions.length < 40 && fallbackTiu.length > 0) {
