@@ -9,6 +9,18 @@ interface AdminDashboardProps {
 
 export const PATCH_NOTES = [
   {
+    version: "v3.4.3",
+    date: "2026-09-05",
+    type: "Fix & Reliability",
+    description: "TKP Options Balance Validator & Gemini Resilience",
+    details: [
+      "Perbaikan Validasi TKP: Menyesuaikan aturan kalkulasi panjang opsi skor 5 pada soal TKP agar tidak terjadi false-positive rejection saat opsi seimbang dengan opsi lain.",
+      "Stabilitas Batch SKD V8: Mengatasi kegagalan pembentukan batch TKP-C pada background generation task.",
+      "Ketahanan API Gemini: Menambahkan fallback model cadangan gemini-2.5-flash dan menangani transient network/RPC 500 error dengan exponential backoff rotation.",
+      "Lock Navigasi Review: Panel navigasi review soal terkunci rapi di desktop saat scroll pembahasan panjang."
+    ]
+  },
+  {
     version: "v3.4.2",
     date: "2026-08-28",
     type: "Feature & Polish",

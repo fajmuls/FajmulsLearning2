@@ -353,7 +353,7 @@ function tryParsePartialQuestions(text: string): any {
 }
 
 async function callGemini<T>(prompt: string, schema?: Schema, imageBase64?: string, options?: { temperature?: number; topP?: number; topK?: number }): Promise<T> {
-  const models = ["gemini-3.8-flash", "gemini-3.7-flash"];
+  const models = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-2.5-flash"];
   
   const config: any = {
     temperature: options?.temperature ?? 0.9,
@@ -429,15 +429,8 @@ async function callGemini<T>(prompt: string, schema?: Schema, imageBase64?: stri
       }
       return text as unknown as T;
     } catch (error: any) {
-      console.error(`Gemini API Error with model ${model} (${retries} retries left):`, error);
-      
-      const isOverloaded = error?.status === 503 || error?.status === 429 || error?.status === 500 ||
-                           error?.message?.includes('503') || error?.message?.includes('429') || error?.message?.includes('500') ||
-                           error?.message?.includes('high demand') || error?.message?.includes('UNAVAILABLE') ||
-                           error?.message?.includes('error code: 6') || error?.message?.includes('xhr error') ||
-                           error?.message?.includes('resource exhausted');
-      
       if (retries > 1) {
+        console.warn(`[Gemini Retry] Model ${model} encountered transient error (${retries - 1} retries remaining, rotating model):`, error?.message || error);
         retries--;
         modelIdx++; // Rotate to the next model in choice
         console.log(`Rotating/Retrying with next model in ${delay}ms...`);
@@ -446,6 +439,7 @@ async function callGemini<T>(prompt: string, schema?: Schema, imageBase64?: stri
         continue;
       }
       
+      console.error(`Gemini API Error with model ${model} (all retries exhausted):`, error);
       throw error;
     }
   }
@@ -453,7 +447,7 @@ async function callGemini<T>(prompt: string, schema?: Schema, imageBase64?: stri
 }
 
 async function* callGeminiStream(prompt: string, schema?: Schema, imageBase64?: string): AsyncGenerator<any[], void, unknown> {
-  const models = ["gemini-3.7-flash", "gemini-3.1-pro-preview"];
+  const models = ["gemini-3.7-flash", "gemini-3.8-flash", "gemini-2.5-flash"];
   
   const config: any = {
     temperature: 0.9, 
@@ -528,21 +522,15 @@ async function* callGeminiStream(prompt: string, schema?: Schema, imageBase64?: 
       }
       return;
     } catch (error: any) {
-      console.error(`Gemini Streaming API Error with model ${model} (${retries} retries left):`, error);
-      
-      const isOverloaded = error?.status === 503 || error?.status === 429 || error?.status === 500 ||
-                           error?.message?.includes('503') || error?.message?.includes('429') || error?.message?.includes('500') ||
-                           error?.message?.includes('high demand') || error?.message?.includes('UNAVAILABLE') ||
-                           error?.message?.includes('error code: 6') || error?.message?.includes('xhr error') ||
-                           error?.message?.includes('resource exhausted');
-      
       if (retries > 1) {
+        console.warn(`[Gemini Streaming Warning] Model ${model} encountered transient error (${retries - 1} retries remaining, rotating model):`, error?.message || error);
         retries--;
         modelIdx++; // Rotate to the next model
         await new Promise(resolve => setTimeout(resolve, delay));
         delay *= 1.5; 
         continue;
       }
+      console.error(`Gemini Streaming API Error with model ${model} (all retries exhausted):`, error);
       throw error;
     }
   }
@@ -1791,21 +1779,34 @@ function validateQuestionLocal(q: Question, expectedSubtest?: string, expectedTo
         if (!optionTexts.some((o, idx) => isSameOption(o, String(tp.option), idx))) reasons.push('tkpPoints memiliki opsi yang tidak terdaftar');
       }
 
-      // Validasi panjang opsi: opsi skor 5 tidak boleh mencolok/terlalu panjang dibanding opsi lain
+      // Validasi panjang opsi: opsi skor 5 tidak boleh mencolok/paling panjang secara ekstrem dibanding opsi lain
+      // Resolusi teks opsi sebenarnya dari options
+      const resolveOptionText = (tp: { option: string; points: number }) => {
+        const raw = String(tp.option || '').trim();
+        const matched = options.find((o, idx) => isSameOption(String(o), raw, idx));
+        return matched ? String(matched).trim() : raw;
+      };
+
       const opt5Point = q.tkpPoints.find(tp => tp.points === 5);
       if (opt5Point) {
-        const text5 = String(opt5Point.option || '').trim();
+        const text5 = resolveOptionText(opt5Point);
         const words5 = text5.split(/\s+/).filter(Boolean).length;
         const otherOptions = q.tkpPoints.filter(tp => tp.points !== 5);
-        const otherWords = otherOptions.map(tp => String(tp.option || '').trim().split(/\s+/).filter(Boolean).length);
+        const otherWords = otherOptions.map(tp => resolveOptionText(tp).split(/\s+/).filter(Boolean).length);
         const maxOtherWords = Math.max(...otherWords, 1);
-        const minOtherWords = Math.min(...otherWords, 1);
         const avgOtherWords = otherWords.reduce((a, b) => a + b, 0) / Math.max(1, otherWords.length);
 
-        // Opsi 5 tidak boleh melebihi opsi terpanjang lain lebih dari 3 kata,
-        // dan tidak boleh lebih panjang 25% dari rata-rata opsi lain jika selisihnya > 2 kata
-        if (words5 > maxOtherWords + 3 || (words5 > avgOtherWords * 1.25 && words5 - avgOtherWords > 2) || (words5 > minOtherWords * 1.6 && words5 - minOtherWords > 5)) {
-          reasons.push(`opsi TKP skor 5 terlalu panjang/obvious (${words5} kata vs rata-rata opsi lain ${Math.round(avgOtherWords)} kata)`);
+        // Opsi skor 5 HANYA dianggap terlalu panjang/obvious jika:
+        // 1. Opsi skor 5 memang lebih panjang dari rata-rata opsi lain, DAN
+        // 2. Selisih dengan opsi terpanjang lain > 6 kata, ATAU melebihi rata-rata > 50% dengan selisih >= 6 kata.
+        // Jika opsi 5 lebih pendek atau setara dengan rata-rata, opsi tersebut sah dan tersamarkan dengan baik.
+        const isExcessivelyLong = words5 > avgOtherWords && (
+          words5 > maxOtherWords + 6 ||
+          (words5 > avgOtherWords * 1.5 && words5 - avgOtherWords >= 6)
+        );
+
+        if (isExcessivelyLong) {
+          reasons.push(`opsi TKP skor 5 terlalu panjang/obvious (${words5} kata vs opsi terpanjang lain ${maxOtherWords} kata, rata-rata ${Math.round(avgOtherWords)} kata)`);
         }
       }
     }

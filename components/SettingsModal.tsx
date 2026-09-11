@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { AppSettings, UserProfile, AppFontSize, AppPattern, AppUiPreset } from '../types';
 import { SoundManager } from '../services/soundService';
+import { APP_VERSION } from '../src/constants/version';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -341,7 +342,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                                                 <div className="p-1.5 rounded-lg bg-blue-100 text-blue-600 transition-all group-active:scale-90">
                                                     <Database size={12}/>
                                                 </div>
-                                                <span className="text-[9px] font-bold text-slate-700 dark:text-slate-200">Admin Dashboard (Version v2.0.0)</span>
+                                                <span className="text-[9px] font-bold text-slate-700 dark:text-slate-200">Admin Dashboard (Version v{APP_VERSION})</span>
                                             </div>
                                         </button>
                                     </div>
@@ -351,7 +352,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                     </div>
 
                     {/* Footer */}
-                    <div className="p-5 pt-2">
+                    <div className="p-5 pt-2 space-y-2">
+                        <div className="text-center text-[9px] font-semibold text-slate-400 dark:text-slate-500">
+                            Fajmuls Learning • Versi {APP_VERSION}
+                        </div>
                         <button 
                             onClick={() => { SoundManager.play('back'); onClose(); }}
                             className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-[10px] shadow-lg shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"

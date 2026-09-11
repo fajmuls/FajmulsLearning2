@@ -5,9 +5,20 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "1.0.1";
+export const APP_VERSION = "3.4.3";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "3.4.3",
+    date: "2026-09-05",
+    type: "patch",
+    notes: [
+      "Perbaikan validasi panjang opsi skor 5 pada soal TKP untuk menghindari false-positive rejection",
+      "Stabilitas background task generator batch SKD V8 (TKP-C)",
+      "Peningkatan resiliensi koneksi Gemini API dengan rotasi fallback model",
+      "Penguncian posisi panel navigasi nomor soal pada layar review belajar"
+    ]
+  },
   {
     version: "1.0.1",
     date: "2024-03-20",
