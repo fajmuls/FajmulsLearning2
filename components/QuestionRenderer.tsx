@@ -3,6 +3,7 @@ import { InlineMath, BlockMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
 import { Grid, Shapes, ArrowRight } from 'lucide-react';
 import { InteractiveFigural } from './InteractiveFigural';
+import { ErrorBoundary } from './ErrorBoundary';
 
 interface SvgRendererProps {
     svgString: string;
@@ -151,7 +152,9 @@ export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean; isO
                                                 <div className="snap-center flex-shrink-0 w-[90px] h-[90px] sm:w-[130px] sm:h-[130px] bg-white dark:bg-slate-800/80 rounded-2xl border-2 border-slate-200 dark:border-slate-700/80 shadow-sm flex items-center justify-center p-2 sm:p-3 relative">
                                                     <div className="absolute top-1 left-2 sm:top-2 sm:left-3 text-[10px] sm:text-xs font-bold text-slate-300 dark:text-slate-600 leading-none">{idx + 1}</div>
                                                     <div className="w-full h-full flex items-center justify-center [&>div]:w-full [&>div]:h-full [&>div>div]:flex [&>div>div]:items-center [&>div>div]:justify-center">
-                                                        <InteractiveFigural svgString={svgStr} isOption={isOption} isInline={true} />
+                                                        <ErrorBoundary compact fallbackMessage="Gagal memuat gambar">
+                                                            <InteractiveFigural svgString={svgStr} isOption={isOption} isInline={true} />
+                                                        </ErrorBoundary>
                                                     </div>
                                                 </div>
                                             </React.Fragment>
@@ -227,7 +230,13 @@ export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean; isO
                                                             {svgParts.map((svgPart: string, svgIndex: number) => {
                                                                 const trimmedSvg = svgPart.trim();
                                                                 if (trimmedSvg.match(/^<svg[\s\S]*?<\/svg>$/i)) {
-                                                                    return <div key={svgIndex} className="inline-block align-middle"><InteractiveFigural svgString={trimmedSvg} isOption={isOption} isInline={true} /></div>;
+                                                                    return (
+                                                                        <div key={svgIndex} className="inline-block align-middle">
+                                                                            <ErrorBoundary compact fallbackMessage="Pola visual tidak dapat dimuat">
+                                                                                <InteractiveFigural svgString={trimmedSvg} isOption={isOption} isInline={true} />
+                                                                            </ErrorBoundary>
+                                                                        </div>
+                                                                    );
                                                                 }
 
                                                                 // Render standard text
@@ -476,7 +485,9 @@ export const MatrixQuestionRenderer: React.FC<MatrixProps> = ({ content, metadat
                                              </div>
                                          ) : (
                                              <div className="w-full h-full p-2 flex items-center justify-center [&>div]:w-full [&>div]:h-full [&>div>div]:flex [&>div>div]:items-center [&>div>div]:justify-center">
-                                                 <InteractiveFigural svgString={String(cellContent || '')} isInline={true} />
+                                                 <ErrorBoundary compact fallbackMessage="Gagal memuat sel">
+                                                     <InteractiveFigural svgString={String(cellContent || '')} isInline={true} />
+                                                 </ErrorBoundary>
                                              </div>
                                          )}
                                      </div>

@@ -7,7 +7,7 @@ import {
     TrendingUp, Award, History, Calendar, CheckCircle, XCircle, 
     ChevronRight, Zap, Activity, Clock, BarChart2, Trash2, Eye, 
     Briefcase, GraduationCap, Brain, FileText, MessageSquare, Palette, Book, BookOpen, Library, School, Package,
-    Square, CheckSquare, Grid, ShieldCheck, AlertTriangle, Flag, Bot, AlertCircle, Info, Target, Lightbulb, EyeOff
+    Square, CheckSquare, Grid, ShieldCheck, AlertTriangle, Flag, Bot, AlertCircle, Info, Target, Lightbulb, EyeOff, Search, X
 } from 'lucide-react';
 import { TestHistoryItem, CategoryType, SkdResultDetails, TesKoranResultDetails, TesKecermatanResultDetails, UtbkResultDetails, BenchmarkResultDetails, Question, UserAnswer, UserProfile, StudyMode } from '../types';
 import { CATEGORIES } from '../constants';
@@ -208,6 +208,8 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
     const [filterCategory, setFilterCategory] = useState<'ALL' | CategoryType>('ALL');
     const [skdSubFilter, setSkdSubFilter] = useState<'ALL' | 'TWK' | 'TIU' | 'TKP'>('ALL');
     const [timeFilter, setTimeFilter] = useState<'ALL' | 'TODAY' | 'WEEK' | 'MONTH'>('ALL');
+    const [statusFilter, setStatusFilter] = useState<'ALL' | 'PASSED' | 'FAILED'>('ALL');
+    const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState<'LIST' | 'ANALYTICS'>('LIST');
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
@@ -252,6 +254,21 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
             if (skdSubFilter === 'TWK' && !isTWK) return false;
             if (skdSubFilter === 'TIU' && !isTIU) return false;
             if (skdSubFilter === 'TKP' && !isTKP) return false;
+        }
+
+        if (statusFilter !== 'ALL') {
+            const isPassed = (item as any).isPassed ?? (item.score !== undefined ? (item.category === 'UTBK' ? item.score >= 600 : item.score >= 65) : false);
+            if (statusFilter === 'PASSED' && !isPassed) return false;
+            if (statusFilter === 'FAILED' && isPassed) return false;
+        }
+
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            const title = (item.packageTitle || '').toLowerCase();
+            const id = (item.packageId || item.id || '').toLowerCase();
+            const category = (item.category || '').toLowerCase();
+            const mode = (item.mode || '').toLowerCase();
+            if (!title.includes(q) && !id.includes(q) && !category.includes(q) && !mode.includes(q)) return false;
         }
 
         if (timeFilter !== 'ALL') {
@@ -615,6 +632,28 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                     </div>
                 )}
 
+                {/* Search Bar & Quick Filters */}
+                <div className="space-y-2 mb-3">
+                    <div className="relative">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Cari judul paket tryout, modul, kategori, atau ID..."
+                            className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                            >
+                                <X size={14} />
+                            </button>
+                        )}
+                    </div>
+                </div>
+
                 <div className="flex gap-1.5 overflow-x-auto pb-2.5 mb-2 scrollbar-hide">
                     <button onClick={() => setFilterCategory('ALL')} className={`px-2.5 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap transition ${filterCategory === 'ALL' ? 'bg-slate-900 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
                         Semua
@@ -640,6 +679,15 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                         </select>
                     )}
                     <select 
+                        value={statusFilter} 
+                        onChange={(e) => setStatusFilter(e.target.value as any)}
+                        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                        <option value="ALL">Status: Semua</option>
+                        <option value="PASSED">Status: Lulus / Memenuhi</option>
+                        <option value="FAILED">Status: Belum Lulus</option>
+                    </select>
+                    <select 
                         value={timeFilter} 
                         onChange={(e) => setTimeFilter(e.target.value as any)}
                         className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -649,6 +697,20 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                         <option value="WEEK">7 Hari Terakhir</option>
                         <option value="MONTH">30 Hari Terakhir</option>
                     </select>
+                    {(searchQuery || statusFilter !== 'ALL' || timeFilter !== 'ALL' || filterCategory !== 'ALL') && (
+                        <button
+                            onClick={() => {
+                                setSearchQuery('');
+                                setStatusFilter('ALL');
+                                setTimeFilter('ALL');
+                                setFilterCategory('ALL');
+                                setSkdSubFilter('ALL');
+                            }}
+                            className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline px-2 py-1"
+                        >
+                            Reset Filter ({filteredHistory.length} hasil)
+                        </button>
+                    )}
                 </div>
 
                 <div className="flex gap-4 border-b border-slate-200 dark:border-slate-700 mb-6">

@@ -236,6 +236,121 @@ export const clearSessionFromCloud = async (uid: string) => {
     console.log("clearSessionFromCloud called - Use deleteSavedSession for specific items");
 };
 
+// --- OFFLINE RESILIENCE & QUEUE ---
+const OFFLINE_QUEUE_KEY = 'fajmuls_offline_sync_queue';
+
+export interface OfflineQueueItem {
+    id: string;
+    type: 'history' | 'score';
+    uid: string;
+    payload: any;
+    timestamp: number;
+    attempts: number;
+}
+
+export const getOfflineQueue = (): OfflineQueueItem[] => {
+    try {
+        const raw = localStorage.getItem(OFFLINE_QUEUE_KEY);
+        return raw ? JSON.parse(raw) : [];
+    } catch {
+        return [];
+    }
+};
+
+export const enqueueOfflineItem = (item: Omit<OfflineQueueItem, 'id' | 'timestamp' | 'attempts'>) => {
+    try {
+        const queue = getOfflineQueue();
+        const newItem: OfflineQueueItem = {
+            ...item,
+            id: `${item.type}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            timestamp: Date.now(),
+            attempts: 0
+        };
+        // Avoid duplicate history entries
+        const filtered = queue.filter(q => !(q.type === 'history' && q.payload?.id === item.payload?.id));
+        filtered.push(newItem);
+        localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(filtered));
+        console.log(`[OfflineQueue] Enqueued item: ${newItem.type} (${newItem.id})`);
+    } catch (e) {
+        console.warn("[OfflineQueue] Failed to enqueue offline item", e);
+    }
+};
+
+export const processOfflineSyncQueue = async (): Promise<{ synced: number; failed: number }> => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        return { synced: 0, failed: 0 };
+    }
+
+    const queue = getOfflineQueue();
+    if (queue.length === 0) return { synced: 0, failed: 0 };
+
+    console.log(`[OfflineQueue] Processing ${queue.length} pending items...`);
+    const remaining: OfflineQueueItem[] = [];
+    let synced = 0;
+    let failed = 0;
+
+    for (const item of queue) {
+        try {
+            if (item.type === 'history') {
+                const cleanItem = deepClean(item.payload);
+                await setDoc(doc(db, USERS_COLLECTION, item.uid, 'history', item.payload.id), cleanItem);
+                synced++;
+            } else if (item.type === 'score') {
+                const { category, subCategory, score, username, userId, packageName } = item.payload;
+                const docId = `${category}_${subCategory}_${userId}`;
+                const docRef = doc(db, GLOBAL_LEADERBOARD_COLLECTION, docId);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const currentData = docSnap.data() as GlobalLeaderboardEntry;
+                    if (score > currentData.score) {
+                        await updateDoc(docRef, deepClean({
+                            score,
+                            packageName: packageName || currentData.packageName,
+                            timestamp: Date.now(),
+                            username
+                        }));
+                    }
+                } else {
+                    await setDoc(docRef, deepClean({
+                        uid: userId,
+                        username,
+                        category,
+                        subCategory,
+                        score,
+                        packageName,
+                        timestamp: Date.now()
+                    }));
+                }
+                synced++;
+            }
+        } catch (err) {
+            console.warn(`[OfflineQueue] Item ${item.id} sync failed (attempt ${item.attempts + 1})`, err);
+            item.attempts += 1;
+            if (item.attempts < 5) {
+                remaining.push(item);
+            }
+            failed++;
+        }
+    }
+
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(remaining));
+    if (synced > 0) {
+        console.log(`[OfflineQueue] Successfully synced ${synced} items.`);
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('offlineSyncCompleted', { detail: { synced, remaining: remaining.length } }));
+        }
+    }
+    return { synced, failed };
+};
+
+// Automatic listener when connection restores
+if (typeof window !== 'undefined') {
+    window.addEventListener('online', () => {
+        console.log("[OfflineQueue] Network restored. Syncing offline queue...");
+        processOfflineSyncQueue();
+    });
+}
+
 // --- HISTORY SYNC ---
 
 export const saveHistoryToCloud = async (uid: string, item: TestHistoryItem) => {
@@ -244,7 +359,12 @@ export const saveHistoryToCloud = async (uid: string, item: TestHistoryItem) => 
         await setDoc(doc(db, USERS_COLLECTION, uid, 'history', item.id), cleanItem);
         console.log("History saved to cloud");
     } catch (e) {
-        console.error("Error saving history to cloud", e);
+        console.warn("Error saving history to cloud, queuing for offline sync", e);
+        enqueueOfflineItem({
+            type: 'history',
+            uid,
+            payload: item
+        });
     }
 };
 
@@ -312,7 +432,12 @@ export const saveGlobalScore = async (
             await setDoc(docRef, newEntry);
         }
     } catch (e) {
-        console.error("Error saving to global leaderboard", e);
+        console.warn("Error saving to global leaderboard, queuing for offline sync", e);
+        enqueueOfflineItem({
+            type: 'score',
+            uid: userId,
+            payload: { category, subCategory, score, username, userId, packageName }
+        });
     }
 };
 

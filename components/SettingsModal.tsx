@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
     Settings, Volume2, VolumeX, Bell, BellOff, CheckCircle, 
     XCircle, Music, Moon, Sun, Sparkles, Layout, Monitor, 
-    Type, Palette, Bot, Timer, Check, Database
+    Type, Palette, Bot, Timer, Check, Database, Download, Upload, ShieldCheck
 } from 'lucide-react';
 import { AppSettings, UserProfile, AppFontSize, AppPattern, AppUiPreset } from '../types';
 import { SoundManager } from '../services/soundService';
@@ -21,6 +21,94 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onUpdate, userProfile, onUpdateProfile, onOpenAdminDashboard }) => {
     const [activeTab, setActiveTab] = useState<'display' | 'system'>('display');
+    const [backupStatus, setBackupStatus] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const backupFileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleExportFullBackup = () => {
+        SoundManager.play('click');
+        try {
+            const guestHistory = localStorage.getItem('fajmuls_guest_history');
+            const markedQuestions = localStorage.getItem('fajmuls_marked_questions');
+            const gamification = localStorage.getItem('fajmuls_guest_gamification');
+            const bankSoal = localStorage.getItem('fajmuls_saved_bank_soal');
+            const appSettings = localStorage.getItem('fajmuls_app_settings');
+
+            const backupPayload = {
+                app: "Fajmuls Learning",
+                version: APP_VERSION,
+                exportedAt: new Date().toISOString(),
+                user: userProfile?.username || "Guest",
+                data: {
+                    history: guestHistory ? JSON.parse(guestHistory) : [],
+                    markedQuestions: markedQuestions ? JSON.parse(markedQuestions) : [],
+                    gamification: gamification ? JSON.parse(gamification) : null,
+                    bankSoal: bankSoal ? JSON.parse(bankSoal) : [],
+                    settings: appSettings ? JSON.parse(appSettings) : settings
+                }
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupPayload, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            const dateStr = new Date().toISOString().split('T')[0];
+            downloadAnchor.setAttribute("download", `fajmuls_backup_${dateStr}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+
+            setBackupStatus({ message: 'Backup data berhasil diunduh!', type: 'success' });
+            setTimeout(() => setBackupStatus(null), 4000);
+        } catch (e) {
+            console.error('Export failed', e);
+            setBackupStatus({ message: 'Gagal mengekspor data backup.', type: 'error' });
+            setTimeout(() => setBackupStatus(null), 4000);
+        }
+    };
+
+    const handleImportFullBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        SoundManager.play('click');
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const parsed = JSON.parse(event.target?.result as string);
+                if (!parsed.data) {
+                    throw new Error("Format file backup tidak valid.");
+                }
+
+                if (parsed.data.history) {
+                    localStorage.setItem('fajmuls_guest_history', JSON.stringify(parsed.data.history));
+                }
+                if (parsed.data.markedQuestions) {
+                    localStorage.setItem('fajmuls_marked_questions', JSON.stringify(parsed.data.markedQuestions));
+                }
+                if (parsed.data.gamification) {
+                    localStorage.setItem('fajmuls_guest_gamification', JSON.stringify(parsed.data.gamification));
+                }
+                if (parsed.data.bankSoal) {
+                    localStorage.setItem('fajmuls_saved_bank_soal', JSON.stringify(parsed.data.bankSoal));
+                }
+                if (parsed.data.settings) {
+                    localStorage.setItem('fajmuls_app_settings', JSON.stringify(parsed.data.settings));
+                    onUpdate(parsed.data.settings);
+                }
+
+                window.dispatchEvent(new CustomEvent('appDataRestored', { detail: parsed.data }));
+                setBackupStatus({ message: 'Data backup berhasil dipulihkan!', type: 'success' });
+                setTimeout(() => setBackupStatus(null), 4000);
+            } catch (err: any) {
+                console.error('Import failed', err);
+                setBackupStatus({ message: err?.message || 'Gagal memulihkan file backup.', type: 'error' });
+                setTimeout(() => setBackupStatus(null), 4000);
+            }
+        };
+        reader.readAsText(file);
+        if (backupFileInputRef.current) {
+            backupFileInputRef.current.value = '';
+        }
+    };
 
     const toggle = (key: keyof AppSettings) => {
         SoundManager.play('tap');
@@ -329,6 +417,44 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Backup & Restore Section */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1 block px-1">Backup & Restore Data (.JSON)</label>
+                                    <div className="bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl p-3 border border-slate-100/50 dark:border-slate-800/50 space-y-2.5">
+                                        <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                                            Amankan seluruh riwayat nilai, soal bertanda, pencapaian gamifikasi, dan konfigurasi belajar Anda ke dalam file JSON agar aman saat ganti HP atau browser.
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                onClick={handleExportFullBackup}
+                                                className="flex items-center justify-center gap-1.5 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[9px] font-bold shadow-sm transition active:scale-95"
+                                            >
+                                                <Download size={12} /> Unduh Backup
+                                            </button>
+                                            <button
+                                                onClick={() => backupFileInputRef.current?.click()}
+                                                className="flex items-center justify-center gap-1.5 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[9px] font-bold shadow-sm transition active:scale-95"
+                                            >
+                                                <Upload size={12} /> Pulihkan Data
+                                            </button>
+                                            <input 
+                                                ref={backupFileInputRef} 
+                                                type="file" 
+                                                accept=".json" 
+                                                className="hidden" 
+                                                onChange={handleImportFullBackup} 
+                                            />
+                                        </div>
+                                        {backupStatus && (
+                                            <div className={`p-2 rounded-xl text-[9px] font-semibold flex items-center gap-1.5 ${backupStatus.type === 'success' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300' : 'bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300'}`}>
+                                                <ShieldCheck size={12} className="shrink-0" />
+                                                <span>{backupStatus.message}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
                                 {onOpenAdminDashboard && (
                                     <div className="space-y-1.5 pt-2">
                                         <button

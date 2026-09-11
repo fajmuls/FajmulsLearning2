@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, X, Timer } from 'lucide-react';
+import { Play, Pause, RotateCcw, X, Timer, Volume2, VolumeX } from 'lucide-react';
+import { SoundManager } from '../services/soundService';
 
 interface PomodoroTimerProps {
   isOpen: boolean;
@@ -11,6 +12,22 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ isOpen, onClose, o
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
   const [mode, setMode] = useState<'focus' | 'break'>('focus');
+  const [isMuted, setIsMuted] = useState(!SoundManager.isSoundEnabled());
+
+  useEffect(() => {
+    const handleSoundChange = (e: any) => {
+      if (e.detail?.soundEnabled !== undefined) {
+        setIsMuted(!e.detail.soundEnabled);
+      }
+    };
+    window.addEventListener('soundSettingsChanged', handleSoundChange);
+    return () => window.removeEventListener('soundSettingsChanged', handleSoundChange);
+  }, []);
+
+  const toggleSound = () => {
+    const newState = SoundManager.toggleSound();
+    setIsMuted(!newState);
+  };
 
   // Request Notification Permission on Mount
   useEffect(() => {
@@ -33,9 +50,11 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ isOpen, onClose, o
   }, [isActive, timeLeft]);
 
   const triggerNotification = () => {
-    // Audio Alert
-    const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
-    audio.play().catch(e => console.log("Audio play failed", e));
+    // Audio Alert (only if not muted)
+    if (!isMuted) {
+      const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+      audio.play().catch(e => console.log("Audio play failed", e));
+    }
 
     // Browser Notification
     if ("Notification" in window && Notification.permission === "granted") {
@@ -85,9 +104,18 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ isOpen, onClose, o
           <Timer size={20} />
           <span className="font-bold">{mode === 'focus' ? 'Fokus' : 'Istirahat'}</span>
         </div>
-        <button onClick={onClose} className="hover:bg-white/20 p-1 rounded">
-          <X size={18} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={toggleSound} 
+            className="hover:bg-white/20 p-1.5 rounded transition"
+            title={isMuted ? "Bunyikan Suara" : "Senyapkan Suara"}
+          >
+            {isMuted ? <VolumeX size={18} className="text-white/80" /> : <Volume2 size={18} />}
+          </button>
+          <button onClick={onClose} className="hover:bg-white/20 p-1.5 rounded transition">
+            <X size={18} />
+          </button>
+        </div>
       </div>
       
       <div className="p-6 flex flex-col items-center">

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Award, Activity, Target, Loader2, Lightbulb, CheckCircle, XCircle, Youtube, Flag, Bot } from 'lucide-react';
+import { Award, Activity, Target, Loader2, Lightbulb, CheckCircle, XCircle, Youtube, Flag, Bot, Calendar, Compass, TrendingUp, Clock, BookOpen, Sparkles, ArrowRight } from 'lucide-react';
 import { CategoryType, Question, UserAnswer, UtbkResultDetails, UserProfile } from '../types';
 import * as Gemini from '../services/geminiService';
 import { SimpleMarkdown } from './QuestionRenderer';
@@ -366,6 +366,95 @@ export const ResultsAnalysis: React.FC<ResultsProps> = ({ answers, questions, on
                         )}
                     </div>
                 )}
+
+                {/* ACTIONABLE STUDY PLAN */}
+                <div className="bg-gradient-to-br from-indigo-50/70 via-white to-purple-50/70 dark:from-slate-800 dark:via-slate-800 dark:to-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 p-4 sm:p-6 rounded-2xl mb-6 text-left w-full shadow-sm">
+                    <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+                        <div className="flex items-center gap-2">
+                            <div className="p-2 rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-500/20">
+                                <Compass size={18} />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">Rencana Belajar Terarah (Action Plan)</h3>
+                                <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">Rekomendasi langkah perbaikan berdasarkan evaluasi sesi ini</p>
+                            </div>
+                        </div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-full">
+                            3 Langkah Efektif
+                        </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {/* Step 1 */}
+                        <div className="bg-white/80 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700 flex flex-col justify-between">
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-black flex items-center justify-center">1</span>
+                                    <BookOpen size={14} className="text-indigo-500" />
+                                </div>
+                                <h4 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 mb-1">Kaji Ulang Konsep</h4>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                                    {weakTopics.length > 0 
+                                        ? `Fokus kaji ringkasan dan peta konsep untuk materi "${weakTopics[0]}" sebelum memulai latihan baru.`
+                                        : 'Pertahankan pemahaman konsep dasar dan coba variasikan dengan soal level HOTS.'}
+                                </p>
+                            </div>
+                            {weakTopics.length > 0 && onRemedial && (
+                                <button
+                                    onClick={() => onRemedial(weakTopics[0])}
+                                    className="mt-3 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline"
+                                >
+                                    Drill Remedial <ArrowRight size={12} />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Step 2 */}
+                        <div className="bg-white/80 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700 flex flex-col justify-between">
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 text-[11px] font-black flex items-center justify-center">2</span>
+                                    <Clock size={14} className="text-amber-500" />
+                                </div>
+                                <h4 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 mb-1">Optimasi Pacing Waktu</h4>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                                    {Math.round(answers.reduce((acc, curr) => acc + (curr.timeTakenSeconds || 0), 0) / (answers.length || 1)) > 60
+                                        ? 'Rata-rata waktu > 60 detik. Tandai ragu jika buntu dalam 35 detik, kerjakan yang lebih mudah terlebih dahulu.'
+                                        : 'Pacing waktu sudah efektif. Jaga konsistensi membaca opsi agar tidak terjebak distractor mirip.'}
+                                </p>
+                            </div>
+                            <span className="mt-3 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                                Target Ideal: ≤ 54 dtk / soal
+                            </span>
+                        </div>
+
+                        {/* Step 3 */}
+                        <div className="bg-white/80 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700 flex flex-col justify-between">
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-[11px] font-black flex items-center justify-center">3</span>
+                                    <TrendingUp size={14} className="text-emerald-500" />
+                                </div>
+                                <h4 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 mb-1">Rencana Belajar 7 Hari</h4>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                                    Susun jadwal teratur 30 menit per hari dengan panduan AI Tutor untuk meningkatkan skor secara bertahap.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    window.dispatchEvent(new CustomEvent('openAiTutor', {
+                                        detail: {
+                                            context: `Halo AI Tutor! Saya baru saja menyelesaikan tes ${category} dengan skor ${score}. Saya ingin membuat rencana belajar 7 hari terarah untuk memperbaiki topik: ${weakTopics.length > 0 ? weakTopics.join(', ') : 'kecepatan dan akurasi'}. Tolong berikan rencana harian yang detail dan terukur.`
+                                        }
+                                    }));
+                                }}
+                                className="mt-3 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline"
+                            >
+                                <Sparkles size={12} /> Konsultasikan ke AI <ArrowRight size={12} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden text-left mb-6 w-full">
                     <div className="p-3 sm:p-4 bg-slate-50 dark:bg-slate-700 border-b border-slate-100 dark:border-slate-600 font-bold text-xs sm:text-sm tracking-widest text-slate-700 dark:text-slate-200 uppercase">Detail Jawaban</div>

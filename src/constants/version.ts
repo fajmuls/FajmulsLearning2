@@ -5,9 +5,26 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "3.4.4";
+export const APP_VERSION = "3.5.0";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "3.5.0",
+    date: "2026-09-11",
+    type: "minor",
+    notes: [
+      "Code-Splitting & Lazy Loading untuk komponen utama (BattleArena, TesKecermatan, Flashcard, dll)",
+      "Split-Screen & Sticky Reading Pane untuk soal bacaan panjang (Literasi UTBK, TKP/TIU wacana)",
+      "Keyboard Shortcuts lengkap (1-5 / A-E, Arrow keys, N/P, R/M, Q/W, V, S) dengan label hint visual",
+      "Kontrol skala font instan (A- / A / A+) langsung di header tryout & latihan",
+      "Actionable Study Plan & rekomendasi topik remedial dengan akurasi rendah di layar hasil",
+      "Granular Error Boundary untuk isolasi kegagalan visual figural/renderer tanpa crash",
+      "Pencarian & Filter terpadu pada Riwayat Ujian (HistoryView) dan Soal Ditandai (MarkedQuestionsView)",
+      "Quick Mute / Audio Toggle satu sentuhan di header SessionEngine & PomodoroTimer",
+      "Offline Submission Queue dengan sinkronisasi otomatis saat koneksi pulih",
+      "Backup & Restore Data Belajar lengkap (.json) di Pengaturan untuk migrasi antar-perangkat"
+    ]
+  },
   {
     version: "3.4.4",
     date: "2026-09-11",

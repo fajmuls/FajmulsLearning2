@@ -2636,6 +2636,18 @@ function App() {
     }
   }, [settings, userProfile, userProfile?.uid]);
 
+  // Process offline sync queue on launch or when connection restores
+  useEffect(() => {
+    FirebaseService.processOfflineSyncQueue();
+    const handleSyncDone = (e: any) => {
+      if (e.detail?.synced > 0) {
+        showToast(`${e.detail.synced} data riwayat offline berhasil disinkronkan ke cloud!`, "success");
+      }
+    };
+    window.addEventListener("offlineSyncCompleted", handleSyncDone);
+    return () => window.removeEventListener("offlineSyncCompleted", handleSyncDone);
+  }, []);
+
   // ... (Existing login, history, profile handlers) ...
   const handleGoogleLogin = async (rememberMe: boolean) => {
     setAuthLoading(true);

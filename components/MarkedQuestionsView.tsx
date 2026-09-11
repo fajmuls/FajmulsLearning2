@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Trash2, Flag, FileText, ChevronDown, ChevronUp, CheckCircle, Copy } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { ArrowLeft, Trash2, Flag, FileText, ChevronDown, ChevronUp, CheckCircle, Copy, Search, X, Filter } from 'lucide-react';
 import { InlineMath, BlockMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
 import { MarkedQuestion } from '../types';
@@ -9,6 +9,8 @@ import { SimpleMarkdown, MatrixQuestionRenderer } from './QuestionRenderer';
 export const MarkedQuestionsView: React.FC<{ onBack: () => void, showToast: (msg: string, type: 'success' | 'error' | 'info') => void }> = ({ onBack, showToast }) => {
     const [questions, setQuestions] = useState<MarkedQuestion[]>([]);
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState<'ALL' | string>('ALL');
 
     useEffect(() => {
         const stored = localStorage.getItem('fajmuls_marked_questions');
@@ -20,6 +22,29 @@ export const MarkedQuestionsView: React.FC<{ onBack: () => void, showToast: (msg
             }
         }
     }, []);
+
+    const categories = useMemo(() => {
+        const set = new Set<string>();
+        questions.forEach(q => {
+            if (q.category) set.add(q.category);
+        });
+        return ['ALL', ...Array.from(set)];
+    }, [questions]);
+
+    const filteredQuestions = useMemo(() => {
+        return questions.filter(q => {
+            const matchesCat = selectedCategory === 'ALL' || q.category === selectedCategory;
+            if (!matchesCat) return false;
+            if (!searchQuery.trim()) return true;
+            const query = searchQuery.toLowerCase();
+            const content = (q.question?.content || '').toLowerCase();
+            const exp = (q.question?.explanation || '').toLowerCase();
+            const subtest = (q.question?.metadata?.subtest || '').toLowerCase();
+            const topic = (q.question?.metadata?.topic || '').toLowerCase();
+            const id = (q.id || '').toLowerCase();
+            return content.includes(query) || exp.includes(query) || subtest.includes(query) || topic.includes(query) || id.includes(query);
+        });
+    }, [questions, searchQuery, selectedCategory]);
 
     const handleDelete = (id: string) => {
         SoundManager.play('click');
@@ -51,23 +76,94 @@ export const MarkedQuestionsView: React.FC<{ onBack: () => void, showToast: (msg
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 px-4 sm:px-6 py-3 sm:py-4 transition-colors">
             <div className="max-w-4xl mx-auto">
-                <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-                    <button onClick={onBack} className="p-1.5 sm:p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition text-slate-700 dark:text-slate-300">
-                        <ArrowLeft size={18} className="sm:w-5 sm:h-5"/>
-                    </button>
-                    <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-1.5 sm:gap-2">
-                        <Flag className="text-rose-500 w-5 h-5 sm:w-6 sm:h-6" /> Soal Ditandai
-                    </h1>
+                <div className="flex items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                        <button onClick={onBack} className="p-1.5 sm:p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition text-slate-700 dark:text-slate-300">
+                            <ArrowLeft size={18} className="sm:w-5 sm:h-5"/>
+                        </button>
+                        <div>
+                            <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-1.5 sm:gap-2">
+                                <Flag className="text-rose-500 w-5 h-5 sm:w-6 sm:h-6" /> Soal Ditandai
+                            </h1>
+                            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+                                {filteredQuestions.length} dari {questions.length} soal tersimpan
+                            </p>
+                        </div>
+                    </div>
                 </div>
+
+                {/* Search & Filter Bar */}
+                {questions.length > 0 && (
+                    <div className="space-y-3 mb-6">
+                        <div className="relative">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Cari isi soal, topik, pembahasan, atau ID..."
+                                className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                >
+                                    <X size={14} />
+                                </button>
+                            )}
+                        </div>
+
+                        {categories.length > 2 && (
+                            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 mr-1">
+                                    <Filter size={10} /> Kategori:
+                                </span>
+                                {categories.map(cat => {
+                                    const count = cat === 'ALL' ? questions.length : questions.filter(q => q.category === cat).length;
+                                    const isSelected = selectedCategory === cat;
+                                    return (
+                                        <button
+                                            key={cat}
+                                            onClick={() => {
+                                                SoundManager.play('tap');
+                                                setSelectedCategory(cat);
+                                            }}
+                                            className={`px-3 py-1 rounded-full text-xs font-bold transition whitespace-nowrap ${
+                                                isSelected 
+                                                    ? 'bg-indigo-600 text-white shadow-sm' 
+                                                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750'
+                                            }`}
+                                        >
+                                            {cat === 'ALL' ? 'Semua' : cat} ({count})
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {questions.length === 0 ? (
                     <div className="text-center py-20 text-slate-500 dark:text-slate-400">
                         <Flag size={48} className="mx-auto mb-4 opacity-20"/>
                         <p>Belum ada soal yang ditandai.</p>
                     </div>
+                ) : filteredQuestions.length === 0 ? (
+                    <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 p-6">
+                        <Search size={36} className="mx-auto mb-2 text-slate-400 opacity-40"/>
+                        <p className="font-semibold text-sm mb-1">Tidak ada soal yang cocok dengan pencarian.</p>
+                        <p className="text-xs">Coba kata kunci lain atau ubah filter kategori.</p>
+                        <button
+                            onClick={() => { setSearchQuery(''); setSelectedCategory('ALL'); }}
+                            className="mt-3 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 transition"
+                        >
+                            Reset Filter
+                        </button>
+                    </div>
                 ) : (
                     <div className="space-y-4">
-                        {questions.map((item) => (
+                        {filteredQuestions.map((item) => (
                             <div key={item.id} className="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md transition-all">
                                 <div 
                                     className="p-3 sm:p-4 flex justify-between items-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50"

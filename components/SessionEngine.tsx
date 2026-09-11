@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Timer, Zap, CheckCircle, XCircle, ChevronRight, ChevronLeft, Lightbulb, Pause, Play, Grid, Loader2, ArrowLeft, ArrowRight, Save, CloudUpload, AlertTriangle, Flag, Type, Plus, Minus, Copy, Bookmark, Mic, MicOff, Settings, Keyboard, Lock, Bot, Sparkles, RotateCcw, Shuffle, Eye, EyeOff, Eraser, Volume2, VolumeX } from 'lucide-react';
+import { Timer, Zap, CheckCircle, XCircle, ChevronRight, ChevronLeft, Lightbulb, Pause, Play, Grid, Loader2, ArrowLeft, ArrowRight, Save, CloudUpload, AlertTriangle, Flag, Type, Plus, Minus, Copy, Bookmark, Mic, MicOff, Settings, Keyboard, Lock, Bot, Sparkles, RotateCcw, Shuffle, Eye, EyeOff, Eraser, Volume2, VolumeX, Columns, BookOpen } from 'lucide-react';
 import { StudyMode, Question, UserAnswer, CategoryType, DrillMaterial, TestHistoryItem, SavedSessionState, AppFontSize, MarkedQuestion } from '../types';
 import { SoundManager } from '../services/soundService';
 import * as Gemini from '../services/geminiService';
@@ -712,6 +712,8 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
     const [voiceEnabled, setVoiceEnabled] = useState(false);
     const [isTTSPlaying, setIsTTSPlaying] = useState(false);
     const [voiceConfirmationPending, setVoiceConfirmationPending] = useState<'FINISH' | 'SAVE' | null>(null);
+    const [isAudioMuted, setIsAudioMuted] = useState(() => SoundManager.isMuted?.() || false);
+    const [isSplitReadingView, setIsSplitReadingView] = useState(false);
     const lastCommandTimeRef = useRef(0);
 
     const { isListening, transcript, startListening, stopListening, resetTranscript, isSupported, error: speechError } = useSpeechRecognition();
@@ -1427,13 +1429,13 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
             // If any modal is open, ignore other shortcuts
             if (showFinishModal || showExitModal || showAdminModal || showFlagModal || isBreak || isPaused || showVoiceConfig || showShortcutModal) return;
             
-            if (e.key === 'ArrowRight') {
+            if (e.key === 'ArrowRight' || e.key === 'n' || e.key === 'N') {
                 e.preventDefault();
                 if (currentIndex < activeQuestions.length - 1) {
                     SoundManager.play('click');
                     setCurrentIndex(prev => prev + 1);
                 }
-            } else if (e.key === 'ArrowLeft') {
+            } else if (e.key === 'ArrowLeft' || e.key === 'p' || e.key === 'P') {
                 e.preventDefault();
                 if (currentIndex > 0) {
                     SoundManager.play('click');
@@ -1442,6 +1444,14 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
             } else if (e.key === 'm' || e.key === 'M' || e.key === 'r' || e.key === 'R') {
                 e.preventDefault();
                 toggleDoubtful();
+            } else if (e.key === 'v' || e.key === 'V') {
+                e.preventDefault();
+                const muted = SoundManager.toggleSound();
+                setIsAudioMuted(muted);
+                showToast(muted ? "Audio dimatikan (Muted)" : "Audio diaktifkan", "info");
+            } else if (e.key === 's' || e.key === 'S') {
+                e.preventDefault();
+                setIsSplitReadingView(prev => !prev);
             } else if (e.key === ' ') {
                 e.preventDefault();
                 // Jump to next subtest
@@ -1473,7 +1483,13 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
 
             const currentQ = activeQuestions[currentIndex];
             if (currentQ && currentQ.options && currentQ.options.length > 0) {
-                const keyMap: Record<string, number> = { 'a': 0, 'A': 0, 'b': 1, 'B': 1, 'c': 2, 'C': 2, 'd': 3, 'D': 3, 'e': 4, 'E': 4 };
+                const keyMap: Record<string, number> = {
+                    'a': 0, 'A': 0, '1': 0,
+                    'b': 1, 'B': 1, '2': 1,
+                    'c': 2, 'C': 2, '3': 2,
+                    'd': 3, 'D': 3, '4': 3,
+                    'e': 4, 'E': 4, '5': 4
+                };
                 if (e.key in keyMap) {
                     const optIndex = keyMap[e.key];
                     if (optIndex < currentQ.options.length) {
@@ -2067,39 +2083,6 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                         </div>
                                     )}
 
-                                    {/* Question Header & Controls */}
-                                    <div className="flex items-center justify-between gap-2 border-b border-slate-150/55 dark:border-slate-700/50 pb-2 mb-3.5 sm:mb-4">
-                                        <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 md:gap-2">
-                                            <span className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider">
-                                                {isUtbkSimulation ? UTBK_EXAM_CONFIG[utbkSubtestIndex].name : (
-                                                    (currentQ.metadata?.topic === 'TWK' || currentQ.metadata?.subtest?.includes('TWK')) ? 'Tes Wawasan Kebangsaan' :
-                                                    (currentQ.metadata?.topic === 'TIU' || currentQ.metadata?.subtest?.includes('TIU')) ? 'Tes Intelegensia Umum' :
-                                                    (currentQ.metadata?.topic === 'TKP' || currentQ.metadata?.subtest?.includes('TKP')) ? 'Tes Karakteristik Pribadi' :
-                                                    (currentQ.metadata?.topic || 'General')
-                                                )}
-                                            </span>
-                                            {formatTopic(currentQ.metadata?.subtest, currentQ.metadata?.topic) && (
-                                                <span className="bg-emerald-50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-wider border border-emerald-100 dark:border-emerald-900/30">
-                                                    {formatTopic(currentQ.metadata?.subtest, currentQ.metadata?.topic)}
-                                                </span>
-                                            )}
-                                            {(currentQ.metadata?.difficulty === 'HOTS' || currentQ.metadata?.difficulty === 'Hard') && (
-                                                <span className="flex items-center gap-0.5 text-white font-bold text-[9px] sm:text-[10px] bg-rose-600 px-1.5 py-0.5 rounded-full shadow-sm animate-pulse border border-rose-500">
-                                                    <Zap size={10} fill="currentColor"/> HOTS
-                                                </span>
-                                            )}
-                                            {/* Desktop Help Buttons Removed */}
-                                        </div>
-                                        <div className="text-right shrink-0">
-                                            <span className="text-xs sm:text-sm font-black text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-750 px-2 py-0.5 rounded">No. {currentIndex + 1}</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Pacing Indicator */}
-                                    {mode === StudyMode.SIMULATION && scaledIdealTimeSeconds && (
-                                        <PacingBar idealTimeSeconds={scaledIdealTimeSeconds} isActive={!isPaused} currentQId={currentQ.id} />
-                                    )}
-
                                     {(() => {
                                         const hasVisualGraphic = Boolean(
                                             (currentQ.content && (
@@ -2117,39 +2100,146 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                             ))
                                         );
 
+                                        const hasLongReading = Boolean(
+                                            (currentQ.content && currentQ.content.length > 250) ||
+                                            currentQ.metadata?.subtest?.toLowerCase().includes('bacaan') ||
+                                            currentQ.metadata?.subtest?.toLowerCase().includes('literasi') ||
+                                            currentQ.metadata?.subtest?.toLowerCase().includes('verbal') ||
+                                            currentQ.metadata?.subtest?.toLowerCase().includes('pbm') ||
+                                            currentQ.metadata?.subtest?.toLowerCase().includes('ppu') ||
+                                            currentQ.metadata?.topic?.toLowerCase().includes('bacaan')
+                                        );
+
+                                        const isSplitActive = hasVisualGraphic || (hasLongReading && isSplitReadingView);
+
                                         return (
-                                            <div className={`w-full ${hasVisualGraphic ? 'lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start' : ''}`}>
-                                                <div className={hasVisualGraphic ? 'lg:col-span-6 xl:col-span-5' : 'w-full'}>
-                                                    <div className={`mb-4 sm:mb-6 text-slate-800 dark:text-slate-100 fs-${fontSize} leading-relaxed word-break-safe ${hasVisualGraphic ? 'max-h-[360px] lg:max-h-[550px]' : 'max-h-[300px] sm:max-h-[400px]'} overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600`}>
-                                                        {(currentQ.content && currentQ.content.includes(':::MATRIX:::')) || (currentQ.metadata && currentQ.metadata.matrix && currentQ.metadata.matrix.length > 0) ? (
-                                                            <MatrixQuestionRenderer 
-                                                                content={currentQ.content} 
-                                                                metadataMatrix={currentQ.metadata?.matrix} 
-                                                                selectedOptionContent={answerMap[currentQ.id]?.selectedAnswer || null} 
-                                                            />
-                                                        ) : (
-                                                            <SimpleMarkdown 
-                                                                text={currentQ.content || ''} 
-                                                                allowIndent={
-                                                                    !!currentQ.metadata?.subtest?.includes('Bahasa') || 
-                                                                    !!currentQ.metadata?.subtest?.includes('Verbal') ||
-                                                                    !!currentQ.metadata?.topic?.includes('Bacaan') ||
-                                                                    (!!currentQ.content && currentQ.content.length > 350)
-                                                                }
-                                                            />
+                                            <>
+                                                {/* Question Header & Controls */}
+                                                <div className="flex items-center justify-between gap-2 border-b border-slate-150/55 dark:border-slate-700/50 pb-2 mb-3.5 sm:mb-4">
+                                                    <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 md:gap-2">
+                                                        <span className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider">
+                                                            {isUtbkSimulation ? UTBK_EXAM_CONFIG[utbkSubtestIndex].name : (
+                                                                (currentQ.metadata?.topic === 'TWK' || currentQ.metadata?.subtest?.includes('TWK')) ? 'Tes Wawasan Kebangsaan' :
+                                                                (currentQ.metadata?.topic === 'TIU' || currentQ.metadata?.subtest?.includes('TIU')) ? 'Tes Intelegensia Umum' :
+                                                                (currentQ.metadata?.topic === 'TKP' || currentQ.metadata?.subtest?.includes('TKP')) ? 'Tes Karakteristik Pribadi' :
+                                                                (currentQ.metadata?.topic || 'General')
+                                                            )}
+                                                        </span>
+                                                        {formatTopic(currentQ.metadata?.subtest, currentQ.metadata?.topic) && (
+                                                            <span className="bg-emerald-50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-wider border border-emerald-100 dark:border-emerald-900/30">
+                                                                {formatTopic(currentQ.metadata?.subtest, currentQ.metadata?.topic)}
+                                                            </span>
+                                                        )}
+                                                        {(currentQ.metadata?.difficulty === 'HOTS' || currentQ.metadata?.difficulty === 'Hard') && (
+                                                            <span className="flex items-center gap-0.5 text-white font-bold text-[9px] sm:text-[10px] bg-rose-600 px-1.5 py-0.5 rounded-full shadow-sm animate-pulse border border-rose-500">
+                                                                <Zap size={10} fill="currentColor"/> HOTS
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                                                        {/* Split Reading Pane Toggle */}
+                                                        {hasLongReading && (
+                                                            <button
+                                                                onClick={() => setIsSplitReadingView(prev => !prev)}
+                                                                className={`hidden md:flex items-center gap-1 px-2 py-0.5 sm:py-1 rounded-lg border text-[10px] sm:text-xs font-bold transition ${
+                                                                    isSplitReadingView
+                                                                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                                                                        : 'bg-slate-100 dark:bg-slate-750 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                                                }`}
+                                                                title="Split Screen Wacana Bacaan (Tombol S)"
+                                                            >
+                                                                <Columns size={12} />
+                                                                <span>{isSplitReadingView ? 'Tutup Split' : 'Split Bacaan'}</span>
+                                                                <span className="text-[9px] opacity-70 font-mono hidden lg:inline">[S]</span>
+                                                            </button>
+                                                        )}
+
+                                                        {/* Font Scale Controls */}
+                                                        <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-750 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                                                            <button
+                                                                onClick={() => changeFontSize('down')}
+                                                                disabled={fontSize === 'xs'}
+                                                                className="px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 rounded transition disabled:opacity-30"
+                                                                title="Perkecil Font (Q)"
+                                                            >
+                                                                A-
+                                                            </button>
+                                                            <span className="text-[10px] font-mono font-bold text-slate-500 px-1 uppercase">
+                                                                {fontSize}
+                                                            </span>
+                                                            <button
+                                                                onClick={() => changeFontSize('up')}
+                                                                disabled={fontSize === 'xl'}
+                                                                className="px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 rounded transition disabled:opacity-30"
+                                                                title="Perbesar Font (W)"
+                                                            >
+                                                                A+
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Quick Mute Toggle */}
+                                                        <button
+                                                            onClick={() => {
+                                                                const muted = SoundManager.toggleSound();
+                                                                setIsAudioMuted(muted);
+                                                                showToast(muted ? "Audio dimatikan (Muted)" : "Audio diaktifkan", "info");
+                                                            }}
+                                                            className="p-1 sm:p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition"
+                                                            title={isAudioMuted ? "Aktifkan Audio (V)" : "Matikan Audio (V)"}
+                                                        >
+                                                            {isAudioMuted ? <VolumeX size={14} className="text-rose-500" /> : <Volume2 size={14} className="text-slate-600 dark:text-slate-300" />}
+                                                        </button>
+
+                                                        <div className="text-right shrink-0">
+                                                            <span className="text-xs sm:text-sm font-black text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-750 px-2 py-0.5 rounded">No. {currentIndex + 1}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Pacing Indicator */}
+                                                {mode === StudyMode.SIMULATION && scaledIdealTimeSeconds && (
+                                                    <PacingBar idealTimeSeconds={scaledIdealTimeSeconds} isActive={!isPaused} currentQId={currentQ.id} />
+                                                )}
+
+                                                <div className={`w-full ${isSplitActive ? 'lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start' : ''}`}>
+                                                    <div className={isSplitActive ? 'lg:col-span-6 xl:col-span-6 lg:sticky lg:top-4 bg-slate-50/50 dark:bg-slate-900/30 p-2.5 sm:p-3 rounded-xl border border-slate-200/70 dark:border-slate-700/70 mb-4 lg:mb-0' : 'w-full'}>
+                                                        {isSplitActive && (
+                                                            <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-indigo-100 dark:border-indigo-900/40 text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
+                                                                <span className="flex items-center gap-1.5"><BookOpen size={13} /> {hasVisualGraphic ? 'Stimulus Gambar/Figural' : 'Teks Bacaan / Wacana'}</span>
+                                                                <span className="text-[10px] text-slate-400 font-normal">Scroll mandiri</span>
+                                                            </div>
+                                                        )}
+                                                        <div className={`text-slate-800 dark:text-slate-100 fs-${fontSize} leading-relaxed word-break-safe ${isSplitActive ? 'max-h-[380px] lg:max-h-[560px]' : 'max-h-[300px] sm:max-h-[400px] mb-4 sm:mb-6'} overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600`}>
+                                                            {(currentQ.content && currentQ.content.includes(':::MATRIX:::')) || (currentQ.metadata && currentQ.metadata.matrix && currentQ.metadata.matrix.length > 0) ? (
+                                                                <MatrixQuestionRenderer 
+                                                                    content={currentQ.content} 
+                                                                    metadataMatrix={currentQ.metadata?.matrix} 
+                                                                    selectedOptionContent={answerMap[currentQ.id]?.selectedAnswer || null} 
+                                                                />
+                                                            ) : (
+                                                                <SimpleMarkdown 
+                                                                    text={currentQ.content || ''} 
+                                                                    allowIndent={
+                                                                        !!currentQ.metadata?.subtest?.includes('Bahasa') || 
+                                                                        !!currentQ.metadata?.subtest?.includes('Verbal') ||
+                                                                        !!currentQ.metadata?.topic?.includes('Bacaan') ||
+                                                                        (!!currentQ.content && currentQ.content.length > 350)
+                                                                    }
+                                                                />
+                                                            )}
+                                                        </div>
+
+                                                        {/* Hint Display (When Used) */}
+                                                        {hintUsedMap[currentQ.id] && (
+                                                            <div className="w-full p-3 mt-3 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 text-amber-800 dark:text-amber-300 text-sm animate-fade-in">
+                                                                <strong className="flex items-center gap-1.5 mb-1"><Lightbulb size={14} /> Clue:</strong>
+                                                                <SimpleMarkdown text={currentQ.hint || ''} />
+                                                            </div>
                                                         )}
                                                     </div>
 
-                                                    {/* Hint Display (When Used) */}
-                                                    {hintUsedMap[currentQ.id] && (
-                                                        <div className="w-full p-3 mb-4 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 text-amber-800 dark:text-amber-300 text-sm animate-fade-in">
-                                                            <strong className="flex items-center gap-1.5 mb-1"><Lightbulb size={14} /> Clue:</strong>
-                                                            <SimpleMarkdown text={currentQ.hint || ''} />
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className={hasVisualGraphic ? 'lg:col-span-6 xl:col-span-7' : 'w-full'}>
+                                                    <div className={isSplitActive ? 'lg:col-span-6 xl:col-span-6' : 'w-full'}>
                                                     {/* Options */}
                                                     {currentQ.type === 'multiple_choice' ? (
                                                         <div className="space-y-2 sm:space-y-3">
@@ -2311,6 +2401,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                                     )}
                                                 </div>
                                             </div>
+                                            </>
                                         );
                                     })()}
                                 </div>
@@ -2345,7 +2436,12 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
 
                 <div className="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-2 sm:p-3.5 z-10">
                     <div className="max-w-4xl mx-auto flex justify-between items-center gap-1">
-                        <button onClick={() => {setCurrentIndex(prev => Math.max(0, prev - 1));}} disabled={currentIndex === 0} className="flex items-center gap-0.5 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-2 rounded-lg font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 text-[10px] sm:text-xs md:text-sm shrink-0 transition-colors"><ArrowLeft size={12} className="sm:w-4 sm:h-4"/> <span className="hidden sm:inline">Sebelumnya</span><span className="inline sm:hidden font-medium">Sebelumnya</span></button>
+                        <button onClick={() => {setCurrentIndex(prev => Math.max(0, prev - 1));}} disabled={currentIndex === 0} className="flex items-center gap-0.5 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-2 rounded-lg font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 text-[10px] sm:text-xs md:text-sm shrink-0 transition-colors" title="Soal Sebelumnya (Tombol P atau Panah Kiri)">
+                            <ArrowLeft size={12} className="sm:w-4 sm:h-4"/> 
+                            <span className="hidden sm:inline">Sebelumnya</span>
+                            <span className="inline sm:hidden font-medium">Sebelumnya</span>
+                            <span className="hidden md:inline-block text-[9px] font-mono opacity-60 bg-slate-200 dark:bg-slate-600 px-1 py-0.2 rounded ml-0.5">P</span>
+                        </button>
                         
                         <div className="flex gap-1 sm:gap-2 items-center justify-center flex-1 min-w-0">
                             {initialState && (
@@ -2353,8 +2449,11 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                     <Save size={10}/> Saved
                                 </div>
                             )}
-                            <button onClick={toggleDoubtful} className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-3 py-1 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs md:text-sm border transition shrink-0 ${currentAns?.isDoubtful ? 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700' : 'bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600'}`}>
-                                <input type="checkbox" checked={currentAns?.isDoubtful || false} readOnly className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 accent-amber-500 cursor-pointer shrink-0"/><span className="hidden sm:inline ml-1 font-bold">Ragu-ragu</span><span className="inline sm:hidden font-medium ml-1">Ragu</span>
+                            <button onClick={toggleDoubtful} className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-3 py-1 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs md:text-sm border transition shrink-0 ${currentAns?.isDoubtful ? 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700' : 'bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600'}`} title="Tandai Ragu-ragu (Tombol R atau M)">
+                                <input type="checkbox" checked={currentAns?.isDoubtful || false} readOnly className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 accent-amber-500 cursor-pointer shrink-0"/>
+                                <span className="hidden sm:inline ml-1 font-bold">Ragu-ragu</span>
+                                <span className="inline sm:hidden font-medium ml-1">Ragu</span>
+                                <span className="hidden md:inline-block text-[9px] font-mono opacity-60 bg-slate-200 dark:bg-slate-600 px-1 py-0.2 rounded ml-0.5">R</span>
                             </button>
 
                             {isAdminAuthenticated && currentQ && (
@@ -2387,11 +2486,13 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                 }
                             }} 
                             className="flex items-center gap-0.5 sm:gap-1.5 px-2 sm:px-4 py-1 sm:py-2 rounded-lg font-black bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm text-[10px] sm:text-xs md:text-sm shrink-0 transition-transform active:scale-95"
+                            title="Soal Berikutnya (Tombol N atau Panah Kanan)"
                         >
                             <span className="hidden sm:inline">
                                 {currentIndex === activeQuestions.length - 1 ? (isUtbkSimulation && utbkSubtestIndex < UTBK_EXAM_CONFIG.length - 1 ? 'Lanjut Subtes' : 'Selesai Tes') : 'Berikutnya'}
                             </span> 
                             <span className="sm:hidden font-bold">{currentIndex === activeQuestions.length - 1 ? 'Selesai' : 'Berikutnya'}</span>
+                            <span className="hidden md:inline-block text-[9px] font-mono text-indigo-200 bg-indigo-700/60 px-1 py-0.2 rounded ml-0.5">N</span>
                             <ChevronRight size={12} className="sm:w-4 sm:h-4"/>
                         </button>
                     </div>

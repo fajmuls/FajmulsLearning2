@@ -40,6 +40,33 @@ class SoundManagerClass {
         });
     }
 
+    public isSoundEnabled(): boolean {
+        return this.soundEnabled;
+    }
+
+    public isMuted(): boolean {
+        return !this.soundEnabled;
+    }
+
+    public setSoundEnabled(enabled: boolean) {
+        this.soundEnabled = enabled;
+        try {
+            const raw = localStorage.getItem('fajmuls_app_settings');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                parsed.soundEnabled = enabled;
+                localStorage.setItem('fajmuls_app_settings', JSON.stringify(parsed));
+            }
+            window.dispatchEvent(new CustomEvent('soundSettingsChanged', { detail: { soundEnabled: enabled } }));
+        } catch (e) {}
+    }
+
+    public toggleSound(): boolean {
+        const next = !this.soundEnabled;
+        this.setSoundEnabled(next);
+        return next;
+    }
+
     public startMusic() { /* No-op */ }
     public stopMusic() { /* No-op */ }
 
