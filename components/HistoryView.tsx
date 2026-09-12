@@ -4,10 +4,10 @@ import {
 } from 'recharts';
 import { 
     ArrowLeft, User as UserIcon, Download, Upload as UploadIcon, Filter, 
-    TrendingUp, Award, History, Calendar, CheckCircle, XCircle, 
+    TrendingUp, TrendingDown, Award, History, Calendar, CheckCircle, XCircle, 
     ChevronRight, Zap, Activity, Clock, BarChart2, Trash2, Eye, 
     Briefcase, GraduationCap, Brain, FileText, MessageSquare, Palette, Book, BookOpen, Library, School, Package,
-    Square, CheckSquare, Grid, ShieldCheck, AlertTriangle, Flag, Bot, AlertCircle, Info, Target, Lightbulb, EyeOff, Search, X
+    Square, CheckSquare, Grid, ShieldCheck, AlertTriangle, Flag, Bot, AlertCircle, Info, Target, Lightbulb, EyeOff, Search, X, Sparkles
 } from 'lucide-react';
 import { TestHistoryItem, CategoryType, SkdResultDetails, TesKoranResultDetails, TesKecermatanResultDetails, UtbkResultDetails, BenchmarkResultDetails, Question, UserAnswer, UserProfile, StudyMode } from '../types';
 import { CATEGORIES } from '../constants';
@@ -15,6 +15,8 @@ import { SoundManager } from '../services/soundService';
 import { SimpleMarkdown, MatrixQuestionRenderer, SvgRenderer } from './QuestionRenderer';
 import { InteractiveFigural } from './InteractiveFigural';
 import { LearningHeatmap } from './LearningHeatmap';
+import { SubtestWeaknessAnalysis } from './SubtestWeaknessAnalysis';
+import { calculateMovingAverageData, calculateCumulativeWeaknesses } from '../src/utils/performanceAnalytics';
 import { isUserAdmin } from '../services/firebase';
 
 interface HistoryProps {
@@ -211,6 +213,7 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
     const [statusFilter, setStatusFilter] = useState<'ALL' | 'PASSED' | 'FAILED'>('ALL');
     const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState<'LIST' | 'ANALYTICS'>('LIST');
+    const [maWindow, setMaWindow] = useState<5 | 10>(5);
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
 
@@ -301,6 +304,14 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
         }
     });
     const totalWrongAll = totalQuestionsAnswered - totalCorrectAll;
+
+    const movingAverageData = useMemo(() => {
+        return calculateMovingAverageData(filteredHistory, maWindow);
+    }, [filteredHistory, maWindow]);
+
+    const cumulativeWeaknesses = useMemo(() => {
+        return calculateCumulativeWeaknesses(filteredHistory);
+    }, [filteredHistory]);
 
     const packageSummary = useMemo(() => {
         const groups: Record<string, { 
@@ -875,85 +886,347 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                             </div>
                         </div>
 
-                        {/* Layer 4: Original Progress Charts */}
+                        {/* Layer 4: Original Progress Charts + Moving Average Visualization */}
                         {filteredHistory.length > 1 ? (
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-                                    <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-2 flex items-center gap-2">
-                                        <TrendingUp className="text-indigo-500 w-4 h-4" /> Grafik Tren Skor Utama
-                                    </h3>
-                                    <div className="h-64 w-full">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <AreaChart data={[...filteredHistory].reverse()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                                <defs>
-                                                    <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                                                    </linearGradient>
-                                                </defs>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#1e293b' : '#f1f5f9'} />
-                                                <XAxis 
-                                                    dataKey="date" 
-                                                    tickFormatter={(val) => new Date(val).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    tick={{ fontSize: 10, fill: isDarkMode ? '#64748b' : '#94a3b8' }}
-                                                    dy={10}
-                                                />
-                                                <YAxis 
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    tick={{ fontSize: 10, fill: isDarkMode ? '#64748b' : '#94a3b8' }}
-                                                />
-                                                <Tooltip 
-                                                    contentStyle={{ 
-                                                        backgroundColor: isDarkMode ? '#1e293b' : '#ffffff', 
-                                                        borderColor: isDarkMode ? '#334155' : '#e2e8f0',
-                                                        borderRadius: '12px',
-                                                        fontSize: '11px',
-                                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-                                                    }}
-                                                    labelFormatter={(val) => new Date(val).toLocaleString('id-ID')}
-                                                />
-                                                <Area type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" />
-                                            </AreaChart>
-                                        </ResponsiveContainer>
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    {/* Score Chart with Moving Average */}
+                                    <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                                        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                                            <div>
+                                                <h3 className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+                                                    <TrendingUp className="text-indigo-500 w-4 h-4" /> Grafik Tren Skor & Moving Average
+                                                </h3>
+                                                <p className="text-[11px] text-slate-500 mt-0.5">
+                                                    Garis emas menunjukkan rata-rata bergerak ({maWindow} tryout terakhir) untuk memantau konsistensi kenaikan nilai.
+                                                </p>
+                                            </div>
+
+                                            {/* Window Selector Buttons */}
+                                            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/60 p-1 rounded-xl">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setMaWindow(5)}
+                                                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+                                                        maWindow === 5 
+                                                            ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' 
+                                                            : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                                                    }`}
+                                                >
+                                                    MA-5
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setMaWindow(10)}
+                                                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+                                                        maWindow === 10 
+                                                            ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' 
+                                                            : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                                                    }`}
+                                                >
+                                                    MA-10
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Trend Metric Summary Card */}
+                                        <div className="mb-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 text-xs">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-slate-500 font-medium">Rata-rata Terkini (MA-{maWindow}):</span>
+                                                <span className="font-extrabold text-slate-800 dark:text-white text-sm">
+                                                    {movingAverageData.currentMA}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex items-center gap-1.5 font-bold">
+                                                {movingAverageData.trendDirection === 'UP' ? (
+                                                    <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full text-[11px]">
+                                                        <TrendingUp size={12} />
+                                                        Naik +{movingAverageData.trendDelta} poin (+{movingAverageData.trendPercent}%)
+                                                    </span>
+                                                ) : movingAverageData.trendDirection === 'DOWN' ? (
+                                                    <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-full text-[11px]">
+                                                        <TrendingDown size={12} />
+                                                        Turun {movingAverageData.trendDelta} poin ({movingAverageData.trendPercent}%)
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1 bg-slate-200 dark:bg-slate-700/60 px-2 py-0.5 rounded-full text-[11px]">
+                                                        <Activity size={12} />
+                                                        Tren Stabil
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Chart Area */}
+                                        <div className="h-64 w-full">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <AreaChart 
+                                                    data={movingAverageData.points} 
+                                                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                                                >
+                                                    <defs>
+                                                        <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.25}/>
+                                                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0}/>
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#1e293b' : '#f1f5f9'} />
+                                                    <XAxis 
+                                                        dataKey="date" 
+                                                        tickFormatter={(val) => new Date(val).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{ fontSize: 10, fill: isDarkMode ? '#64748b' : '#94a3b8' }}
+                                                        dy={10}
+                                                    />
+                                                    <YAxis 
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{ fontSize: 10, fill: isDarkMode ? '#64748b' : '#94a3b8' }}
+                                                    />
+                                                    <Tooltip 
+                                                        contentStyle={{ 
+                                                            backgroundColor: isDarkMode ? '#1e293b' : '#ffffff', 
+                                                            borderColor: isDarkMode ? '#334155' : '#e2e8f0',
+                                                            borderRadius: '12px',
+                                                            fontSize: '11px',
+                                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                                                        }}
+                                                        formatter={(value: any, name: any) => {
+                                                            if (name === 'movingAvg') return [`${value} (Rata-rata Bergerak)`, `MA-${maWindow}`];
+                                                            return [`${value} Poin`, 'Skor Sesi'];
+                                                        }}
+                                                        labelFormatter={(val) => new Date(val).toLocaleString('id-ID')}
+                                                    />
+                                                    <Area 
+                                                        type="monotone" 
+                                                        dataKey="score" 
+                                                        stroke="#6366f1" 
+                                                        strokeWidth={2} 
+                                                        fillOpacity={1} 
+                                                        fill="url(#colorScore)" 
+                                                        name="score"
+                                                    />
+                                                    <Line 
+                                                        type="monotone" 
+                                                        dataKey="movingAvg" 
+                                                        stroke="#f59e0b" 
+                                                        strokeWidth={3.5} 
+                                                        dot={{ r: 3.5, strokeWidth: 2, fill: '#fff', stroke: '#f59e0b' }} 
+                                                        activeDot={{ r: 6, stroke: '#f59e0b', strokeWidth: 2 }}
+                                                        name="movingAvg"
+                                                    />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        </div>
+
+                                        {/* Chart Legend */}
+                                        <div className="flex items-center justify-center gap-5 mt-3 text-xs font-bold text-slate-500">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="w-3 h-3 rounded-full bg-indigo-500"></span>
+                                                <span>Skor Sesi Aktual</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="w-3.5 h-1 rounded-full bg-amber-500"></span>
+                                                <span>Moving Average (MA-{maWindow})</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Accuracy Chart */}
+                                    <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+                                        <div>
+                                            <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-1 flex items-center gap-2">
+                                                <Target className="text-emerald-500 w-4 h-4" /> Grafik Akurasi Jawaban (%)
+                                            </h3>
+                                            <p className="text-[11px] text-slate-500 mb-4">
+                                                Persentase jawaban benar per sesi tryout untuk mengukur presisi pengerjaan soal.
+                                            </p>
+                                        </div>
+
+                                        <div className="h-64 w-full">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <LineChart 
+                                                    data={[...filteredHistory].reverse().map((d: any) => ({ 
+                                                        ...d, 
+                                                        accuracy: Math.round((d.answers || []).filter((a: any) => a.isCorrect).length / Math.max((d.answers || []).length || 1, 1) * 100) 
+                                                    }))} 
+                                                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                                                >
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#1e293b' : '#f1f5f9'} />
+                                                    <XAxis 
+                                                        dataKey="date" 
+                                                        tickFormatter={(val) => new Date(val).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{ fontSize: 10, fill: isDarkMode ? '#64748b' : '#94a3b8' }}
+                                                        dy={10}
+                                                    />
+                                                    <YAxis 
+                                                        domain={[0, 100]}
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{ fontSize: 10, fill: isDarkMode ? '#64748b' : '#94a3b8' }}
+                                                    />
+                                                    <Tooltip 
+                                                        contentStyle={{ 
+                                                            backgroundColor: isDarkMode ? '#1e293b' : '#ffffff', 
+                                                            borderColor: isDarkMode ? '#334155' : '#e2e8f0',
+                                                            borderRadius: '12px',
+                                                            fontSize: '11px',
+                                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                                                        }}
+                                                        formatter={(value: any) => [`${value}%`, 'Akurasi Jawaban']}
+                                                        labelFormatter={(val) => new Date(val).toLocaleString('id-ID')}
+                                                    />
+                                                    <Line 
+                                                        type="monotone" 
+                                                        dataKey="accuracy" 
+                                                        stroke="#10b981" 
+                                                        strokeWidth={3} 
+                                                        dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} 
+                                                        activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2 }} 
+                                                    />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        </div>
+
+                                        <div className="flex items-center justify-center gap-5 mt-3 text-xs font-bold text-slate-500">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
+                                                <span>Akurasi Soal Terjawab Benar</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-                                    <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-2 flex items-center gap-2">
-                                        <Target className="text-emerald-500 w-4 h-4" /> Grafik Akurasi Jawaban (%)
-                                    </h3>
-                                    <div className="h-64 w-full">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <LineChart data={[...filteredHistory].reverse().map((d: any) => ({ ...d, accuracy: Math.round((d.answers || []).filter((a: any) => a.isCorrect).length / Math.max((d.answers || []).length || 1, 1) * 100) }))} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#1e293b' : '#f1f5f9'} />
-                                                <XAxis 
-                                                    dataKey="date" 
-                                                    tickFormatter={(val) => new Date(val).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    tick={{ fontSize: 10, fill: isDarkMode ? '#64748b' : '#94a3b8' }}
-                                                    dy={10}
-                                                />
-                                                <YAxis 
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    tick={{ fontSize: 10, fill: isDarkMode ? '#64748b' : '#94a3b8' }}
-                                                />
-                                                <Tooltip 
-                                                    contentStyle={{ 
-                                                        backgroundColor: isDarkMode ? '#1e293b' : '#ffffff', 
-                                                        borderColor: isDarkMode ? '#334155' : '#e2e8f0',
-                                                        borderRadius: '12px',
-                                                        fontSize: '11px',
-                                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-                                                    }}
-                                                />
-                                                <Line type="monotone" dataKey="accuracy" stroke="#10b981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2 }} />
-                                            </LineChart>
-                                        </ResponsiveContainer>
+                                {/* Layer 5: Cumulative Weakness Diagnosis (Granular Sub-test & Topic Analysis) */}
+                                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 text-left">
+                                    <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                                                <AlertTriangle size={20} />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-extrabold text-sm sm:text-base text-slate-800 dark:text-white">
+                                                    Peta Analisis Kekurangan Materi (Diagnosis Akumulatif)
+                                                </h3>
+                                                <p className="text-xs text-slate-500 mt-0.5">
+                                                    Evaluasi gabungan dari seluruh riwayat tryout untuk mendeteksi materi yang paling sering salah dijawab.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <span className="text-xs font-bold bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-full text-slate-600 dark:text-slate-300">
+                                            {cumulativeWeaknesses.totalEvaluatedSessions} Sesi Dianalisis
+                                        </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+                                        {/* Topik Kritis / Perlu Ditingkatkan */}
+                                        <div className="p-4 rounded-xl border border-rose-200/80 bg-rose-50/40 dark:border-rose-900/40 dark:bg-rose-950/20">
+                                            <h4 className="text-xs font-extrabold text-rose-700 dark:text-rose-400 flex items-center gap-1.5 uppercase tracking-wider mb-3">
+                                                <AlertCircle size={15} /> Topik Prioritas Pembenahan (Akurasi Rendah)
+                                            </h4>
+
+                                            {cumulativeWeaknesses.weakestTopics.length > 0 ? (
+                                                <div className="space-y-2.5">
+                                                    {cumulativeWeaknesses.weakestTopics.map((topic, idx) => (
+                                                        <div key={idx} className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-rose-100 dark:border-rose-900/50 shadow-xs">
+                                                            <div className="flex items-start justify-between gap-2">
+                                                                <div>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-300">
+                                                                            {topic.subtest}
+                                                                        </span>
+                                                                        <span className="text-xs font-bold text-slate-800 dark:text-white">
+                                                                            {topic.topic}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-right shrink-0">
+                                                                    <span className="text-xs font-black text-rose-600 dark:text-rose-400">
+                                                                        {topic.accuracyPercent}%
+                                                                    </span>
+                                                                    <span className="text-[10px] text-slate-400 ml-1">
+                                                                        ({topic.correctCount}/{topic.totalQuestions})
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden mt-2">
+                                                                <div 
+                                                                    className="h-full bg-rose-500 rounded-full" 
+                                                                    style={{ width: `${Math.min(100, Math.max(5, topic.accuracyPercent))}%` }}
+                                                                />
+                                                            </div>
+
+                                                            <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
+                                                                <span className="font-semibold text-slate-700 dark:text-slate-200">Saran: </span>
+                                                                {topic.recommendation}
+                                                            </p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-xs text-slate-500 py-6 text-center bg-white dark:bg-slate-800 rounded-lg">
+                                                    Tidak ada materi di bawah ambang kritis. Konsistensi akurasi Anda sangat memuaskan!
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Topik yang Telah Dikuasai */}
+                                        <div className="p-4 rounded-xl border border-emerald-200/80 bg-emerald-50/40 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+                                            <h4 className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 uppercase tracking-wider mb-3">
+                                                <CheckCircle size={15} /> Materi yang Telah Dikuasai (Akurasi Tinggi)
+                                            </h4>
+
+                                            {cumulativeWeaknesses.strongestTopics.length > 0 ? (
+                                                <div className="space-y-2.5">
+                                                    {cumulativeWeaknesses.strongestTopics.map((topic, idx) => (
+                                                        <div key={idx} className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-emerald-100 dark:border-emerald-900/50 shadow-xs">
+                                                            <div className="flex items-start justify-between gap-2">
+                                                                <div>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300">
+                                                                            {topic.subtest}
+                                                                        </span>
+                                                                        <span className="text-xs font-bold text-slate-800 dark:text-white">
+                                                                            {topic.topic}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-right shrink-0">
+                                                                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                                                                        {topic.accuracyPercent}%
+                                                                    </span>
+                                                                    <span className="text-[10px] text-slate-400 ml-1">
+                                                                        ({topic.correctCount}/{topic.totalQuestions})
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden mt-2">
+                                                                <div 
+                                                                    className="h-full bg-emerald-500 rounded-full" 
+                                                                    style={{ width: `${Math.min(100, Math.max(5, topic.accuracyPercent))}%` }}
+                                                                />
+                                                            </div>
+
+                                                            <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
+                                                                <span className="font-semibold text-slate-700 dark:text-slate-200">Rekomendasi: </span>
+                                                                Pertahankan ritme kecepatan pengerjaan dan ulangi secara berkala untuk menjaga retensi ingatan.
+                                                            </p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-xs text-slate-500 py-6 text-center bg-white dark:bg-slate-800 rounded-lg">
+                                                    Belum ada materi yang mencapai ambang penguasaan penuh (&ge; 80%). Terus lakukan latihan rutin!
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1336,6 +1609,15 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                                                         </div>
                                                     )}
                                                 </div>
+                                            )}
+
+                                            {/* Granular Sub-test & Topic Weakness Analysis for this Attempt */}
+                                            {item.questions && item.questions.length > 0 && (
+                                                <SubtestWeaknessAnalysis 
+                                                    item={item} 
+                                                    isDarkMode={isDarkMode} 
+                                                    defaultExpanded={showAllDetails} 
+                                                />
                                             )}
                                         </div>
                                     </div>

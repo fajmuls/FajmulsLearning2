@@ -79,33 +79,33 @@
 
   .bg-pattern-grid {
     background-image: 
-      linear-gradient(rgba(100, 116, 139, 0.1) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(100, 116, 139, 0.1) 1px, transparent 1px);
-    background-size: 50px 50px;
+      linear-gradient(rgba(99, 102, 241, 0.16) 1.5px, transparent 1.5px),
+      linear-gradient(90deg, rgba(99, 102, 241, 0.16) 1.5px, transparent 1.5px);
+    background-size: 40px 40px;
     animation: panGrid 60s linear infinite;
   }
   .dark .bg-pattern-grid {
     background-image: 
-      linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      linear-gradient(rgba(255, 255, 255, 0.11) 1.5px, transparent 1.5px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.11) 1.5px, transparent 1.5px);
   }
 
   .bg-pattern-dots {
-    background-image: radial-gradient(rgba(100, 116, 139, 0.2) 2px, transparent 2px);
-    background-size: 30px 30px;
+    background-image: radial-gradient(rgba(99, 102, 241, 0.35) 2.5px, transparent 2.5px);
+    background-size: 28px 28px;
     animation: moveDots 20s linear infinite alternate;
   }
   .dark .bg-pattern-dots {
-    background-image: radial-gradient(rgba(255, 255, 255, 0.1) 2px, transparent 2px);
+    background-image: radial-gradient(rgba(255, 255, 255, 0.22) 2.5px, transparent 2.5px);
   }
 
   .bg-pattern-fajmuls {
-    background: linear-gradient(-45deg, rgba(238, 119, 82, 0.2), rgba(231, 60, 126, 0.2), rgba(35, 166, 213, 0.2), rgba(35, 213, 171, 0.2));
+    background: linear-gradient(-45deg, rgba(238, 119, 82, 0.32), rgba(231, 60, 126, 0.3), rgba(35, 166, 213, 0.32), rgba(35, 213, 171, 0.32));
     background-size: 400% 400%;
     animation: var(--animate-gradient-x);
   }
   .dark .bg-pattern-fajmuls {
-    background: linear-gradient(-45deg, rgba(76, 29, 149, 0.3), rgba(190, 24, 93, 0.3), rgba(15, 118, 110, 0.3), rgba(30, 58, 138, 0.3));
+    background: linear-gradient(-45deg, rgba(76, 29, 149, 0.45), rgba(190, 24, 93, 0.42), rgba(15, 118, 110, 0.42), rgba(30, 58, 138, 0.45));
     background-size: 400% 400%;
   }
 
@@ -119,10 +119,13 @@
     position: absolute;
     width: 200%; height: 200%;
     top: -50%; left: -50%;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%230ea5e9' fill-opacity='0.1' d='M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%236366f1' fill-opacity='0.22' d='M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3C/svg%3E");
     background-repeat: repeat-x;
-    opacity: 0.3;
+    opacity: 0.65;
     animation: waveMove 30s linear infinite;
+  }
+  .dark .bg-pattern-waves::after {
+    opacity: 0.45;
   }
 
   .bg-pattern-aurora {
@@ -133,10 +136,10 @@
     position: absolute;
     top: -50%; left: -50%;
     width: 200%; height: 200%;
-    background: radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.1), transparent 60%),
-                radial-gradient(circle at 80% 20%, rgba(20, 184, 166, 0.1), transparent 50%),
-                radial-gradient(circle at 20% 80%, rgba(236, 72, 153, 0.1), transparent 50%);
-    filter: blur(80px);
+    background: radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.22), transparent 60%),
+                radial-gradient(circle at 80% 20%, rgba(20, 184, 166, 0.2), transparent 50%),
+                radial-gradient(circle at 20% 80%, rgba(236, 72, 153, 0.2), transparent 50%);
+    filter: blur(60px);
     animation: auroraShift 15s ease-in-out infinite alternate;
   }
 

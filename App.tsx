@@ -137,6 +137,8 @@ import { Flashcard } from "./components/Flashcard";
 import { MindMapViewer } from "./components/MindMapViewer";
 import { SkeletonLoader, CardSkeleton } from "./components/SkeletonLoader";
 import { SplashScreen } from "./components/SplashScreen";
+import { PwaInstallBanner } from "./components/PwaInstallBanner";
+import { NotificationService } from "./services/notificationService";
 
 // ==== CODE SPLITTING: Lazy Load Route Components ====
 const SettingsModal = React.lazy(() => import("./components/SettingsModal").then(m => ({ default: m.SettingsModal })));
@@ -2615,6 +2617,17 @@ function App() {
     );
     return () => unsubscribe();
   }, []);
+
+  // Web Notification API: Pengingat Jadwal Belajar Harian & Proteksi Streak
+  useEffect(() => {
+    const streak = userProfile?.gamification?.streak || 1;
+    NotificationService.checkAndTriggerDailyReminder(streak);
+
+    const interval = setInterval(() => {
+      NotificationService.checkAndTriggerDailyReminder(streak);
+    }, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [userProfile?.gamification?.streak]);
 
   useEffect(() => {
     localStorage.setItem("fajmuls_settings", JSON.stringify(settings));
@@ -5519,6 +5532,9 @@ function App() {
               onBack={() => setCurrentView("HOME")}
             />
           )}
+
+        {/* PWA In-App Install Prompt Banner */}
+        <PwaInstallBanner />
       </div>
     </>
   );

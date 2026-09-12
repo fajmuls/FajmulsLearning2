@@ -5,9 +5,34 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "3.5.0";
+export const APP_VERSION = "3.7.0";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "3.7.0",
+    date: "2026-09-11",
+    type: "minor",
+    notes: [
+      "Analisis Detail Kekurangan Subtes & Materi: Rincian jumlah benar/salah (misal 5/6 soal benar) pada tiap topik SKD (Integritas, Bela Negara, Silogisme, dll) langsung di kartu riwayat",
+      "Moving Average Score Trend: Visualisasi grafik tren nilai rata-rata bergerak (MA-5 & MA-10) dengan indikator kenaikan/penurunan skor",
+      "Peta Kelemahan Akumulatif: Diagnosis materi kritis yang paling sering salah dari seluruh riwayat tryout beserta rekomendasi belajar terarah",
+      "Web Notification API: Pengingat waktu belajar harian terjadwal via notifikasi browser untuk menjaga streak belajar",
+      "PWA Install Prompt Banner: Banner A2HS (Add to Home Screen) berdesain rapi dan panduan instalasi untuk iOS/Android",
+      "Revamp Pengaturan & Akun: Tampilan pengaturan yang bersih, profil akun, dan navigasi yang responsif"
+    ]
+  },
+  {
+    version: "3.6.0",
+    date: "2026-09-11",
+    type: "minor",
+    notes: [
+      "Revamp Pengaturan & Akun: Tampilan konsisten, kartu profil pengguna, dan performa super ringan tanpa frame drop",
+      "Relokasi Kontrol ke Navigasi: Tombol Font Scale, Mute Audio, dan Split Screen dipindahkan ke panel navigasi dengan hint shortcut",
+      "Peningkatan Kontras Pola Latar: Motif Grid, Dots, Waves, Aurora, dan Fajmuls kini terlihat jelas dan dinamis",
+      "Fix Navigasi Cepat: Penghapusan blocking transisi agar nomor dan isi soal selalu sinkron 100%",
+      "Fix Toggle Pilihan Jawaban: Jawaban dapat dibatalkan (deselect) langsung dengan menekan tombol opsi yang sama"
+    ]
+  },
   {
     version: "3.5.0",
     date: "2026-09-11",
