@@ -145,8 +145,8 @@ export const updateUsername = async (uid: string, newUsername: string) => {
     });
 };
 
-// Update Profile (Username & Photo)
-export const updateUserProfile = async (uid: string, data: { username?: string, photoURL?: string }) => {
+// Update Profile (Username, Photo & Detailed Attributes)
+export const updateUserProfile = async (uid: string, data: Partial<UserProfile>) => {
     const updates: any = {};
     
     if (data.username) {
@@ -154,9 +154,15 @@ export const updateUserProfile = async (uid: string, data: { username?: string, 
         updates.username_lowercase = data.username.toLowerCase();
     }
     
-    if (data.photoURL !== undefined) {
-        updates.photoURL = data.photoURL;
-    }
+    if (data.photoURL !== undefined) updates.photoURL = data.photoURL;
+    if (data.bio !== undefined) updates.bio = data.bio;
+    if (data.targetInstitution !== undefined) updates.targetInstitution = data.targetInstitution;
+    if (data.targetCategory !== undefined) updates.targetCategory = data.targetCategory;
+    if (data.targetScore !== undefined) updates.targetScore = data.targetScore;
+    if (data.phone !== undefined) updates.phone = data.phone;
+    if (data.institutionOrigin !== undefined) updates.institutionOrigin = data.institutionOrigin;
+    if (data.provinceOrCity !== undefined) updates.provinceOrCity = data.provinceOrCity;
+    if (data.avatarPreset !== undefined) updates.avatarPreset = data.avatarPreset;
     
     await updateDoc(doc(db, USERS_COLLECTION, uid), updates);
 };

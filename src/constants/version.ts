@@ -5,9 +5,21 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "3.7.0";
+export const APP_VERSION = "3.8.0";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "3.8.0",
+    date: "2026-09-11",
+    type: "minor",
+    notes: [
+      "Statistik Belajar Komprehensif Akun: Analisis mendalam per paket TO, per subtes (TWK, TIU, TKP, UTBK, TPA, TBI), akurasi %, skor tertinggi/terendah/rata-rata, durasi belajar, dan riwayat per-soal di tiap paket",
+      "Peringkat Materi Dikuasai vs Lemah: Urutan topik dari yang paling dikuasai (≥80%) hingga kritis (<55%) lengkap dengan rekomendasi taktis belajar",
+      "Diagnosis Karakteristik & Perilaku Soal: Deteksi soal overthinking, keraguan pengerjaan (doubtful), tebakan cepat, dan akurasi berdasarkan tingkat kesulitan soal (Easy, Medium, Hard, HOTS)",
+      "Profil Akun Detail & Target Belajar: Form edit profil lengkap mencakup Username, Target Instansi (Kemenkeu, STAN, dll), Target Skor, Jalur Ujian Utama, Asal Sekolah/Kampus, Kota/Domisili, Bio, dan 8 Preset Avatar Karakter",
+      "Akses Mudah Langsung dari Header & Pengaturan: Buka profil lengkap dan analisis belajar langsung dari avatar dropdown atau kartu akun di Pengaturan"
+    ]
+  },
   {
     version: "3.7.0",
     date: "2026-09-11",

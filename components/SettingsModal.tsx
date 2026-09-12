@@ -16,8 +16,9 @@ interface SettingsModalProps {
     settings: AppSettings;
     onUpdate: (s: AppSettings) => void;
     userProfile: UserProfile | null;
-    onUpdateProfile: (data: { username?: string, photoURL?: string }) => Promise<void>;
+    onUpdateProfile: (data: Partial<UserProfile>) => Promise<void>;
     onOpenAdminDashboard?: () => void;
+    onOpenProfileModal?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ 
@@ -26,7 +27,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     settings, 
     onUpdate, 
     userProfile, 
-    onOpenAdminDashboard 
+    onOpenAdminDashboard,
+    onOpenProfileModal
 }) => {
     const [activeTab, setActiveTab] = useState<'display' | 'system' | 'notes'>('display');
     const [backupStatus, setBackupStatus] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -304,29 +306,45 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </div>
 
                     {/* Account Card (Fadmus / User) */}
-                    <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-black text-base flex items-center justify-center shadow-md shadow-indigo-500/20">
-                                {userInitial}
-                            </div>
-                            <div>
-                                <div className="flex items-center gap-1.5">
-                                    <span className="text-sm font-black text-slate-800 dark:text-white">{usernameDisplay}</span>
-                                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400">
-                                        Akun Aktif
+                    <div className="p-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm space-y-2.5">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-black text-base flex items-center justify-center shadow-md shadow-indigo-500/20">
+                                    {userInitial}
+                                </div>
+                                <div>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-sm font-black text-slate-800 dark:text-white">{usernameDisplay}</span>
+                                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400">
+                                            Akun Aktif
+                                        </span>
+                                    </div>
+                                    <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                        <ShieldCheck size={12} className="text-emerald-500" />
+                                        Tersinkronisasi & Siap Ujian
                                     </span>
                                 </div>
-                                <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                    <ShieldCheck size={12} className="text-emerald-500" />
-                                    Tersinkronisasi & Siap Ujian
+                            </div>
+                            <div className="text-right">
+                                <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-2 py-1 rounded-lg">
+                                    v{APP_VERSION}
                                 </span>
                             </div>
                         </div>
-                        <div className="text-right">
-                            <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-2 py-1 rounded-lg">
-                                v{APP_VERSION}
-                            </span>
-                        </div>
+
+                        {onOpenProfileModal && (
+                            <button
+                                onClick={() => {
+                                    onClose();
+                                    onOpenProfileModal();
+                                }}
+                                className="w-full py-2 px-3 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border border-indigo-200/80 dark:border-indigo-800/80"
+                            >
+                                <User size={13} />
+                                Buka Profil Lengkap & Statistik Belajar
+                                <ChevronRight size={13} />
+                            </button>
+                        )}
                     </div>
                 </div>
 

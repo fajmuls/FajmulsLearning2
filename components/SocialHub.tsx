@@ -10,7 +10,7 @@ interface SocialHubProps {
     userProfile: UserProfile;
     history: TestHistoryItem[];
     onBack: () => void;
-    onUpdateProfile: (data: { username?: string, photoURL?: string }) => Promise<void>;
+    onUpdateProfile: (data: Partial<UserProfile>) => Promise<void>;
 }
 
 export const SocialHub: React.FC<SocialHubProps> = ({ userProfile, history, onBack, onUpdateProfile }) => {

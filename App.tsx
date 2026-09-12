@@ -161,7 +161,18 @@ const SocialHub = React.lazy(() => import("./components/SocialHub").then(m => ({
 const BattleArena = React.lazy(() => import("./components/BattleArena").then(m => ({ default: m.BattleArena })));
 const MarkedQuestionsView = React.lazy(() => import("./components/MarkedQuestionsView").then(m => ({ default: m.MarkedQuestionsView })));
 const AiChatTutor = React.lazy(() => import("./components/AiChatTutor").then(m => ({ default: m.AiChatTutor })));
+const ProfileModal = React.lazy(() => import("./components/ProfileModal").then(m => ({ default: m.ProfileModal })));
 
+const AVATAR_EMOJI_PRESETS: Record<string, string> = {
+  taruna: '👮',
+  asn: '🏛️',
+  mahasiswa: '🎓',
+  cendekia: '🔬',
+  dokter: '🩺',
+  diplomat: '🌐',
+  astronot: '🚀',
+  juara: '⭐'
+};
 
 // ... (Helper components remain the same: UserAvatar, SimpleMarkdown, NotificationToast, ResumeModal, GoogleIcon, LoginScreen, UsernameSetupScreen, SkripsiSession, InterviewSession, FlashcardSession, FeynmanSession, SQ3RSession, ResumeSessionList, Dashboard) ...
 const UserAvatar: React.FC<{ user: UserProfile | null }> = ({ user }) => {
@@ -177,6 +188,13 @@ const UserAvatar: React.FC<{ user: UserProfile | null }> = ({ user }) => {
         className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 object-cover"
         onError={() => setImgError(true)}
       />
+    );
+  }
+  if (user?.avatarPreset && AVATAR_EMOJI_PRESETS[user.avatarPreset]) {
+    return (
+      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-sm shadow-xs border border-white/40">
+        {AVATAR_EMOJI_PRESETS[user.avatarPreset]}
+      </div>
     );
   }
   return (
@@ -2132,6 +2150,7 @@ function App() {
   >([]);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   // Updated Settings State with Lazy Initialization
   const [settings, setSettings] = useState<AppSettings>(() => {
@@ -2727,12 +2746,21 @@ function App() {
       JSON.stringify(guestGamification),
     );
 
+    let savedGuestProfile: Partial<UserProfile> = {};
+    const cachedProfile = localStorage.getItem("fajmuls_guest_profile");
+    if (cachedProfile) {
+      try {
+        savedGuestProfile = JSON.parse(cachedProfile);
+      } catch (e) {}
+    }
+
     setUserProfile({
       uid: "guest-" + Date.now(),
-      username: "Tamu",
+      username: savedGuestProfile.username || localStorage.getItem("fajmuls_guest_username") || "Tamu",
       email: null,
       isGuest: true,
       gamification: guestGamification,
+      ...savedGuestProfile
     });
 
     const localSaved = localStorage.getItem("fajmuls_guest_history");
@@ -2841,18 +2869,18 @@ function App() {
     }
     SoundManager.play("click");
   };
-  const handleUpdateProfile = async (data: {
-    username?: string;
-    photoURL?: string;
-  }) => {
+  const handleUpdateProfile = async (data: Partial<UserProfile>) => {
     if (userProfile?.isGuest) {
+      setUserProfile((prev) => (prev ? { ...prev, ...data } : null));
       if (data.username) {
-        setUserProfile((prev) =>
-          prev ? { ...prev, username: data.username! } : null,
-        );
-        localStorage.setItem("fajmuls_guest_username", data.username!);
-        showToast("Nama Tamu diubah.", "success");
+        localStorage.setItem("fajmuls_guest_username", data.username);
       }
+      try {
+        const cached = localStorage.getItem("fajmuls_guest_profile");
+        const existing = cached ? JSON.parse(cached) : {};
+        localStorage.setItem("fajmuls_guest_profile", JSON.stringify({ ...existing, ...data }));
+      } catch (e) {}
+      showToast("Profil tamu diperbarui!", "success");
       return;
     }
     if (userProfile?.uid) {
@@ -4482,7 +4510,21 @@ function App() {
         userProfile={userProfile}
         onUpdateProfile={handleUpdateProfile}
         onOpenAdminDashboard={ (userProfile && (FirebaseService.isUserAdmin(userProfile) || userProfile.email?.endsWith('@fajmuls.com'))) ? () => setCurrentView('ADMIN_DASHBOARD') : undefined }
+        onOpenProfileModal={() => setProfileModalOpen(true)}
       />
+
+      <React.Suspense fallback={null}>
+        {profileModalOpen && (
+          <ProfileModal
+            isOpen={profileModalOpen}
+            onClose={() => setProfileModalOpen(false)}
+            userProfile={userProfile}
+            history={testHistory}
+            onUpdateProfile={handleUpdateProfile}
+            isDarkMode={settings.darkMode}
+          />
+        )}
+      </React.Suspense>
 
       {/* TOP BAR WITH SEARCH & GAMIFICATION */}
       {currentView !== "SESSION" &&
@@ -4587,13 +4629,35 @@ function App() {
                 </div>
               </div>
               {showProfileDropdown && (
-                <div className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 overflow-hidden z-50 animate-fade-in-up">
-                  <div className="p-3 border-b border-slate-50 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Akun Saya</p>
-                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{userProfile?.username || "Tamu"}</p>
+                <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 overflow-hidden z-50 animate-fade-in-up">
+                  <div className="p-3.5 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50/70 dark:bg-slate-800/70">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Akun Saya</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-white truncate">{userProfile?.username || "Tamu"}</p>
+                    {userProfile?.targetInstitution && (
+                      <p className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 truncate mt-0.5">
+                        Target: {userProfile.targetInstitution}
+                      </p>
+                    )}
                   </div>
                   
                   <div className="p-1.5 space-y-1">
+                    <button
+                      onClick={() => {
+                        setShowProfileDropdown(false);
+                        SoundManager.play("click");
+                        setProfileModalOpen(true);
+                      }}
+                      className="w-full text-left px-3 py-2.5 bg-indigo-50/90 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 rounded-xl flex items-center gap-3 transition-colors text-indigo-700 dark:text-indigo-300 text-xs font-bold group border border-indigo-150 dark:border-indigo-850"
+                    >
+                      <div className="p-1.5 bg-indigo-600 text-white rounded-lg group-hover:scale-110 transition-transform shadow-xs">
+                        <UserIcon size={14} />
+                      </div>
+                      <div>
+                        <span className="block leading-tight font-black">Profil & Statistik Detail</span>
+                        <span className="text-[10px] font-normal text-indigo-500 dark:text-indigo-400">Analisis materi & riwayat TO</span>
+                      </div>
+                    </button>
+
                     {!userProfile?.isGuest && (
                       <button
                         onClick={() => {
@@ -4601,7 +4665,7 @@ function App() {
                           SoundManager.play("click");
                           setCurrentView("SOCIAL_HUB");
                         }}
-                        className="w-full text-left px-3 py-2.5 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl flex items-center gap-3 transition-colors text-slate-700 dark:text-slate-200 text-xs font-bold group"
+                        className="w-full text-left px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl flex items-center gap-3 transition-colors text-slate-700 dark:text-slate-200 text-xs font-bold group"
                       >
                         <div className="p-1.5 bg-blue-100 dark:bg-blue-900/40 rounded-lg group-hover:scale-110 transition-transform">
                           <Users size={14} className="text-blue-500" />
@@ -4616,7 +4680,7 @@ function App() {
                         SoundManager.play("click");
                         setSettingsOpen(true);
                       }}
-                      className="w-full text-left px-3 py-2.5 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl flex items-center gap-3 transition-colors text-slate-700 dark:text-slate-200 text-xs font-bold group"
+                      className="w-full text-left px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl flex items-center gap-3 transition-colors text-slate-700 dark:text-slate-200 text-xs font-bold group"
                     >
                       <div className="p-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg group-hover:rotate-45 transition-transform">
                         <Settings size={14} className="text-slate-500" />

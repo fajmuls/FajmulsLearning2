@@ -100,6 +100,15 @@ export interface UserProfile {
     isGuest?: boolean;
     gamification?: GamificationProfile;
     settings?: AppSettings;
+    // Detailed Profile Attributes
+    bio?: string;
+    targetInstitution?: string; // e.g. "Kementerian Keuangan", "STAN", "UGM", "IPDN"
+    targetCategory?: CategoryType | string;
+    targetScore?: number;
+    phone?: string;
+    institutionOrigin?: string; // Asal Sekolah / Kampus
+    provinceOrCity?: string; // Domisili / Kota
+    avatarPreset?: string; // ID avatar preset
 }
 
 export interface QuestionMetadata {
