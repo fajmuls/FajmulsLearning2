@@ -17,7 +17,8 @@ export const PATCH_NOTES = [
       "Perampingan Kartu Riwayat: Kartu riwayat belajar dikembalikan ke desain simpel (compact), rincian kelemahan per subtes/materi kini dipindahkan ke dalam halaman Review saat kartu diklik.",
       "Grup Analisis Peta Kekurangan: Mengatasi bug analisis kelemahan yang sebelumnya muncul 'per soal'. Kini sistem cerdas mengelompokkan materi secara otomatis (Integritas, Bela Negara, Numerik, Figural, Pelayanan Publik, dll) untuk diagnosis yang lebih akurat.",
       "Statistik Waktu Belajar Per Kategori: Menambahkan rincian waktu belajar (SKD, UTBK, dll) di dalam profil statistik.",
-      "Smart SVG Sizing: Ukuran gambar vektor (SVG) pada soal TIU dan UTBK kini responsif terhadap ukuran teks pengguna (menggunakan ukuran relatif 'em'), mencegah ukuran gambar yang terlalu raksasa di layar desktop/tablet."
+      "Smart SVG Sizing: Ukuran gambar vektor (SVG) pada soal TIU dan UTBK kini responsif terhadap ukuran teks pengguna (menggunakan ukuran relatif 'em'), mencegah ukuran gambar yang terlalu raksasa di layar desktop/tablet.",
+      "Split Screen Toggle untuk Soal Gambar: Menambahkan kemampuan untuk menonaktifkan mode Split Screen pada soal berjenis Figural / Matrix, mencegah gambar mengecil atau scroll horizontal yang tidak perlu."
     ]
   },
   {

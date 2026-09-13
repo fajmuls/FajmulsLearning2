@@ -17,6 +17,7 @@ export const PATCH_NOTES: PatchNote[] = [
       "Grup Analisis Peta Kekurangan: Sistem kini mengelompokkan materi secara otomatis (Integritas, Bela Negara, Numerik, dll) di Peta Kelemahan Akumulatif.",
       "Statistik Waktu Belajar Per Kategori: Menambahkan rincian waktu belajar (SKD, UTBK, dll) di dalam profil statistik.",
       "Smart SVG Sizing: Ukuran gambar vektor (SVG) pada soal TIU dan UTBK kini responsif terhadap ukuran teks pengguna, mencegah ukuran gambar raksasa.",
+      "Split Screen Toggle untuk Soal Gambar: Mode Split Screen pada soal Figural / Matrix kini menghormati pengaturan toggle, mencegah gambar mengecil atau scroll horizontal tak perlu.",
       "Fitur Lanjutkan (Pause & Resume): Pembuatan soal SKD AI kini tangguh terhadap limit kuota dan dapat dijeda lalu dilanjutkan.",
       "TIU Figural V8.1: Peningkatan dramatis kualitas visual SVG Figural Matriks Sembilan Kotak (3x3)."
     ]

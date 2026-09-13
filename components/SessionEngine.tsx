@@ -2156,7 +2156,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                             currentQ.metadata?.topic?.toLowerCase().includes('bacaan')
                                         );
 
-                                        const isSplitActive = hasVisualGraphic || (hasLongReading && isSplitReadingView);
+                                        const isSplitActive = (hasVisualGraphic || hasLongReading) && isSplitReadingView;
 
                                         return (
                                             <>
