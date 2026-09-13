@@ -1611,14 +1611,7 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                                                 </div>
                                             )}
 
-                                            {/* Granular Sub-test & Topic Weakness Analysis for this Attempt */}
-                                            {item.questions && item.questions.length > 0 && (
-                                                <SubtestWeaknessAnalysis 
-                                                    item={item} 
-                                                    isDarkMode={isDarkMode} 
-                                                    defaultExpanded={showAllDetails} 
-                                                />
-                                            )}
+                                            
                                         </div>
                                     </div>
                                     
@@ -1949,6 +1942,15 @@ export const ReviewView: React.FC<{ item: TestHistoryItem, onBack: () => void, o
                                     Review: {item.packageTitle || item.category}
                                 </h2>
                             </div>
+                            
+                            {/* Detailed Sub-test & Topic Analysis */}
+                            {item.questions && item.questions.length > 0 && (
+                                <SubtestWeaknessAnalysis
+                                     item={item}
+                                     isDarkMode={document.documentElement.classList.contains('dark')}
+                                     defaultExpanded={true}
+                                />
+                            )}
                             
                             {/* Basic Score Summary */}
                             <div className="grid grid-cols-2 gap-3 sm:gap-4">

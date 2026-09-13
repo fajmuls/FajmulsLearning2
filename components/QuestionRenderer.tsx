@@ -31,7 +31,7 @@ export const SvgRenderer: React.FC<SvgRendererProps> = ({ svgString }) => {
                 svgElement.setAttribute('height', 'auto');
                 
                 const currentClass = svgElement.getAttribute('class') || '';
-                svgElement.setAttribute('class', `${currentClass} max-w-full max-h-[160px] sm:max-h-[200px] lg:max-h-[220px] object-contain mx-auto transition-transform duration-300 select-none`);
+                svgElement.setAttribute('class', `${currentClass} max-w-full max-h-[10em] sm:max-h-[12em] lg:max-h-[14em] object-contain mx-auto transition-transform duration-300 select-none`);
                 
                 return svgElement.outerHTML;
             }

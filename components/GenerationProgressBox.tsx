@@ -8,11 +8,12 @@ interface GenerationProgressBoxProps {
   task: BackgroundGenTask;
   onCancel: () => void;
   onStart: (task: BackgroundGenTask) => void;
+  onResume?: (task: BackgroundGenTask) => void;
   onClose: () => void;
 }
 
 export const GenerationProgressBox: React.FC<GenerationProgressBoxProps> = ({
-  task, onCancel, onStart, onClose
+  task, onCancel, onStart, onClose, onResume
 }) => {
   const [minimized, setMinimized] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -65,15 +66,17 @@ export const GenerationProgressBox: React.FC<GenerationProgressBoxProps> = ({
              <Sparkles size={16} className="text-indigo-500" />
           ) : task.status === 'completed' ? (
              <CheckCircle size={16} className="text-emerald-500" />
+          ) : task.status === 'paused' ? (
+             <Clock size={16} className="text-amber-500" />
           ) : (
              <AlertTriangle size={16} className="text-rose-500" />
           )}
           <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
-            {task.status === 'generating' ? 'AI Generator Aktif' : task.status === 'completed' ? 'Selesai' : 'Gagal'}
+            {task.status === 'generating' ? 'AI Generator Aktif' : task.status === 'completed' ? 'Selesai' : task.status === 'paused' ? 'Terjeda (Limit)' : 'Gagal'}
           </span>
         </div>
         <div className="flex items-center gap-1">
-          {task.status === 'generating' && (
+          {(task.status === 'generating' || task.status === 'paused') && (
             <button
               onClick={() => {
                   SoundManager.play('click');
@@ -101,17 +104,19 @@ export const GenerationProgressBox: React.FC<GenerationProgressBoxProps> = ({
       <div className="p-4 flex flex-col gap-3">
         <div>
           <h4 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1">{task.title}</h4>
-          {task.status === 'generating' && (
+          {(task.status === 'generating' || task.status === 'paused') && (
              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
-               <Loader2 size={12} className="animate-spin text-indigo-500" /> Meracik soal berkualitas tinggi...
+               <Loader2 size={12} className="animate-spin text-indigo-500" /> 
+{task.status === 'paused' ? (task.errorMsg || 'Menunggu kuota AI...') : 'Meracik soal berkualitas tinggi...'}
+
              </p>
           )}
         </div>
 
-        {task.status === 'generating' && (
+        {(task.status === 'generating' || task.status === 'paused') && (
           <div className="space-y-2">
             <div className="flex justify-between text-[10px] font-bold">
-              <span className="text-indigo-600 dark:text-indigo-400">{task.progress}% Selesai</span>
+              <span className="text-indigo-600 dark:text-indigo-400">{task.progress}% Selesai {task.status === 'paused' && '(Jeda)'}</span>
               <span className="text-slate-500 flex items-center gap-1"><Clock size={12}/> {formatTime(elapsed)}</span>
             </div>
             <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden relative">
@@ -127,7 +132,19 @@ export const GenerationProgressBox: React.FC<GenerationProgressBoxProps> = ({
         )}
 
         <div className="mt-2 flex justify-end gap-2">
-           {task.status === 'generating' && (
+           {task.status === 'paused' && (
+             <button
+               onClick={() => {
+                 SoundManager.play('click');
+                 // Trigger resume somehow. Actually, onResume is needed.
+                 if (onResume) onResume(task);
+               }}
+               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors"
+             >
+               <Sparkles size={14} /> Lanjutkan
+             </button>
+           )}
+           {(task.status === 'generating' || task.status === 'paused') && (
              <button
                onClick={() => {
                  SoundManager.play('click');

@@ -9,6 +9,30 @@ interface AdminDashboardProps {
 
 export const PATCH_NOTES = [
   {
+    version: "v3.9.5",
+    date: new Date().toISOString().split('T')[0],
+    type: "Feature Polish & Bug Fix",
+    description: "Analisis Riwayat Rinci & Optimalisasi Ukuran SVG",
+    details: [
+      "Perampingan Kartu Riwayat: Kartu riwayat belajar dikembalikan ke desain simpel (compact), rincian kelemahan per subtes/materi kini dipindahkan ke dalam halaman Review saat kartu diklik.",
+      "Grup Analisis Peta Kekurangan: Mengatasi bug analisis kelemahan yang sebelumnya muncul 'per soal'. Kini sistem cerdas mengelompokkan materi secara otomatis (Integritas, Bela Negara, Numerik, Figural, Pelayanan Publik, dll) untuk diagnosis yang lebih akurat.",
+      "Statistik Waktu Belajar Per Kategori: Menambahkan rincian waktu belajar (SKD, UTBK, dll) di dalam profil statistik.",
+      "Smart SVG Sizing: Ukuran gambar vektor (SVG) pada soal TIU dan UTBK kini responsif terhadap ukuran teks pengguna (menggunakan ukuran relatif 'em'), mencegah ukuran gambar yang terlalu raksasa di layar desktop/tablet."
+    ]
+  },
+  {
+    version: "v3.9.0",
+    date: new Date().toISOString().split('T')[0],
+    type: "Major Update & Reliability",
+    description: "Pause & Resume Generator SKD & Peningkatan Matriks TIU Figural",
+    details: [
+      "Fitur Lanjutkan (Pause & Resume): Pembuatan soal SKD AI kini tangguh terhadap limit kuota (Rate Limit 429). Jika limit tercapai, pembuatan tidak dibatalkan melainkan dijeda (paused) dan dapat dilanjutkan.",
+      "TIU Figural V8.1: Peningkatan dramatis kualitas visual SVG Figural. Sistem kini menghasilkan soal Matriks Sembilan Kotak (3x3) ala ujian Kedinasan.",
+      "Pembaruan Prompt: Soal TIU Figural dirancang khusus untuk memastikan pengecoh yang masuk akal dan desain SVG murni berbasis vektor tanpa karakter/emoji.",
+      "Pembersihan SkdGenerator: Sepenuhnya mematikan engine generator statis lawas, 100% SKD kini dihasilkan segar oleh model Gemini."
+    ]
+  },
+  {
     version: "v3.4.3",
     date: "2026-09-05",
     type: "Fix & Reliability",

@@ -40,16 +40,14 @@ export interface SessionDiagnostic {
 // Deteksi Topik & Materi Soal secara Cerdas
 export function detectQuestionTopic(q: Question): { subtest: string; topic: string } {
     const rawSubtest = (q.metadata?.subtest || '').toUpperCase();
-    const rawTopic = (q.metadata?.topic || '').trim();
+    const rawTopic = (q.metadata?.topic || '').trim().toLowerCase();
     const content = (q.content || '').toLowerCase();
     const explanation = (q.explanation || '').toLowerCase();
-    const fullText = `${content} ${explanation}`;
+    const fullText = `${content} ${explanation} ${rawTopic}`;
 
     // 1. Cek Kategori SKD
     if (rawSubtest.includes('TWK') || (!rawSubtest && (fullText.includes('pancasila') || fullText.includes('uud 1945') || fullText.includes('bela negara') || fullText.includes('integritas')))) {
         const sub = 'TWK';
-        if (rawTopic) return { subtest: sub, topic: rawTopic };
-
         if (fullText.includes('integritas') || fullText.includes('korupsi') || fullText.includes('kejujuran') || fullText.includes('gratifikasi') || fullText.includes('suap') || fullText.includes('kode etik') || fullText.includes('kpk')) {
             return { subtest: sub, topic: 'Integritas' };
         }
@@ -62,7 +60,7 @@ export function detectQuestionTopic(q: Question): { subtest: string; topic: stri
         if (fullText.includes('bahasa indonesia') || fullText.includes('ejaan') || fullText.includes('eyd') || fullText.includes('puebi') || fullText.includes('kalimat efektif') || fullText.includes('konjungsi') || fullText.includes('paragraf') || fullText.includes('ide pokok') || fullText.includes('kata baku')) {
             return { subtest: sub, topic: 'Bahasa Indonesia' };
         }
-        if (fullText.includes('pancasila') || fullText.includes('uud 1945') || fullText.includes('nkri') || fullText.includes('bhinneka') || fullText.includes('pasal ') || fullText.includes('amandemen') || fullText.includes('bpupki') || fullText.includes('ppki')) {
+        if (fullText.includes('pancasila') || fullText.includes('uud 1945') || fullText.includes('nkri') || fullText.includes('bhinneka') || fullText.includes('pasal ') || fullText.includes('amandemen') || fullText.includes('bpupki') || fullText.includes('ppki') || fullText.includes('pilar')) {
             return { subtest: sub, topic: 'Pilar Negara' };
         }
         return { subtest: sub, topic: 'Pilar Negara & Konstitusi' };
@@ -70,30 +68,28 @@ export function detectQuestionTopic(q: Question): { subtest: string; topic: stri
 
     if (rawSubtest.includes('TIU') || (!rawSubtest && (fullText.includes('silogisme') || fullText.includes('deret') || fullText.includes('analogi') || fullText.includes('figural')))) {
         const sub = 'TIU';
-        if (rawTopic) return { subtest: sub, topic: rawTopic };
-
-        if (fullText.includes('silogisme') || fullText.includes('premis') || fullText.includes('kesimpulan yang tepat') || fullText.includes('semua ') && fullText.includes('beberapa')) {
+        if (fullText.includes('silogisme') || fullText.includes('premis') || fullText.includes('kesimpulan yang tepat') || (fullText.includes('semua ') && fullText.includes('beberapa'))) {
             return { subtest: sub, topic: 'Silogisme / Penarikan Kesimpulan' };
         }
-        if (fullText.includes('analogi') || fullText.includes('padanan') || (q.content.includes(':') && q.content.length < 100)) {
+        if (fullText.includes('analogi') || fullText.includes('padanan') || fullText.includes('kata') || (q.content.includes(':') && q.content.length < 100)) {
             return { subtest: sub, topic: 'Analogi Kata' };
         }
-        if (fullText.includes('urutan') || fullText.includes('posisi duduk') || fullText.includes('jadwal') || fullText.includes('analitis')) {
+        if (fullText.includes('urutan') || fullText.includes('posisi duduk') || fullText.includes('jadwal') || fullText.includes('analitis') || fullText.includes('sebelah')) {
             return { subtest: sub, topic: 'Penalaran Analitis' };
         }
-        if (fullText.includes('deret') || fullText.includes('pola angka') || fullText.includes('barisan') || fullText.match(/\d+,\s*\d+,\s*\d+/)) {
+        if (fullText.includes('deret') || fullText.includes('pola angka') || fullText.includes('barisan') || fullText.match(/d+,s*d+,s*d+/)) {
             return { subtest: sub, topic: 'Deret Angka' };
         }
-        if (fullText.includes('figural') || fullText.includes('gambar') || fullText.includes('rotasi') || fullText.includes('pencerminan') || fullText.includes('ketidaksamaan')) {
+        if (fullText.includes('figural') || fullText.includes('gambar') || fullText.includes('rotasi') || fullText.includes('pencerminan') || fullText.includes('ketidaksamaan') || fullText.includes('svg')) {
             return { subtest: sub, topic: 'Kemampuan Figural' };
         }
-        if (fullText.includes('kecepatan') || fullText.includes('perbandingan') || fullText.includes('pekerja') || fullText.includes('debit') || fullText.includes('skala')) {
+        if (fullText.includes('kecepatan') || fullText.includes('perbandingan') || fullText.includes('pekerja') || fullText.includes('debit') || fullText.includes('skala') || fullText.includes('jarak')) {
             return { subtest: sub, topic: 'Perbandingan Kuantitatif' };
         }
         if (fullText.includes('untung') || fullText.includes('rugi') || fullText.includes('diskon') || fullText.includes('bunga') || fullText.includes('persen')) {
             return { subtest: sub, topic: 'Aritmetika Sosial & Cerita' };
         }
-        if (fullText.includes('pecahan') || fullText.includes('aljabar') || fullText.includes('hitung') || fullText.includes('operasi')) {
+        if (fullText.includes('pecahan') || fullText.includes('aljabar') || fullText.includes('hitung') || fullText.includes('operasi') || fullText.includes('numerik')) {
             return { subtest: sub, topic: 'Berhitung Cepat' };
         }
         return { subtest: sub, topic: 'Kemampuan Numerik & Logika' };
@@ -101,104 +97,30 @@ export function detectQuestionTopic(q: Question): { subtest: string; topic: stri
 
     if (rawSubtest.includes('TKP') || (q.tkpPoints && q.tkpPoints.length > 0)) {
         const sub = 'TKP';
-        if (rawTopic) return { subtest: sub, topic: rawTopic };
-
-        if (fullText.includes('pelayanan') || fullText.includes('masyarakat') || fullText.includes('antrean') || fullText.includes('komplain') || fullText.includes('keluhan')) {
+        if (fullText.includes('pelayanan') || fullText.includes('masyarakat') || fullText.includes('antrean') || fullText.includes('komplain') || fullText.includes('keluhan') || fullText.includes('publik')) {
             return { subtest: sub, topic: 'Pelayanan Publik' };
         }
-        if (fullText.includes('jejaring') || fullText.includes('rekan kerja') || fullText.includes('kolaborasi') || fullText.includes('mitra') || fullText.includes('tim')) {
+        if (fullText.includes('jejaring') || fullText.includes('rekan kerja') || fullText.includes('kolaborasi') || fullText.includes('mitra') || fullText.includes('tim') || fullText.includes('teman')) {
             return { subtest: sub, topic: 'Jejaring Kerja' };
         }
-        if (fullText.includes('sosial budaya') || fullText.includes('toleransi') || fullText.includes('keberagaman') || fullText.includes('adaptasi') || fullText.includes('suku')) {
+        if (fullText.includes('sosial budaya') || fullText.includes('toleransi') || fullText.includes('keberagaman') || fullText.includes('adaptasi') || fullText.includes('suku') || fullText.includes('budaya') || fullText.includes('adat')) {
             return { subtest: sub, topic: 'Sosial Budaya' };
         }
-        if (fullText.includes('tik') || fullText.includes('teknologi') || fullText.includes('digital') || fullText.includes('komputer') || fullText.includes('aplikasi') || fullText.includes('sistem')) {
+        if (fullText.includes('tik') || fullText.includes('teknologi') || fullText.includes('digital') || fullText.includes('komputer') || fullText.includes('aplikasi') || fullText.includes('sistem') || fullText.includes('internet')) {
             return { subtest: sub, topic: 'Teknologi Informasi (TIK)' };
         }
-        if (fullText.includes('radikalisme') || fullText.includes('anti radikalisme') || fullText.includes('ekstrimisme') || fullText.includes('pancasila') && fullText.includes('ideologi')) {
+        if (fullText.includes('radikalisme') || fullText.includes('anti radikalisme') || fullText.includes('ekstrimisme') || (fullText.includes('pancasila') && fullText.includes('ideologi'))) {
             return { subtest: sub, topic: 'Anti Radikalisme' };
         }
-        if (fullText.includes('profesional') || fullText.includes('disiplin') || fullText.includes('tanggung jawab') || fullText.includes('deadline') || fullText.includes('lembur')) {
+        if (fullText.includes('profesionalisme') || fullText.includes('tanggung jawab') || fullText.includes('tugas') || fullText.includes('kerja') || fullText.includes('profesional')) {
             return { subtest: sub, topic: 'Profesionalisme' };
         }
-        return { subtest: sub, topic: 'Integritas & Sikap Kerja' };
+        return { subtest: sub, topic: 'Karakteristik Pribadi (Lainnya)' };
     }
 
-    // UTBK / Kategori Lainnya
-    const subName = rawSubtest || 'Umum';
-    const topicName = rawTopic || 'Materi Inti';
-    return { subtest: subName, topic: topicName };
+    return { subtest: rawSubtest || 'Lainnya', topic: q.metadata?.topic || 'Umum' };
 }
 
-// Rekomendasi Tindak Lanjut Spesifik per Topik
-function getTopicRecommendation(topic: string, isCritical: boolean): string {
-    const t = topic.toLowerCase();
-    if (t.includes('integritas')) {
-        return isCritical 
-            ? 'Perbanyak studi kasus penolakan gratifikasi, benturan kepentingan ASN, dan kode etik perilaku antikorupsi KPK.'
-            : 'Pertahankan pemahaman nilai antikorupsi; perhatikan detail skenario penugasan yang rentan suap terselubung.';
-    }
-    if (t.includes('bela negara')) {
-        return isCritical
-            ? 'Kaji ulang 5 nilai dasar Bela Negara (cinta tanah air, sadar berbangsa, setia Pancasila, rela berkorban, kemampuan awal).'
-            : 'Fokuskan latihan pada pemilahan aksi nyata bela negara di era modern (non-militer).';
-    }
-    if (t.includes('nasionalisme')) {
-        return isCritical
-            ? 'Pelajari garis waktu perjuangan kemerdekaan (Budi Utomo, Sumpah Pemuda, BPUPKI) dan pencegahan chauvinisme.'
-            : 'Tingkatkan pemahaman penerapan persatuan nasional dalam masyarakat majemuk.';
-    }
-    if (t.includes('pilar negara')) {
-        return isCritical
-            ? 'Hafalkan pasal krusial UUD 1945 (HAM, Lembaga Negara, Pendidikan) dan butir-butir implementasi Pancasila.'
-            : 'Latih soal penalaran yuridis konstitusional dan perbandingan pasal amandemen I-IV.';
-    }
-    if (t.includes('bahasa indonesia')) {
-        return isCritical
-            ? 'Kuasai kaidah EYD V (huruf kapital, tanda baca titik dua/koma), kalimat efektif, dan gagasan utama paragraf.'
-            : 'Percepat pemindaian ide pokok bacaan panjang dan perhatikan kata serapan baku.';
-    }
-    if (t.includes('silogisme')) {
-        return isCritical
-            ? 'Kuasai rumus penarikan kesimpulan: Modus Ponens/Tollens, Silogisme Hipotetis, dan aturan kata "Semua" vs "Sebagian".'
-            : 'Tingkatkan kecepatan analisis diagram relasi premis negatif dan partikular.';
-    }
-    if (t.includes('deret')) {
-        return isCritical
-            ? 'Latih pola deret bertingkat, larik lompat 2/3 angka, pola Fibonacci, dan pola beda kuadrat/kubik.'
-            : 'Gunakan eliminasi cepat: periksa selisih dua suku pertama untuk mendeteksi pola perkalian atau penjumlahan.';
-    }
-    if (t.includes('figural')) {
-        return isCritical
-            ? 'Latih arah putaran sudut (45°, 90°, 180°), penambahan/pengurangan elemen, dan logika pencerminan/simetri lipat.'
-            : 'Asah ketelitian pada elemen kecil seperti arsir, ketebalan garis, dan titik orientasi.';
-    }
-    if (t.includes('pelayanan publik')) {
-        return isCritical
-            ? 'Pilih opsi yang menempatkan kepentingan pengguna layanan di atas kepentingan pribadi dengan ramah & tuntas.'
-            : 'Cari solusi yang sistematis dan tidak melanggar SOP pelayanan umum.';
-    }
-    if (t.includes('jejaring kerja')) {
-        return isCritical
-            ? 'Pilih opsi terbuka terhadap masukan, kooperatif dalam tim, dan proaktif menjembatani koordinasi.'
-            : 'Perhatikan keseimbangan antara empati dan pencapaian target tim.';
-    }
-    if (t.includes('tik') || t.includes('teknologi')) {
-        return isCritical
-            ? 'Utamakan sikap adaptif terhadap digitalisasi sistem, efisiensi kerja melalui otomasi, dan keamanan data.'
-            : 'Dukung transformasi digital di tempat kerja secara proaktif.';
-    }
-    if (t.includes('anti radikalisme')) {
-        return isCritical
-            ? 'Pilih sikap tegas menolak paham intoleran, lapor kepada pimpinan/pihak berwenang sesuai prosedur hukum.'
-            : 'Terapkan dialog persuasif berlandaskan wawasan kebangsaan yang inklusif.';
-    }
-    return isCritical
-        ? 'Pelajari kembali konsep dasar materi ini dan perbanyak latihan soal bertingkat medium hingga HOTS.'
-        : 'Pertahankan akurasi dan latih kecepatan pengerjaan per soal.';
-}
-
-// Evaluasi Komprehensif Sesi Ujian
 export function analyzeSessionWeaknesses(item: TestHistoryItem): SessionDiagnostic {
     const questions = item.questions || [];
     const answers = item.answers || [];
@@ -561,4 +483,18 @@ export function calculateMovingAverageData(
         trendPercent,
         trendDirection
     };
+}
+
+function getTopicRecommendation(topic: string, isCritical: boolean): string {
+    if (!isCritical) return 'Pertahankan performa luar biasa ini. Teruslah berlatih!';
+    const t = topic.toLowerCase();
+    
+    if (t.includes('integritas')) return 'Perbanyak baca studi kasus perilaku jujur & anti-korupsi di lingkungan kerja.';
+    if (t.includes('bela negara')) return 'Pahami dasar hukum dan contoh nyata penerapan pilar negara dalam kehidupan sehari-hari.';
+    if (t.includes('figural')) return 'Sering berlatih pola gambar 3x3 dan rotasi objek agar mata lebih peka.';
+    if (t.includes('deret')) return 'Latihlah kepekaan pada deret fibonacci, larik ganda, dan pangkat berulang.';
+    if (t.includes('pelayanan publik')) return 'Pilih opsi yang paling menguntungkan institusi dan masyarakat tanpa melanggar SOP.';
+    if (t.includes('jejaring')) return 'Fokus pada opsi yang menekankan kolaborasi dan win-win solution.';
+    
+    return 'Lakukan evaluasi ulang (review) pada soal-soal salah di topik ini dan pahami pembahasannya.';
 }

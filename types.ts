@@ -394,8 +394,10 @@ export interface BackgroundGenTask {
     tkaLevel?: TkaLevelType;
     title: string;
     progress: number;
-    status: 'generating' | 'completed' | 'failed';
+    status: 'generating' | 'completed' | 'failed' | 'paused';
     createdAt: string;
+    savedState?: any;
+    errorMsg?: string;
 }
 
 export interface TargetSubtestScore {
