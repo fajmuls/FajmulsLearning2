@@ -5,9 +5,53 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "3.9.5";
+export const APP_VERSION = "3.9.9";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "3.9.9",
+    date: new Date().toISOString().split('T')[0],
+    type: "minor",
+    notes: [
+      "Sistem Anti-Repetisi & Difficulty Distribution (SKD V8.5): AI kini menggunakan matriks pola (pattern matrix) unik per soal untuk mencegah studi kasus berulang dalam satu paket ujian.",
+      "Distribusi Tingkat Kesulitan Dinamis: Tidak semua soal dipukul rata Level 10. Sistem kini menargetkan 20% Level 8 (2 tahap logika), 50% Level 9 (konflik prioritas/trade-off), dan 30% Level 10 (semua opsi 100% plausible).",
+      "Plausible Distractor (A-E): Mewajibkan seluruh opsi dari A hingga E terdengar profesional, logis, dan bisa dibela, merombak total kebiasaan AI membuat gradasi jawaban 'A. Tidak peduli - E. Sangat peduli'.",
+      "Second-Pass Evaluator Internal: Penerapan self-correction pada generator, menolak secara paksa soal dengan pola redundan atau perbedaan kualitas opsi (option length) yang jomplang."
+    ]
+  },
+  {
+    version: "3.9.8",
+    date: new Date().toISOString().split('T')[0],
+    type: "minor",
+    notes: [
+      "Peningkatan Logika TKP (SKD V8.4): Merombak sistem AI Generator untuk soal Tes Karakteristik Pribadi (TKP) dengan menargetkan kesulitan tinggi 8-10/10.",
+      "Karakteristik TKP HOTS: Kesulitan TKP kini berasal dari 'Grey Area' profesionalisme (5 opsi yang sama-sama baik dan logis), bukan sekadar dari teks kasus yang panjang.",
+      "Konflik Ganda & Solusi Taktis: Skenario kini memuat konflik multi-dimensi (aturan vs publik vs resource, efisiensi vs keamanan siber) dengan jawaban poin 5 yang inovatif tanpa terdengar 'terlalu sempurna/klise'.",
+      "Keseimbangan Teks Jawaban (Anti-Obvious): Menghilangkan pola di mana jawaban bernilai 5 adalah jawaban terpanjang. Semua opsi A-E kini memiliki panjang kalimat dan format tindakan yang setara."
+    ]
+  },
+  {
+    version: "3.9.7",
+    date: new Date().toISOString().split('T')[0],
+    type: "minor",
+    notes: [
+      "Peningkatan Logika TIU (SKD V8.3): Merombak ulang sistem AI Generator untuk soal Tes Intelegensia Umum (TIU) dengan target kesulitan 8-10/10 (Elite HOTS).",
+      "Karakteristik Soal TIU HOTS: Soal kini menuntut minimal dua tahap penalaran logika (multi-step reasoning). Kesulitan murni didasarkan pada logika rumit, bukan penggunaan angka raksasa atau perhitungan yang absurd.",
+      "Keseimbangan & Distraktor Logis: Opsi pengecoh (distraktor) dirancang sedemikian rupa sehingga mewakili hasil dari kesalahan satu tahap logika, bukan sekadar angka acak.",
+      "Pembahasan Runtut Total: Penjelasan soal (explanation) TIU kini membedah penyelesaian secara terstruktur (step-by-step), sekaligus menjelaskan di mana letak jebakan pada distraktor yang salah."
+    ]
+  },
+  {
+    version: "3.9.6",
+    date: new Date().toISOString().split('T')[0],
+    type: "minor",
+    notes: [
+      "Peningkatan Logika TWK (SKD V8.2): Merombak ulang sistem AI Generator untuk soal Tes Wawasan Kebangsaan (TWK) dengan target kesulitan 8-10/10 (Elite HOTS).",
+      "Karakteristik Soal TWK HOTS: Soal kini menuntut minimal satu tahap penalaran logika (seperti dilema kebijakan, checks and balances, dan prioritas konstitusi) dibanding sekadar hafalan teori mentah.",
+      "Keseimbangan Opsi & Distraktor Realistis: Panjang kalimat semua opsi (A-E) lebih setara, dan distraktor dirancang merepresentasikan kesalahan logika riil, bukan kesalahan yang absurd.",
+      "Pembahasan Opsi Total: Penjelasan soal (explanation) kini tidak hanya menjawab kenapa poin benar, melainkan wajib membedah mengapa setiap distraktor lain kurang tepat/salah."
+    ]
+  },
   {
     version: "3.9.5",
     date: new Date().toISOString().split('T')[0],

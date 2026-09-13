@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SavedSessionState, Question, StaticTestPackage } from '../types';
-import { ArrowLeft, Bookmark, BookmarkMinus, CheckCircle, Database, Sparkles, RefreshCw, Save, Plus } from 'lucide-react';
+import { ArrowLeft, Bookmark, BookmarkMinus, CheckCircle, Database, Sparkles, RefreshCw, Save, Plus, Copy } from 'lucide-react';
 import { SimpleMarkdown, MatrixQuestionRenderer } from './QuestionRenderer';
 import * as Gemini from '../services/geminiService';
 import { SoundManager } from '../services/soundService';
@@ -75,6 +75,41 @@ export const AdminSessionViewer: React.FC<{
     onSaveAsNewPackage(newPkg);
   };
 
+  const handleCopyAllAsText = async () => {
+    let textToCopy = `Package: ${('title' in session) ? session.title : session.category}\nTotal Soal: ${localQuestions.length}\n\n`;
+    
+    localQuestions.forEach((q, idx) => {
+        textToCopy += `===================================================\n`;
+        textToCopy += `Soal No. ${idx + 1}\n`;
+        if (q.metadata?.subtest) textToCopy += `Subtest: ${q.metadata.subtest}\n`;
+        if (q.metadata?.topic) textToCopy += `Topic: ${q.metadata.topic}\n`;
+        textToCopy += `===================================================\n\n`;
+        textToCopy += `${q.content}\n\n`;
+        
+        q.options?.forEach((opt, i) => {
+            const letter = String.fromCharCode(65 + i);
+            const isCorrect = opt === q.correctAnswer;
+            textToCopy += `${letter}. ${opt} ${isCorrect ? '<< (Jawaban Benar)' : ''}\n`;
+        });
+        
+        if (q.tkpPoints && q.tkpPoints.length > 0) {
+            textToCopy += `\nPoin TKP:\n`;
+            q.tkpPoints.forEach((tp) => {
+                textToCopy += `- Skor ${tp.points}: ${tp.option}\n`;
+            });
+        }
+        
+        textToCopy += `\n[Pembahasan]\n${q.explanation}\n\n`;
+    });
+
+    try {
+        await navigator.clipboard.writeText(textToCopy);
+        showToast("Seluruh soal berhasil disalin ke clipboard!", "success");
+    } catch (e) {
+        showToast("Gagal menyalin teks ke clipboard", "error");
+    }
+  };
+
   const getFontSizeClass = (size: string) => {
     switch (size) {
       case 'xs': return 'text-[10px]';
@@ -113,6 +148,13 @@ export const AdminSessionViewer: React.FC<{
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
+            <button 
+                onClick={handleCopyAllAsText}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-700 font-bold text-[10px] uppercase transition-all hover:border-blue-400 hover:text-blue-600 shrink-0"
+                title="Salin Semua Soal Jadi Teks"
+            >
+                <Copy size={14} /> Salin
+            </button>
             <button 
                 onClick={handleReshuffle}
                 className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-700 font-bold text-[10px] uppercase transition-all hover:border-indigo-400 shrink-0"
@@ -171,16 +213,16 @@ export const AdminSessionViewer: React.FC<{
             <div key={q.id} className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
                 <div>
-                  <span className="inline-block px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-black rounded-lg uppercase tracking-widest mb-1">
+                  <span className="inline-block px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-[10px] font-black rounded-lg uppercase tracking-widest mb-1 mr-2">
                     Soal No. {idx + 1}
                   </span>
                   {q.metadata?.subtest && (
-                    <span className="inline-block px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-black rounded-lg uppercase tracking-widest mb-1 mr-2">
+                    <span className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-[10px] font-black rounded-lg uppercase tracking-widest mb-1 mr-2">
                       {q.metadata.subtest}
                     </span>
                   )}
                   {q.metadata?.topic && (
-                    <span className="inline-block px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-black rounded-lg uppercase tracking-widest mb-1">
+                    <span className="inline-block px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-black rounded-lg uppercase tracking-widest mb-1">
                       {q.metadata.topic}
                     </span>
                   )}
@@ -202,7 +244,7 @@ export const AdminSessionViewer: React.FC<{
                 </button>
               </div>
               
-              <div className={`mb-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 ${fontSizeClass}`}>
+              <div className={`mb-6 bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-700/50 ${fontSizeClass}`}>
                 <div className="prose prose-slate dark:prose-invert max-w-none">
                   <SimpleMarkdown text={q.content} />
                 </div>
@@ -216,10 +258,10 @@ export const AdminSessionViewer: React.FC<{
                 )}
               </div>
 
-              <div className="grid grid-cols-1 gap-2 mb-6">
+              <div className="grid grid-cols-1 gap-2.5 mb-6">
                 {q.options?.map((opt, i) => (
-                  <div key={i} className={`p-4 rounded-xl border flex items-start gap-3 transition-all ${fontSizeClass} ${opt === q.correctAnswer ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/10 text-emerald-900 dark:text-emerald-100 font-bold' : 'border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300'}`}>
-                    <span className="font-black text-indigo-500 shrink-0 w-5 h-5 flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg text-[10px] border border-slate-100 dark:border-slate-700">
+                  <div key={i} className={`p-4 rounded-xl border-2 flex items-start gap-3 transition-all ${fontSizeClass} ${opt === q.correctAnswer ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/10 text-emerald-900 dark:text-emerald-100 font-bold' : 'border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-200 dark:hover:border-slate-700'}`}>
+                    <span className={`font-black shrink-0 w-6 h-6 flex items-center justify-center rounded-lg text-[10px] border ${opt === q.correctAnswer ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'}`}>
                       {String.fromCharCode(65 + i)}
                     </span>
                     <div className="flex-1 pt-0.5"><SimpleMarkdown text={opt} isOption={true} /></div>
@@ -228,11 +270,11 @@ export const AdminSessionViewer: React.FC<{
               </div>
 
               <div className="bg-indigo-50 dark:bg-indigo-900/10 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-900/20 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-500/5 -mr-8 -mt-8 rounded-full" />
-                <h4 className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                  <Sparkles size={12} /> Pembahasan
+                <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 -mr-12 -mt-12 rounded-full" />
+                <h4 className="text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-2 relative">
+                  <Sparkles size={12} className="text-indigo-500" /> Pembahasan
                 </h4>
-                <div className={`text-slate-700 dark:text-slate-300 italic leading-relaxed ${fontSizeClass}`}>
+                <div className={`text-slate-700 dark:text-slate-300 italic leading-relaxed relative ${fontSizeClass}`}>
                   <SimpleMarkdown text={q.explanation || "Tidak ada pembahasan."} />
                 </div>
               </div>

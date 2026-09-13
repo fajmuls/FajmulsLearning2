@@ -140,11 +140,13 @@ const questionSchema: Schema = {
     metadata: {
       type: Type.OBJECT,
       properties: {
-        difficulty: { type: Type.STRING, enum: ["Easy", "Medium", "Hard", "HOTS"] },
+        difficulty: { type: Type.STRING },
         idealTimeSeconds: { type: Type.INTEGER },
         topic: { type: Type.STRING },
         subtest: { type: Type.STRING },
         trapPattern: { type: Type.STRING },
+        pattern: { type: Type.STRING, description: "Specific pattern or conflict matrix used (e.g. 'TWK-Sejarah-Kronologi', 'TKP-Integritas-Gratifikasi')" },
+        reasoning_type: { type: Type.STRING, description: "Type of reasoning required (e.g. 'Prioritization', 'Ethical Dilemma')" },
         matrix: {
           type: Type.ARRAY,
           items: {
@@ -948,60 +950,122 @@ export const buildQuestionPrompt = async (
   } else {
       let difficultyContext = "";
       
+      const HOTS_PHILOSOPHY = `
+      CORE PHILOSOPHY: "Buat soal SKD yang sulit karena kualitas penalarannya, bukan karena bahasanya."
+      - DO NOT make questions difficult by using overly long, convoluted sentences.
+      - Make them difficult because the options require deep reasoning/analysis to distinguish.
+
+      SISTEM DIFFICULTY (8-10 DISTRIBUTION):
+      - Target distribution: 20% Level 8, 50% Level 9, 30% Level 10.
+      - Level 8: 2-3 plausible options, 1 main conflict, 1-2 reasoning steps.
+      - Level 9: 3-4 highly plausible options, 2 conflicts, requires prioritization, trade-offs exist.
+      - Level 10: All 5 options are highly plausible. 2-3 clashing interests. No "obviously good" answer. Requires deep SOP/principle understanding. Very subtle differences.
+
+      SISTEM ANTI-REPETISI & METADATA:
+      - AI MUST use a Pattern Matrix (submateri + pattern + konteks + konflik).
+      - NEVER repeat the same pattern in the same generation batch.
+      - MUST fill out the 'pattern', 'reasoning_type', and 'difficulty' fields in the metadata.
+
+      DESAIN PILIHAN A-E (PLAUSIBLE DISTRACTORS):
+      - ALL options must sound professional and logical. 
+      - DO NOT use obvious gradations (e.g., A. Do nothing, B. Do a little, C. Do well).
+      - Ensure all options (A-E) have relatively balanced word counts.
+      
+      SECOND-PASS EVALUATOR MODE:
+      - CRITICAL: Before outputting the JSON, internally evaluate your own questions.
+      - Check if the difficulty is truly 8-10.
+      - Check if there are at least 3 plausible options.
+      - Check if the correct answer is too obvious.
+      - If it fails, internally REGENERATE it before returning.
+      `;
+
+      const TKP_SCORING_RULE = `
+      ATURAN DISTRAKTOR TKP (1-5 SCORING):
+      - 5/5: Paling sesuai, taktis, inovatif, sesuai prosedur.
+      - 4/5: Sangat baik, tetapi ada kekurangan kecil/kurang komprehensif.
+      - 3/5: Masih dapat diterima, tetapi kurang optimal/reaktif.
+      - 2/5: Ada kelemahan signifikan/kurang profesional.
+      - 1/5: Kurang tepat, pasif, atau menyalahi aturan (tetapi tetap ditulis dengan bahasa baku/mengecoh).
+      - Perbedaan kualitas antar opsi JANGAN TERLALU OBVIOUS.
+      `;
+      
       const isTwk = (typeof context === 'string' && (context.toUpperCase().includes('TWK') || context.toUpperCase().includes('WAWASAN KEBANGSAAN'))) || (category === 'SKD' && difficultyOverride === 'TWK');
       const isTiu = (typeof context === 'string' && (context.toUpperCase().includes('TIU') || context.toUpperCase().includes('INTELEGENSIA') || context.toUpperCase().includes('FIGURAL') || context.toUpperCase().includes('NUMERIK') || context.toUpperCase().includes('VERBAL'))) || (category === 'SKD' && difficultyOverride === 'TIU');
       const isTkp = (typeof context === 'string' && (context.toUpperCase().includes('TKP') || context.toUpperCase().includes('KARAKTERISTIK PRIBADI'))) || (category === 'SKD' && difficultyOverride === 'TKP');
 
       if (isTwk) {
-           difficultyContext = `CONTEXT: SKD TWK (Tes Wawasan Kebangsaan) - ELITE KEDINASAN DIFFICULTY.
+           difficultyContext = `CONTEXT: SKD TWK (Tes Wawasan Kebangsaan) - TARGET DIFFICULTY: 8-10/10 (ELITE KEDINASAN LEVEL).
            
-           THEME & TOPICS (STRICTLY FOLLOW THESE):
-           - Nasionalisme: 20-30% questions.
-           - Integritas: 20% questions.
-           - Bela Negara: 20% questions.
-           - Pilar Negara (Pancasila, UUD 1945, NKRI, Bhinneka Tunggal Ika): 20% questions.
-           - Bahasa Indonesia: 10-20% questions.
+           ${HOTS_PHILOSOPHY}
 
-           CONTENT RATIO (CRITICAL):
-           - 30% Advanced Memorization: Deep constitutional history, specific article nuances, and historical dates (Hafalan tingkat lanjut).
-           - 70% Actual Duty Reasoning: Complex case studies involving ethics, implementation of state values in government duty, and national integrity in modern situations (Penalaran Implementasi/Tugas Aktual).
+           THEME & TOPICS (STRICTLY FOLLOW THESE 5 PILAR NEGARA, incorporating specific subjects):
+           - Nasionalisme (20%): Menguji semangat kecintaan pada bangsa, menghormati keragaman, membina persatuan.
+           - Integritas (20%): Kejujuran, ketangguhan, komitmen aparatur, anti-korupsi.
+           - Bela Negara (20%): Peran aktif, ancaman militer/non-militer (digital, disinformasi, radikalisme, cyber attack), ketahanan nasional di era modern. JANGAN hanya bertanya "Mana contoh bela negara?".
+           - Pilar Negara (Pancasila, UUD 1945, NKRI, Bhinneka Tunggal Ika, Sejarah) (20%): 
+             * Pancasila: Konflik antarnilai, prioritas kebijakan, penerapan sila modern. JANGAN buat soal "Sila keberapa?". Gunakan dilema kebijakan di mana opsi tampak sama-sama baik.
+             * UUD 1945: Kasus HAM, konflik kewenangan lembaga, checks and balances, constitutional reasoning. JANGAN tanya isi pasal secara hafalan mentah.
+             * NKRI: Otonomi daerah, pusat vs daerah, konflik identitas. Buat kasus tanpa menyebut kata "persatuan" secara eksplisit.
+             * Bhinneka Tunggal Ika: Keberagaman, konflik sosial, pluralisme. JANGAN buat pertanyaan "obvious" tentang toleransi. Gunakan konflik riil (misal: tradisi vs fasilitas umum) di mana opsi tampak masuk akal.
+             * Sejarah: Kronologi + sebab-akibat. Misal: "Jika peristiwa X tidak terjadi, maka...".
+           - Bahasa Negara / Bahasa Indonesia (20%): Kaidah, ejaan, kalimat efektif, multi-error editing dalam satu paragraf (salah diksi, struktur, tanda baca sekaligus). JANGAN hanya bertanya "Mana kalimat yang benar?".
 
-           CRITICAL TWK RULES (ELITE DIFFICULTY & SANGAT MENGECOH):
-           1. **NO IMAGES/SVG**: DILARANG KERAS menghasilkan gambar, SVG, atau visual apa pun. Soal TWK HARUS 100% TEKS.
-           2. FORMAT: Gunakan narasi/studi kasus nyata yang kompleks. Hindari "Soal Hafalan Langsung" kecuali untuk porsi 30% tersebut.
-           3. JAWABAN: Opsi jawaban harus menguji pemahaman KONSEPTUAL tingkat tinggi dan implementasi nilai.
-           4. EXPLANATION: Berikan penjelasan yang SINGKAT, PADAT, dan JELAS (Concise but clear).
-           5. DISTRACTORS: Pengecoh HARUS SUPER SULIT. Semua opsi salah harus terdengar sangat logis dan konstitusional.
-           6. ANTI-REPETITION: DILARANG MENGULANGI KONSEP YANG SAMA DALAM SATU ARRAY. JANGAN membuat soal template tentang amandemen atau BPUPKI yang terus diulang. Setiap soal harus 100% BERBEDA dari soal sebelumnya di array ini.`;
+           CRITICAL TWK RULES (ELITE DIFFICULTY 8-10/10 & SANGAT MENGECOH):
+           1. **FORMAT SOAL**: Menyerupai SKD asli (Teks based, tanpa SVG). Gunakan: konsep -> penerapan -> konflik nilai -> menentukan prinsip/kebijakan yang PALING tepat.
+           2. **HAFALAN BUKAN SEGALANYA**: Jangan jadikan hafalan murni sebagai satu-satunya kesulitan. Minimal harus ada 1 tahap penalaran/analisis dari peserta untuk memecahkan kasus.
+           3. **TIDAK BERTELE-TELE**: Jangan sekadar membuat soal sulit dengan "kalimat panjang + istilah rumit + cerita bertele-tele". Cukupkan informasi, berikan opsi yang sama-sama bernilai kebenaran sebagian, dan biarkan peserta memilih yang PALING tepat.
+           4. **CLUE (HINT)**: Jangan berikan clue/hint yang terlalu eksplisit atau langsung menunjuk jawaban.
+           5. **DISTRACTORS (PENGECOH)**: Distraktor harus sangat realistis dan mewakili kesalahan analisis yang wajar. Semua opsi harus terdengar masuk akal, logis, atau konstitusional.
+           6. **KESEIMBANGAN OPSI**: Panjang teks opsi A hingga E harus relatif seimbang/setara agar peserta tidak bisa menebak jawaban hanya dari panjang teks.
+           7. **PEMBAHASAN (EXPLANATION)**: Pembahasan WAJIB menjelaskan secara komprehensif mengapa jawaban yang benar adalah TEPAT, **DAN** mengapa setiap opsi lainnya (distraktor) adalah KURANG TEPAT atau SALAH. Ini sangat krusial!`;
       } else if (isTiu) {
-           difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - ELITE KEDINASAN LEVEL (ACTUAL TIU).
+           difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - TARGET DIFFICULTY: 8-10/10 (ELITE KEDINASAN LEVEL).
            
+           ${HOTS_PHILOSOPHY}
+
            THEME & TOPICS (STRICTLY FOLLOW THESE):
-           - Kemampuan Verbal: Analogi (multi-variable), silogisme (complex negations), dan analitis (seating/queue/logic).
-           - Kemampuan Numerik: Deret interleaved 3-lapis, perbandingan kuantitatif dengan variabel tersembunyi, soal cerita matematika analisis tinggi.
-           - Kemampuan Figural: Serial gambar, analogi gambar, dan MATRIKS 3X3 (9 KOTAK) dengan logika geometris yang sangat menantang.
+           1. Kemampuan Verbal:
+              - Analogi: Hubungan kata harus sangat spesifik dan dapat memiliki beberapa interpretasi (fungsi, sebab-akibat, bagian-keseluruhan, derajat). DILARANG menggunakan pasangan mudah (seperti dokter : rumah sakit).
+              - Silogisme: Gunakan 3-5 premis, negasi, kuantor (sebagian/semua), dan kesimpulan tidak langsung. DILARANG membuat pola repetitif (Semua A B. C A. Maka C B). Variasikan pertanyaan (pasti benar, mungkin benar, tidak mungkin benar, kesimpulan tidak valid).
+              - Analitis: WAJIB MENJADI SOAL TERSULIT. Gunakan 5-7 entitas dengan multiple constraint (urutan, posisi, jadwal, grouping). Variasikan pertanyaan (mana yang pasti, mungkin, mustahil, konsekuensi jika X terjadi, konsekuensi jika X dan Y ditukar).
+           2. Kemampuan Numerik (Berhitung, Deret, Perbandingan, Soal Cerita):
+              - WAJIB Minimal 2 tahap perhitungan (multi-step reasoning).
+              - DILARANG menggunakan angka absurd atau sangat besar. Kesulitan murni dari alur logika.
+              - Materi: aritmetika, persentase, rasio, pecahan, umur, pekerjaan, kecepatan, peluang, aljabar.
+              - ANTI-REPETISI: Rotasikan materi dengan ketat (persentase -> rasio -> umur -> kecepatan -> peluang, dll). Jangan buat topik yang sama berurutan.
+           3. Kemampuan Figural (Jika memuat gambar/SVG/deskripsi spasial):
+              - Analogi Gambar, Ketidaksamaan, Serial.
+              - Level 9-10: WAJIB menggabungkan 2-3 aturan sekaligus (contoh: rotasi + jumlah titik berubah + posisi bergeser).
+              - Variasi: matriks 2x2/3x3, odd one out, refleksi, kombinasi transformasi. DILARANG hanya menanyakan pola gambar berikutnya dengan 1 aturan sederhana.
 
            CRITICAL TIU RULES (ELITE DIFFICULTY & PENGECOH EKSTREM):
-           1. VERBAL ANALOGY: Gunakan analogi yang menuntut pemahaman konteks sosial/sains/sastra yang luas.
-           2. NUMERICAL SERIES: Pola harus tidak terduga namun tetap logis (Interleaved/Bertingkat).
-           3. LOGICAL REASONING: Silogisme dengan premis kontradiktif semu yang menuntut ketelitian logika formal.
-           4. SOAL CERITA: Masukkan unsur waktu, kecepatan ganda, atau perbandingan terbalik dalam satu soal.
-           5. FIGURAL: Gunakan SVG yang bersih, presisi, namun memiliki logika transformasi yang kompleks (rotasi + scaling + XOR lines).
-           6. EXPLANATION: Berikan langkah penyelesaian yang SINGKAT, MATEMATIS, dan MUDAH DIPAHAMI.`;
+           1. **KESULITAN LOGIKA, BUKAN KOMPUTASI**: Kesulitan 8-10/10 harus berasal dari "multi-step reasoning", BUKAN angka besar/kotor.
+           2. **KESEIMBANGAN OPSI**: Opsi (A-E) harus menjebak. Distraktor harus berupa angka/jawaban yang dihasilkan jika peserta melewatkan satu langkah logika (kesalahan yang realistis).
+           3. **PEMBAHASAN (EXPLANATION)**: Pembahasan WAJIB menguraikan langkah penyelesaian secara runtut (step-by-step) hingga jawaban benar, **DAN** menjelaskan letak jebakan pada distraktor utama (mengapa opsi lain salah).
+           4. **FORMAT**: Hanya 1 jawaban paling tepat. Hindari clue eksplisit.`;
       } else if (isTkp) {
-           difficultyContext = `CONTEXT: SKD TKP (Tes Karakteristik Pribadi) - ELITE KEDINASAN (CREATIVE SCENARIOS).
+           difficultyContext = `CONTEXT: SKD TKP (Tes Karakteristik Pribadi) - TARGET DIFFICULTY: 8-10/10 (ELITE KEDINASAN LEVEL).
            
-           THEME & TOPICS (STRICTLY FOLLOW THESE):
-           - Pelayanan Publik, Jejaring Kerja, Sosial Budaya, TIK, Profesionalisme, Anti Radikalisme.
+           ${HOTS_PHILOSOPHY}
+           ${TKP_SCORING_RULE}
 
-           CRITICAL TKP RULES (STRICT 1-5 GRADATION & EQUAL-LENGTH OPTIONS):
+           THEME & TOPICS (STRICTLY FOLLOW THESE):
+           1. Pelayanan Publik: Aturan + kebutuhan masyarakat + keterbatasan sumber daya.
+           2. Jejaring Kerja (Kerja Sama): Teman kompeten tapi sulit diajak kerja sama, senior menolak metode baru, konflik antaranggota, deadline mendesak. JANGAN buat konflik repetitif "teman malas".
+           3. Sosial Budaya: Menghormati budaya bertabrakan dengan SOP/aturan organisasi (Konflik Level 9). JANGAN sekadar "hargai perbedaan".
+           4. TIK (Teknologi Informasi): Efisiensi vs keamanan data, prosedur vs eskalasi, AI, phishing, kebocoran data. Ini sangat krusial untuk soal tersulit.
+           5. Profesionalisme & Integritas: Masukkan dua masalah sekaligus (misal: double deadline, tugas mendesak A vs tugas penting B tanpa deadline jelas). JANGAN buat jawaban benar (poin 5) terlalu moralistik/obvious. Beberapa opsi harus sama-sama benar secara moral namun mekanismenya beda.
+           6. Anti-Radikalisme.
+           7. Orientasi Hasil: Cepat selesai vs kualitas, target individu vs tim, jangka pendek vs panjang.
+           8. Komunikasi & Adaptasi: Komunikasi dua arah, kecepatan vs ketelitian, sistem lama vs baru.
+
+           CRITICAL TKP RULES (STRICT 1-5 GRADATION & ANTI-OBVIOUS):
            1. SISTEM SCORING WAJIB: 5-4-3-2-1.
-           2. TINGKAT KESULITAN: Kasus harus berupa dilema profesionalisme yang sangat abu-abu (Grey Area).
-           3. DISTORSI PILIHAN: Poin 5 adalah solusi "Inovatif", "Adaptif", dan "Berintegritas tinggi", namun dirumuskan secara taktis, padat, dan wajar.
-           4. NO CLICHÉS: DILARANG menggunakan skenario klise (printer rusak, teman curhat, tamu marah standar). Gunakan skenario birokrasi modern, transformasi digital, dilema kebijakan publik, atau konflik kepentingan di dunia kerja yang unik.
-           5. CREATIVITY: Buat skenario yang belum pernah ada sebelumnya. Jangan mengulangi pola soal bank soal lama.
-           6. EXPLANATION: Berikan alasan SINGKAT mengapa opsi tersebut mendapat poin 5.
-           7. KESEIMBANGAN PANJANG OPSI (ANTI-OBVIOUS): Seluruh 5 opsi (A, B, C, D, E) HARUS memiliki panjang kalimat yang setara dan seimbang (selisih antarelemen maksimal 2-4 kata saja). DILARANG KERAS membuat opsi poin 5 menjadi opsi yang paling panjang atau paling bertele-tele! Opsi poin 1, 2, 3, dan 4 juga harus ditulis sebagai kalimat tindakan profesional yang lengkap dan masuk akal (bukan kalimat pendek pasif). Peserta tidak boleh dapat menebak jawaban benar hanya dari panjang kalimat.`;
+           2. TINGKAT KESULITAN: Kasus tidak perlu sangat panjang, melainkan 5 opsi harus sama-sama terlihat BAIK dan BISA DIBELA. Perbedaan antar opsi terletak pada tingkat efektivitas, prosedur, dan kematangan profesionalisme.
+           3. DISTORSI PILIHAN: JANGAN buat gradasi opsi yang konyol (A. Diam, B. Sedikit bantu, C. Bantu, D. Sangat bantu, E. Sempurna). Semua opsi (1-5) harus berbentuk respons aktif, formal, dan meyakinkan seolah-olah itu jawaban yang benar.
+           4. OPSI POIN 5: Poin 5 adalah solusi "Inovatif", "Adaptif", dan "Sesuai prosedur", namun dirumuskan secara taktis dan wajar. Tidak boleh "Terlalu Sempurna" atau moralistik yang tidak realistis.
+           5. PEMBAHASAN (EXPLANATION): Pembahasan WAJIB menjelaskan alasan di balik penetapan skor 5, 4, 3, 2, dan 1 untuk masing-masing opsi. Jelaskan perbedaan tipis efektivitas di antara kelima opsi tersebut.
+           6. KESEIMBANGAN PANJANG OPSI: Seluruh 5 opsi (A, B, C, D, E) HARUS memiliki panjang kalimat yang setara dan seimbang (selisih antarelemen maksimal 2-4 kata saja). DILARANG KERAS membuat opsi poin 5 menjadi opsi yang paling panjang atau paling bertele-tele!`;
       }
 
       if (category === 'SKD' && typeof context === 'string' && (context.toUpperCase().includes('TIU') || context.toUpperCase().includes('INTELEGENSIA'))) {
@@ -1758,7 +1822,7 @@ function isSameOption(a: string, b: string, indexInOptions?: number): boolean {
   return normalizeOptionText(cleanA) === normalizeOptionText(cleanB);
 }
 
-function validateQuestionLocal(q: Question, expectedSubtest?: string, expectedTopic?: 'TWK'|'TIU'|'TKP'): { ok: boolean; reasons: string[] } {
+function validateQuestionLocal(q: Question, expectedSubtest?: string, expectedTopic?: 'TWK'|'TIU'|'TKP', seenPatterns?: Set<string>): { ok: boolean; reasons: string[] } {
   const reasons: string[] = [];
   if (!q || q.type !== 'multiple_choice') reasons.push('type bukan multiple_choice');
   const minContentLen = /Gambar|Figural/i.test(q.metadata?.subtest || '') ? 10 : 20;
@@ -1774,8 +1838,29 @@ function validateQuestionLocal(q: Question, expectedSubtest?: string, expectedTo
   if (expectedTopic && q.metadata?.topic !== expectedTopic) reasons.push(`topic harus ${expectedTopic}`);
   if (!q.explanation || q.explanation.trim().length < 20) reasons.push('explanation tidak memadai');
   if (!q.metadata?.trapPattern) reasons.push('trapPattern kosong');
+  
+  if (seenPatterns && q.metadata?.pattern) {
+    if (seenPatterns.has(q.metadata.pattern)) {
+      reasons.push(`Duplikasi pattern terdeteksi: ${q.metadata.pattern}`);
+    } else {
+      seenPatterns.add(q.metadata.pattern);
+    }
+  }
 
   const isTkp = q.metadata?.topic === 'TKP';
+  const isTwk = q.metadata?.topic === 'TWK';
+  
+  if (isTkp || isTwk) {
+    if (options.length === 5) {
+      const optionWords = options.map(o => String(o).trim().split(/\s+/).filter(Boolean).length);
+      const maxLen = Math.max(...optionWords);
+      const minLen = Math.min(...optionWords);
+      if (maxLen > minLen + 20) {
+        reasons.push(`opsi jawaban terlalu jomplang panjangnya (Max: ${maxLen} kata, Min: ${minLen} kata). Opsi harus seimbang (plausible distractors).`);
+      }
+    }
+  }
+
   if (isTkp) {
     if (!Array.isArray(q.tkpPoints) || q.tkpPoints.length !== 5) {
       reasons.push('tkpPoints harus berisi tepat 5 respons');
@@ -2182,6 +2267,11 @@ Catatan validator pada percobaan sebelumnya: ${lastIssues.slice(-6).join(' | ')}
     };
 
     const localValid: Question[] = [];
+    const seenPatterns = new Set<string>();
+    for (const q of best) {
+      if (q.metadata?.pattern) seenPatterns.add(q.metadata.pattern);
+    }
+    
     for (const q of generated) {
       const expected = findMatchingSubtest(q, localValid);
       // The routing field is authoritative for this engine. Normalize subtest & topic after match
@@ -2189,7 +2279,7 @@ Catatan validator pada percobaan sebelumnya: ${lastIssues.slice(-6).join(' | ')}
         q.metadata.subtest = expected;
         q.metadata.topic = topic;
       }
-      const local = validateQuestionLocal(q, expected, topic);
+      const local = validateQuestionLocal(q, expected, topic, seenPatterns);
       if (!local.ok) {
         lastIssues.push(`${q.metadata?.subtest || 'unknown'}: ${local.reasons.join(', ')}`);
         continue;
@@ -2465,19 +2555,6 @@ export const generatePsikotestSimulation = async () => {
     allQuestions.forEach(q => {
         if (!q.metadata.subtest) q.metadata.subtest = 'IQ Psychometric Test';
     });
-    
-    // Pad with fallback if truncated
-    if (allQuestions.length < 40) {
-        const { generateSKDPackage } = await import('../src/utils/skdGenerator');
-        const fallback = generateSKDPackage(Math.floor(Math.random() * 100), 'CPNS');
-        const fallbackTiu = fallback.filter(q => q.metadata?.topic === 'TIU');
-        while (allQuestions.length < 40 && fallbackTiu.length > 0) {
-            const padQ = fallbackTiu.shift()!;
-            padQ.metadata.topic = 'PSIKOTEST';
-            padQ.metadata.subtest = 'IQ Psychometric Test';
-            allQuestions.push(padQ);
-        }
-    }
     
     return reindexQuestions(allQuestions.slice(0, 40), 'PSIKOTEST');
 };
