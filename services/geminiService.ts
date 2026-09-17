@@ -1036,7 +1036,8 @@ export const buildQuestionPrompt = async (
            3. Kemampuan Figural (Jika memuat gambar/SVG/deskripsi spasial):
               - Analogi Gambar, Ketidaksamaan, Serial.
               - Level 9-10: WAJIB menggabungkan 2-3 aturan sekaligus (contoh: rotasi + jumlah titik berubah + posisi bergeser).
-              - Variasi: matriks 2x2/3x3, odd one out, refleksi, kombinasi transformasi. DILARANG hanya menanyakan pola gambar berikutnya dengan 1 aturan sederhana.
+              - Variasi: matriks 3x3 (Sembilan Kotak), odd one out, refleksi, kombinasi transformasi. DILARANG membuat matriks 2x2.
+              - BAGI SELURUH SOAL FIGURAL, SELURUH OPSI JAWABAN (A-E) WAJIB BERUPA KODE SVG MURNI. JANGAN GUNAKAN TEKS PADA OPSI.
 
            CRITICAL TIU RULES (ELITE DIFFICULTY & PENGECOH EKSTREM):
            1. **KESULITAN LOGIKA, BUKAN KOMPUTASI**: Kesulitan 8-10/10 harus berasal dari "multi-step reasoning", BUKAN angka besar/kotor.
@@ -1795,12 +1796,14 @@ function validateSvg(value: string): boolean {
 
 function normalizeOptionText(text: string): string {
   const s = String(text || '').trim();
-  if (isSvg(s)) {
-    return s.replace(/\s+/g, ' ').toLowerCase();
-  }
   // Only strip option prefix if it is followed by explicit delimiters (., ), :, -)
   const stripped = s.replace(/^(?:\(?[a-e1-5]\)?[\.\)\:\-]\s*|\(?[a-e]\)\s*)/i, '').trim();
   const effective = stripped.length > 0 ? stripped : s;
+
+  if (isSvg(effective)) {
+    return effective.replace(/\s+/g, ' ').toLowerCase();
+  }
+  
   return effective
     .toLowerCase()
     .replace(/[.,;:\s]+$/, '')        // strip trailing punctuation/spaces
@@ -1811,15 +1814,18 @@ function normalizeOptionText(text: string): string {
 function isSameOption(a: string, b: string, indexInOptions?: number): boolean {
   const cleanA = String(a).trim();
   const cleanB = String(b).trim();
-  if (isSvg(cleanA) || isSvg(cleanB)) {
-    return cleanA.replace(/\s+/g, ' ').toLowerCase() === cleanB.replace(/\s+/g, ' ').toLowerCase();
+  const normA = normalizeOptionText(cleanA);
+  const normB = normalizeOptionText(cleanB);
+  
+  if (isSvg(normA) || isSvg(normB)) {
+    return normA === normB;
   }
   if (indexInOptions !== undefined) {
     const letter = String.fromCharCode(65 + indexInOptions); // 'A', 'B', 'C', 'D', 'E'
     const trimmedB = cleanB.toUpperCase().replace(/[.):]/g, '');
     if (trimmedB === letter) return true;
   }
-  return normalizeOptionText(cleanA) === normalizeOptionText(cleanB);
+  return normA === normB;
 }
 
 function validateQuestionLocal(q: Question, expectedSubtest?: string, expectedTopic?: 'TWK'|'TIU'|'TKP', seenPatterns?: Set<string>): { ok: boolean; reasons: string[] } {
@@ -1909,10 +1915,11 @@ function validateQuestionLocal(q: Question, expectedSubtest?: string, expectedTo
   const subtest = q.metadata?.subtest || '';
   if (/Gambar|Figural|Serial/i.test(subtest)) {
     if (/Ketidaksamaan Gambar/i.test(subtest)) {
-      if (!options.every(isSvg)) reasons.push('opsi ketidaksamaan gambar harus SVG');
+      if (!options.every(opt => isSvg(normalizeOptionText(String(opt))))) reasons.push('opsi ketidaksamaan gambar harus SVG');
     } else {
-      if (!isSvg(q.content) && !Array.isArray(q.metadata?.matrix)) reasons.push('figural harus SVG atau matrix');
-      if (isSvg(q.content) && !validateSvg(q.content)) reasons.push('SVG content tidak valid');
+      const isContentSvg = isSvg(q.content) || (typeof q.content === 'string' && q.content.includes('<svg'));
+      if (!isContentSvg && !Array.isArray(q.metadata?.matrix)) reasons.push('figural harus memuat elemen <svg> atau matrix');
+      if (isContentSvg && q.content && !q.content.includes('viewBox')) reasons.push('SVG content tidak memiliki viewBox');
       if (Array.isArray(q.metadata?.matrix)) {
         const rows = q.metadata.matrix as any[];
         if (rows.length !== 3 || rows.some(r => !Array.isArray(r.row) || r.row.length !== 3)) reasons.push('matrix harus 3x3');
@@ -1920,7 +1927,7 @@ function validateQuestionLocal(q: Question, expectedSubtest?: string, expectedTo
           if (cell?.content !== '?' && !validateSvg(String(cell?.content || ''))) reasons.push('cell matrix bukan SVG valid');
         }
       }
-      if (!options.every(isSvg)) reasons.push('opsi figural harus SVG');
+      if (!options.every(opt => isSvg(normalizeOptionText(String(opt))))) reasons.push('opsi figural harus SVG');
     }
   }
 
@@ -2353,12 +2360,13 @@ AUTHENTIC-HARD PROFILE:
 
   const tiuFiguralProfile = `
 ${difficultyProfile}
-ATURAN KHUSUS TIU FIGURAL & MATRIKS:
-- Buat soal Matriks 3x3 (Sembilan Kotak).
+ATURAN KHUSUS TIU FIGURAL:
+- Untuk "Serial Gambar" atau "Analogi Gambar": WAJIB masukkan kode <svg> langsung ke dalam field \`content\` soal untuk menampilkan soal gambar.
+- Untuk "Ketidaksamaan Gambar": field \`content\` cukup berisi instruksi (misal: "Pilihlah gambar yang tidak memiliki pola yang sama."), namun SELURUH OPSI (A-E) WAJIB berupa kode <svg>.
 - Kanvas SVG HARUS berukuran viewBox="0 0 120 120" secara presisi.
-- Gunakan <svg> murni (circle, rect, path, polygon, line). DILARANG KERAS menggunakan teks huruf, emoji, atau karakter.
-- Gunakan stroke="currentColor" stroke-width="2.5" dan kombinasi fill="currentColor" opacity="0.25" atau fill="none".
-- Opsi pengecoh harus memiliki pola matriks (misal salah sudut rotasi 45°, salah jumlah garis, salah operasi boolean).
+- Gunakan <svg> murni (circle, rect, path, polygon, line). DILARANG KERAS menggunakan teks huruf, emoji, atau karakter di dalam SVG.
+- Pastikan tidak ada opsi SVG yang kodenya duplikat/identik persis. Opsi pengecoh harus mengecoh secara visual (misal salah sudut rotasi 45°, salah jumlah garis, salah posisi).
+- Pastikan penjelasan memuat logika transformasi (rotasi, translasi, penambahan elemen) yang benar, rasional, dan konsisten dengan opsi jawaban benar (claimedAnswer).
 `;
 
   let state = savedState || { completedBatches: {} };
@@ -2380,11 +2388,11 @@ ATURAN KHUSUS TIU FIGURAL & MATRIKS:
       allQuestions.push(...state.completedBatches[key]);
       return;
     }
-    if (onProgress) onProgress(completedCount / totalBatches * 100, `Meracik ${batchLabel}...`);
+    if (onProgress) onProgress(completedCount / totalBatches * 100, `Meracik ${batchLabel}... (${allQuestions.length} soal tersimpan)`);
     const q = await generateValidatedSkdBatch(subtests, topic, stream, batchLabel, profile);
     state.completedBatches[key] = q;
     completedCount++;
-    if (onProgress) onProgress(completedCount / totalBatches * 100, `Batch ${batchLabel} selesai.`);
+    if (onProgress) onProgress(completedCount / totalBatches * 100, `Batch ${batchLabel} selesai. (${allQuestions.length + q.length} soal tersimpan)`);
     allQuestions.push(...q);
   };
 
@@ -2427,10 +2435,8 @@ ATURAN KHUSUS TIU FIGURAL & MATRIKS:
     return { completed: true, questions: reindexQuestions(allQuestions, 'SKD-V8'), state };
 
   } catch (err: any) {
-    if (err.name === 'RateLimitError' || err.message?.toLowerCase().includes("quota") || err.message?.includes("429")) {
-      return { completed: false, state, errorMsg: err.message };
-    }
-    throw err;
+    // Apapun errornya, kita pause pembuatan (jangan delete/throw) agar user bisa melanjutkannya lagi.
+    return { completed: false, state, errorMsg: err.message };
   }
 };
 

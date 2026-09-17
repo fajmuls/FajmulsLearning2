@@ -117,6 +117,7 @@ export interface QuestionMetadata {
   topic: string;
   subtest: string;
   trapPattern?: string;
+  pattern?: string;
   matrix?: { row: string[] }[];
 }
 
@@ -297,6 +298,7 @@ export interface StaticTestPackage {
     version?: string;
     patchNotes?: string[];
     combinedSourceIds?: string[];
+    isBestPackage?: boolean;
 }
 
 export interface AppSettings {
@@ -394,6 +396,7 @@ export interface BackgroundGenTask {
     tkaLevel?: TkaLevelType;
     title: string;
     progress: number;
+    message?: string;
     status: 'generating' | 'completed' | 'failed' | 'paused';
     createdAt: string;
     savedState?: any;

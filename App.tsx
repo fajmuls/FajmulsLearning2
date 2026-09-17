@@ -3985,9 +3985,8 @@ function App() {
             (progressVal, msg) => {
               setActiveGenTask((prev) => {
                 if (!prev || prev.id !== taskId) return prev;
-                return { ...prev, progress: progressVal };
+                return { ...prev, progress: progressVal, message: msg };
               });
-              // showToast(msg, 'info'); // optional, might be spammy
             }
           );
           if (!res.completed) {
@@ -4130,7 +4129,7 @@ function App() {
       const res = await Gemini.generateSkdSimulation(skdStream, skdVariant as any, task.savedState, (progressVal, msg) => {
           setActiveGenTask((prev) => {
             if (!prev || prev.id !== task.id) return prev;
-            return { ...prev, progress: progressVal };
+            return { ...prev, progress: progressVal, message: msg };
           });
       });
       

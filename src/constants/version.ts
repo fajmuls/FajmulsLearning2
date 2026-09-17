@@ -5,9 +5,20 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "3.9.9";
+export const APP_VERSION = "4.0.0";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "4.0.0",
+    date: new Date().toISOString().split('T')[0],
+    type: "major",
+    notes: [
+      "Revamp Tampilan TO Selection Screen: Desain ulang total antarmuka pemilihan paket soal (TO) dengan gaya modern yang selaras dengan Settings Modal, tipografi tajam, kartu paket interaktif, dan animasi transisi halus.",
+      "Fitur Paket TO Terbaik (Best Package): Pengguna kini dapat menandai paket soal favorit/terbaik dengan lencana emas dan filter khusus untuk memudahkan akses latihan prioritas.",
+      "Integrasi Statistik & Quick Search: Tampilan statistik skor tertinggi, rata-rata, percobaan pengerjaan, dan pencarian instan judul paket yang lebih terorganisir.",
+      "Peningkatan Responsivitas & Dark Mode: Seluruh dialog modal, filter, dan kartu paket dioptimalkan untuk berbagai ukuran layar dengan kontras tinggi."
+    ]
+  },
   {
     version: "3.9.9",
     date: new Date().toISOString().split('T')[0],
