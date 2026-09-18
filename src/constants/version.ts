@@ -5,9 +5,23 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "4.0.0";
+export const APP_VERSION = "4.1.0";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "4.1.0",
+    date: new Date().toISOString().split('T')[0],
+    type: "major",
+    notes: [
+      "Revamp Total Fitur Mempelajari & Riwayat Belajar: Desain antarmuka baru yang selaras dengan TO Selection Screen dan Settings Modal dengan Hero Card ringkas, visual modern rounded-3xl, dan palet warna berdaya kontras tinggi.",
+      "Tandai Soal Terbaik (⭐) & Tandai Sudah Paham (✅): Pengguna kini dapat menandai soal-soal favorit/terbaik serta mencatat status pemahaman per-soal dengan indikator visual langsung.",
+      "Catatan Belajar Pribadi (📝 Personal Notes): Tambahkan catatan dan rumus pengingat mandiri di setiap butir soal yang tersimpan secara lokal dan persisten.",
+      "Mode Belajar Multi-Gaya (List View vs Focus Flashcard): Beralih antara tampilan daftar lengkap atau mode fokus satu per satu untuk pendalaman materi tanpa distraksi.",
+      "Fitur Uji Mandiri (Sembunyikan Kunci/Jawaban): Mode latihan ulang interaktif di mana kunci dan pembahasan dapat disembunyikan untuk menguji pemahaman secara mandiri.",
+      "Filter & Pencarian Soal Lanjutan: Filter soal berdasarkan status (Salah, Ragu-ragu, Soal Terbaik ⭐, Sudah Paham ✅, Belum Paham) dan cari berdasarkan kata kunci/topik.",
+      "Integrasi AI Tutor & Trik Kilat: Akses cepat tombol 'Tanya AI Guru' dan 'Minta Rumus Cepat AI' langsung dari lembar pembahasan soal."
+    ]
+  },
   {
     version: "4.0.0",
     date: new Date().toISOString().split('T')[0],

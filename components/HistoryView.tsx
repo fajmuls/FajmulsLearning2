@@ -18,6 +18,7 @@ import { LearningHeatmap } from './LearningHeatmap';
 import { SubtestWeaknessAnalysis } from './SubtestWeaknessAnalysis';
 import { calculateMovingAverageData, calculateCumulativeWeaknesses } from '../src/utils/performanceAnalytics';
 import { isUserAdmin } from '../services/firebase';
+import { APP_VERSION } from '../src/constants/version';
 
 interface HistoryProps {
     history: TestHistoryItem[];
@@ -588,63 +589,133 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                 </div>
             )}
 
-            <div className="max-w-4xl mx-auto">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                    <div className="flex items-center gap-4">
-                        <button onClick={onBack} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition text-slate-700 dark:text-slate-300"><ArrowLeft size={20}/></button>
-                        <div>
-                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Riwayat Belajar</h1>
-                            <div className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                <UserIcon size={12}/> {username}
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex gap-2 items-center">
+            <div className="max-w-[1600px] w-full mx-auto space-y-5">
+                
+                {/* TOP NAVIGATION & ACTIONS BAR */}
+                <div className="flex flex-wrap sm:flex-nowrap justify-between items-center gap-3">
+                    <button 
+                        onClick={onBack} 
+                        className="flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all font-bold text-xs bg-white dark:bg-slate-900 px-4 py-2 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm active:scale-95"
+                    >
+                        <ArrowLeft size={16}/> 
+                        <span>Kembali ke Beranda</span>
+                    </button>
+
+                    <div className="flex items-center gap-2">
                         {/* SELECTION MODE TOGGLE */}
                         <button 
                             onClick={() => {
+                                SoundManager.play('click');
                                 setIsSelectionMode(!isSelectionMode);
                                 setSelectedIds(new Set());
                             }}
-                            className={`p-2 rounded-lg border transition ${isSelectionMode ? 'bg-indigo-100 border-indigo-500 text-indigo-700' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
+                            className={`px-3.5 py-2 rounded-2xl border transition-all text-xs font-bold flex items-center gap-2 shadow-sm ${
+                                isSelectionMode 
+                                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-indigo-500/20' 
+                                    : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-indigo-400'
+                            }`}
                             title="Mode Seleksi"
                         >
-                            <CheckSquare size={20} />
+                            <CheckSquare size={16} />
+                            <span>{isSelectionMode ? 'Mode Pilih Aktif' : 'Pilih Sesi'}</span>
                         </button>
 
-                                        <button onClick={onExport} className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-bold text-[10px] sm:text-xs hover:bg-slate-50 dark:hover:bg-slate-700 transition shadow-sm whitespace-nowrap">
-                                            <Download size={14}/> Backup
-                                        </button>
-                                        <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800 rounded-lg font-bold text-[10px] sm:text-xs hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition shadow-sm whitespace-nowrap">
-                                            <UploadIcon size={14}/> Restore
-                                        </button>
+                        <button onClick={onExport} className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl font-bold text-xs hover:text-indigo-600 hover:border-indigo-300 transition shadow-sm whitespace-nowrap">
+                            <Download size={14}/> Backup
+                        </button>
+                        <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800 rounded-2xl font-bold text-xs hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition shadow-sm whitespace-nowrap">
+                            <UploadIcon size={14}/> Restore
+                        </button>
                         <input type="file" ref={fileRef} className="hidden" accept=".json" onChange={(e) => { if (e.target.files?.[0]) onImport(e.target.files[0]); if (fileRef.current) fileRef.current.value = ''; }} />
+                    </div>
+                </div>
+
+                {/* HERO OVERVIEW CARD (Unified with TOSelectionScreen) */}
+                <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-indigo-500/5 via-violet-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+                    
+                    <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-6 relative z-10">
+                        {/* Title & Info */}
+                        <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/25 shrink-0">
+                                <GraduationCap size={28} />
+                            </div>
+                            <div>
+                                <div className="flex flex-wrap items-center gap-2 mb-1">
+                                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-lg border bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800">
+                                        Riwayat Belajar
+                                    </span>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                                        v{APP_VERSION}
+                                    </span>
+                                    <span className="text-[10px] font-medium text-slate-400 flex items-center gap-1">
+                                        <UserIcon size={10}/> {username}
+                                    </span>
+                                </div>
+                                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                                    Riwayat Belajar & Evaluasi Mandiri
+                                </h1>
+                                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                                    Pantau riwayat pengerjaan tryout, tinjau progres berkala, dan ulas kembali pembahasan soal secara mendalam.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Quick Stats Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                            <div className="p-3 bg-slate-50/80 dark:bg-slate-800/60 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 flex flex-col items-center justify-center min-w-[90px]">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Sesi</span>
+                                <span className="text-base sm:text-lg font-black text-slate-800 dark:text-white mt-0.5">
+                                    {totalTests}
+                                </span>
+                            </div>
+                            <div className="p-3 bg-slate-50/80 dark:bg-slate-800/60 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 flex flex-col items-center justify-center min-w-[90px]">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Rata-rata</span>
+                                <span className="text-base sm:text-lg font-black text-indigo-600 dark:text-indigo-400 mt-0.5">
+                                    {avgScore}
+                                </span>
+                            </div>
+                            <div className="p-3 bg-slate-50/80 dark:bg-slate-800/60 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 flex flex-col items-center justify-center min-w-[90px]">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Skor Puncak</span>
+                                <span className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                    {highestScore > 0 ? highestScore : '-'}
+                                </span>
+                            </div>
+                            <div className="p-3 bg-slate-50/80 dark:bg-slate-800/60 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 flex flex-col items-center justify-center min-w-[90px]">
+                                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                                    <CheckCircle size={10} /> Dipelajari
+                                </span>
+                                <span className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                    {history.filter(h => h.isStudied).length}/{history.length}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 {/* SELECTION ACTION BAR */}
                 {isSelectionMode && (
-                    <div className="mb-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 p-3 rounded-xl flex items-center justify-between animate-fade-in-down sticky top-0 z-30 shadow-md backdrop-blur-md">
+                    <div className="bg-indigo-600 text-white p-3.5 sm:p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 sticky top-3 z-30 shadow-xl shadow-indigo-600/20 border border-indigo-500 animate-fade-in">
                         <div className="flex items-center gap-3">
-                            <button onClick={selectAll} className="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+                            <button onClick={selectAll} className="flex items-center gap-2 text-xs font-bold text-indigo-100 hover:underline">
                                 {selectedIds.size === filteredHistory.length ? 'Batal Pilih Semua' : 'Pilih Semua'}
                             </button>
-                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                {selectedIds.size} terpilih
+                            <span className="text-xs sm:text-sm font-bold bg-white/20 px-2.5 py-1 rounded-lg">
+                                {selectedIds.size} sesi terpilih
                             </span>
                         </div>
                         <button 
                             onClick={initiateDeleteMultiple}
                             disabled={selectedIds.size === 0}
-                            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-rose-600 text-white rounded-lg font-bold text-[10px] sm:text-xs hover:bg-rose-700 transition shadow-sm disabled:opacity-50 flex items-center gap-1.5 sm:gap-2 whitespace-nowrap"
+                            className="px-4 py-2 bg-rose-600 text-white rounded-xl font-bold text-xs hover:bg-rose-700 transition shadow-sm disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
                         >
-                            <Trash2 size={14}/> Hapus Terpilih
+                            <Trash2 size={14}/> Hapus Sesi Terpilih
                         </button>
                     </div>
                 )}
 
                 {/* Search Bar & Quick Filters */}
-                <div className="space-y-2 mb-3">
+                <div className="space-y-3">
                     <div className="relative">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                         <input
@@ -652,12 +723,12 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Cari judul paket tryout, modul, kategori, atau ID..."
-                            className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                            className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl text-xs sm:text-sm text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
                         />
                         {searchQuery && (
                             <button
                                 onClick={() => setSearchQuery('')}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                             >
                                 <X size={14} />
                             </button>
@@ -665,25 +736,25 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                     </div>
                 </div>
 
-                <div className="flex gap-1.5 overflow-x-auto pb-2.5 mb-2 scrollbar-hide">
-                    <button onClick={() => setFilterCategory('ALL')} className={`px-2.5 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap transition ${filterCategory === 'ALL' ? 'bg-slate-900 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
-                        Semua
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                    <button onClick={() => setFilterCategory('ALL')} className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${filterCategory === 'ALL' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+                        Semua Kategori
                     </button>
                     {CATEGORIES.map(cat => (
-                        <button key={cat.id} onClick={() => setFilterCategory(cat.id)} className={`px-2.5 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap transition ${filterCategory === cat.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+                        <button key={cat.id} onClick={() => setFilterCategory(cat.id)} className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${filterCategory === cat.id ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
                             {cat.name}
                         </button>
                     ))}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 mb-4">
+                <div className="flex flex-wrap items-center gap-2">
                     {filterCategory === 'SKD' && (
                         <select 
                             value={skdSubFilter} 
                             onChange={(e) => setSkdSubFilter(e.target.value as any)}
-                            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         >
-                            <option value="ALL">SKD: Semua</option>
+                            <option value="ALL">SKD: Semua Subtes</option>
                             <option value="TWK">SKD: TWK</option>
                             <option value="TIU">SKD: TIU</option>
                             <option value="TKP">SKD: TKP</option>
@@ -692,7 +763,7 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                     <select 
                         value={statusFilter} 
                         onChange={(e) => setStatusFilter(e.target.value as any)}
-                        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                         <option value="ALL">Status: Semua</option>
                         <option value="PASSED">Status: Lulus / Memenuhi</option>
@@ -701,7 +772,7 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                     <select 
                         value={timeFilter} 
                         onChange={(e) => setTimeFilter(e.target.value as any)}
-                        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                         <option value="ALL">Waktu: Semua</option>
                         <option value="TODAY">Hari Ini</option>
@@ -724,18 +795,21 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
                     )}
                 </div>
 
-                <div className="flex gap-4 border-b border-slate-200 dark:border-slate-700 mb-6">
+                {/* View Mode Switcher Tabs */}
+                <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
                     <button 
-                        onClick={() => setViewMode('ANALYTICS')} 
-                        className={`pb-3 text-sm font-bold transition-all border-b-2 ${viewMode === 'ANALYTICS' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        onClick={() => { SoundManager.play('tap'); setViewMode('ANALYTICS'); }} 
+                        className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${viewMode === 'ANALYTICS' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
                     >
-                        Ringkasan & Analisis
+                        <Activity size={16} />
+                        <span>Evaluasi & Analisis Belajar</span>
                     </button>
                     <button 
-                        onClick={() => setViewMode('LIST')} 
-                        className={`pb-3 text-sm font-bold transition-all border-b-2 ${viewMode === 'LIST' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        onClick={() => { SoundManager.play('tap'); setViewMode('LIST'); }} 
+                        className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${viewMode === 'LIST' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
                     >
-                        Ruangan Soal (Riwayat)
+                        <FileText size={16} />
+                        <span>Daftar Sesi Riwayat ({filteredHistory.length})</span>
                     </button>
                 </div>
 
@@ -1636,644 +1710,4 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
     );
 }
 
-export const ReviewView: React.FC<{ item: TestHistoryItem, onBack: () => void, onToggleStudied?: (id: string) => void }> = ({ item, onBack, onToggleStudied }) => {
-    
-    // DETAIL VIEW KHUSUS TES KORAN & KECERMATAN (Unified)
-    if (isTesKoran(item) || isTesKecermatan(item)) {
-        const isPauli = isTesKoran(item);
-        const details = item.details as (TesKoranResultDetails | TesKecermatanResultDetails);
-        
-        let chartData: number[] = [];
-        let totalCorrect = 0;
-        let totalWrong = 0;
-        let speed = 0;
-        let accuracy = 0;
-        let stability = 0;
-        let modeLabel = "";
-        let verdictData = { text: "-", color: "text-slate-500" };
-
-        if (isPauli) {
-            const d = details as TesKoranResultDetails;
-            chartData = d.intervalData || [];
-            totalCorrect = d.totalCorrect;
-            totalWrong = d.totalWrong;
-            speed = d.speedPerMinute;
-            accuracy = d.accuracy;
-            stability = d.consistencyScore;
-            modeLabel = "PAULI / KORAN";
-            verdictData = getVerdictInfo(d.accuracy, 'PERCENT');
-        } else {
-            const d = details as TesKecermatanResultDetails;
-            chartData = (d.sectionData || []).map(s => s.correct);
-            totalCorrect = d.totalCorrect || 0;
-            totalWrong = d.totalWrong || 0;
-            speed = d.averageSpeed || 0;
-            accuracy = d.accuracy || 0;
-            stability = d.stability || 0;
-            modeLabel = d.mode ? getKecermatanLabel(d.mode) : "Kecermatan";
-            verdictData = getVerdictInfo(d.accuracy || 0, 'PERCENT');
-        }
-
-        // Find Peak
-        let peakVal = 0;
-        let peakIdx = 0;
-        if(chartData.length > 0) {
-            peakVal = Math.max(...chartData);
-            peakIdx = chartData.indexOf(peakVal) + 1;
-        }
-
-        return (
-            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 px-4 md:px-6 py-2 md:py-4 transition-colors">
-                <div className="max-w-4xl mx-auto">
-                    <div className="flex justify-between items-center mb-6">
-                        <div className="flex items-center gap-4">
-                            <button onClick={onBack} className="text-slate-500 dark:text-slate-400 flex items-center hover:text-indigo-600 transition"><ArrowLeft size={16} className="mr-1"/> Kembali ke Riwayat</button>
-                            {item.isAborted && (
-                                 <span className="bg-amber-500 text-white text-xs px-2 py-1 rounded font-bold">TIDAK FULL TEST</span>
-                            )}
-                        </div>
-                        {onToggleStudied && (
-                            <button 
-                                onClick={() => onToggleStudied(item.id)}
-                                className={`py-1 sm:py-1.5 px-2.5 sm:px-3 rounded flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs uppercase font-bold transition-all shadow-sm ${item.isStudied ? 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30 ring-1 ring-emerald-500/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/50' : 'text-slate-500 bg-white dark:bg-slate-800 dark:text-slate-300 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
-                            >
-                                {item.isStudied ? 'Dipelajari' : 'Tandai Dipelajari'}
-                                {item.isStudied ? <CheckSquare size={12} strokeWidth={2.5}/> : <Square size={12} strokeWidth={2}/>}
-                            </button>
-                        )}
-                    </div>
-                    
-                    <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-8">
-                        <div className="flex items-center gap-3 mb-8">
-                            <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl text-indigo-600 dark:text-indigo-400">
-                                <Activity size={32}/>
-                            </div>
-                            <div>
-                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Analisis {modeLabel}</h1>
-                                <p className="text-slate-500 dark:text-slate-400 text-sm">Kesimpulan: <span className={`font-bold ${verdictData.color}`}>{verdictData.text}</span></p>
-                            </div>
-                        </div>
-
-                        {/* Top Stats Cards (6 Grid) */}
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-                            <div className="p-5 border border-slate-100 dark:border-slate-700 rounded-2xl bg-slate-50 dark:bg-slate-700/30">
-                                <div className="text-xs font-bold text-slate-400 uppercase mb-2">Volume Total</div>
-                                <div className="text-3xl font-black text-indigo-600 dark:text-indigo-400">{totalCorrect}</div>
-                                <div className="text-[10px] text-slate-500">jawaban benar</div>
-                            </div>
-                             <div className="p-5 border border-slate-100 dark:border-slate-700 rounded-2xl bg-slate-50 dark:bg-slate-700/30">
-                                <div className="text-xs font-bold text-slate-400 uppercase mb-2">Error / Salah</div>
-                                <div className="text-3xl font-black text-rose-500">{totalWrong}</div>
-                                <div className="text-[10px] text-slate-500">jawaban salah</div>
-                            </div>
-                            <div className="p-5 border border-slate-100 dark:border-slate-700 rounded-2xl bg-slate-50 dark:bg-slate-700/30">
-                                <div className="text-xs font-bold text-slate-400 uppercase mb-2">Kecepatan (Avg)</div>
-                                <div className="text-3xl font-black text-slate-800 dark:text-white">{speed}</div>
-                                <div className="text-[10px] text-slate-500">per menit/bagian</div>
-                            </div>
-                            <div className="p-5 border border-slate-100 dark:border-slate-700 rounded-2xl bg-slate-50 dark:bg-slate-700/30">
-                                <div className="text-xs font-bold text-slate-400 uppercase mb-2">Akurasi</div>
-                                <div className={`text-3xl font-black ${getVerdictInfo(accuracy, 'PERCENT').color}`}>{accuracy}%</div>
-                                <div className="text-[10px] text-slate-500">ketelitian kerja</div>
-                            </div>
-                            <div className="p-5 border border-slate-100 dark:border-slate-700 rounded-2xl bg-slate-50 dark:bg-slate-700/30">
-                                <div className="text-xs font-bold text-slate-400 uppercase mb-2">Stabilitas</div>
-                                <div className="text-3xl font-black text-amber-500">{stability}</div>
-                                <div className="text-[10px] text-slate-500">deviasi</div>
-                            </div>
-                            <div className="p-5 border border-slate-100 dark:border-slate-700 rounded-2xl bg-slate-50 dark:bg-slate-700/30">
-                                <div className="text-xs font-bold text-slate-400 uppercase mb-2">Peak Performance</div>
-                                <div className="text-3xl font-black text-emerald-500">{peakVal}</div>
-                                <div className="text-[10px] text-slate-500">tertinggi pada menit ke-{peakIdx}</div>
-                            </div>
-                        </div>
-
-                        <div className="mb-6">
-                            <h3 className="font-bold text-slate-800 dark:text-white mb-4">Grafik Ritme Kerja (Per Menit/Bagian)</h3>
-                            <div className="h-64 flex items-end gap-2 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 relative overflow-x-auto">
-                                {chartData.map((val, idx) => {
-                                    const maxVal = Math.max(...chartData, 10);
-                                    const h = (val / maxVal) * 100;
-                                    const isPeak = (val === peakVal);
-                                    
-                                    return (
-                                        <div key={idx} className="flex-1 flex flex-col justify-end items-center group relative h-full min-w-[20px]">
-                                            <div className={`w-full rounded-t-sm transition-all hover:opacity-80 ${isPeak ? 'bg-emerald-500' : 'bg-indigo-600'}`} style={{height: `${h}%`}}></div>
-                                            
-                                            <div className="mt-2 text-[10px] font-bold text-slate-400">{idx+1}</div>
-                                            
-                                            {/* Tooltip */}
-                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-black text-white text-xs p-2 rounded z-10 whitespace-nowrap shadow-xl">
-                                                Menit {idx+1}: {val}
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                            <p className="text-xs text-slate-400 mt-2 text-center">Grafik yang menurun drastis menunjukkan indikasi kelelahan.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    // STANDARD REVIEW VIEW
-    const [navOpen, setNavOpen] = useState(false);
-
-    const scrollToQuestion = (index: number) => {
-        setNavOpen(false); // Close nav on mobile after jumping
-        const element = document.getElementById(`question-${index}`);
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    };
-
-    const getNavColor = (q: Question, ans: UserAnswer | undefined) => {
-        if (!ans) return 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400';
-        
-        // TKP Logic
-        if ((q.tkpPoints && q.tkpPoints.length > 0) || (q.metadata?.subtest && q.metadata.subtest.includes('TKP'))) {
-             const s = ans.scoreEarned;
-             if (s >= 5) return 'bg-emerald-500 text-white';
-             if (s === 4) return 'bg-lime-500 text-white';
-             if (s === 3) return 'bg-yellow-500 text-white';
-             if (s === 2) return 'bg-orange-500 text-white';
-             return 'bg-rose-500 text-white';
-        }
-
-        // Standard
-        if (ans.isCorrect) return 'bg-emerald-500 text-white';
-        return 'bg-rose-500 text-white';
-    };
-
-    const renderNavigationGrid = () => {
-        // Group questions by subtest
-        const groupedQuestions: { subtest: string; questions: { q: Question; index: number }[] }[] = [];
-        let currentSubtest = "";
-        let currentGroup: { subtest: string; questions: { q: Question; index: number }[] } | null = null;
-
-        item.questions.forEach((q, i) => {
-            // Determine subtest name
-            let subtest = "Lainnya";
-            if (q.metadata?.topic === 'TWK' || q.metadata?.subtest?.includes('TWK')) {
-                subtest = "Tes Wawasan Kebangsaan";
-            } else if (q.metadata?.topic === 'TIU' || q.metadata?.subtest?.includes('TIU')) {
-                subtest = "Tes Intelegensia Umum";
-            } else if (q.metadata?.topic === 'TKP' || q.metadata?.subtest?.includes('TKP')) {
-                subtest = "Tes Karakteristik Pribadi";
-            } else if (q.metadata?.subtest) {
-                subtest = q.metadata.subtest;
-            }
-            
-            // Clean up subtest name if needed
-            if (subtest.startsWith("SKD - ")) subtest = subtest.replace("SKD - ", "");
-            if (subtest.startsWith("UTBK - ")) subtest = subtest.replace("UTBK - ", "");
-
-            if (subtest !== currentSubtest) {
-                currentSubtest = subtest;
-                currentGroup = { subtest, questions: [] };
-                groupedQuestions.push(currentGroup);
-            }
-            if (currentGroup) {
-                currentGroup.questions.push({ q, index: i });
-            }
-        });
-
-        return (
-            <div className="bg-white dark:bg-slate-800 p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col max-h-[calc(100vh-2.5rem)]">
-                <h3 className="font-bold text-slate-800 dark:text-white mb-3 text-sm uppercase tracking-wider flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-2"><Grid size={16}/> Navigasi Soal</div>
-                    {/* Close button for mobile inside the grid */}
-                    <button onClick={() => setNavOpen(false)} className="lg:hidden text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                        <XCircle size={20}/>
-                    </button>
-                </h3>
-                <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-4 min-h-0">
-                    {groupedQuestions.map((group, gIdx) => (
-                        <div key={gIdx}>
-                            <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 truncate border-b border-slate-100 dark:border-slate-700 pb-1" title={group.subtest}>
-                                {group.subtest}
-                            </h4>
-                            <div className="grid grid-cols-5 gap-2">
-                                {group.questions.map(({ q, index }) => {
-                                    const ans = item.answers.find(a => a.questionId === q.id);
-                                    return (
-                                        <button 
-                                            key={index}
-                                            onClick={() => scrollToQuestion(index)}
-                                            className={`relative aspect-square rounded-lg font-bold text-xs flex items-center justify-center transition hover:opacity-80 shadow-sm ${getNavColor(q, ans)}`}
-                                        >
-                                            {index + 1}
-                                            {ans?.isDoubtful && (
-                                                <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-amber-400 border border-white dark:border-slate-800 rounded-full flex items-center justify-center shadow-sm" title="Ditandai Ragu-ragu">
-                                                    <Flag size={8} className="text-amber-900" />
-                                                </div>
-                                            )}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                
-                {/* Legend */}
-                <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-700 space-y-3">
-                    <div className="text-xs font-bold text-slate-400 uppercase">Keterangan Warna</div>
-                    <div className="grid grid-cols-1 gap-2 text-[10px] font-medium text-slate-600 dark:text-slate-400">
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-emerald-500"></div> Benar / 5 Poin</div>
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-lime-500"></div> 4 Poin (TKP)</div>
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-yellow-500"></div> 3 Poin (TKP)</div>
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-orange-500"></div> 2 Poin (TKP)</div>
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-rose-500"></div> Salah / 1 Poin</div>
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-slate-200 dark:bg-slate-700"></div> Kosong</div>
-                        <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-full bg-amber-400 flex items-center justify-center"><Flag size={8} className="text-amber-900" /></div> Ditandai Ragu-ragu</div>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-    return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 px-4 md:px-6 py-2 pb-6 md:py-4 transition-colors relative">
-            <div className="max-w-7xl mx-auto">
-                <div className="flex justify-between items-center mb-4">
-                    <button onClick={onBack} className="text-slate-500 dark:text-slate-400 flex items-center hover:text-indigo-600 transition"><ArrowLeft size={16} className="mr-1"/> Kembali ke Riwayat</button>
-                    {onToggleStudied && (
-                        <button 
-                            onClick={() => onToggleStudied(item.id)}
-                            className={`py-1 sm:py-1.5 px-2.5 sm:px-3 rounded flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs uppercase font-bold transition-all shadow-sm ${item.isStudied ? 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30 ring-1 ring-emerald-500/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/50' : 'text-slate-500 bg-white dark:bg-slate-800 dark:text-slate-300 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
-                        >
-                            {item.isStudied ? 'Dipelajari' : 'Tandai Dipelajari'}
-                            {item.isStudied ? <CheckSquare size={12} strokeWidth={2.5}/> : <Square size={12} strokeWidth={2}/>}
-                        </button>
-                    )}
-                </div>
-                
-                {/* Mobile Nav Sidebar Overlay */}
-                {navOpen && (
-                    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm lg:hidden transition-opacity" onClick={() => setNavOpen(false)}>
-                        <div className="fixed inset-y-0 right-0 w-72 sm:w-80 bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 shadow-2xl flex flex-col transform transition-transform duration-300 animate-slide-in-right h-full overflow-hidden" onClick={e => e.stopPropagation()}>
-                            <div className="flex-1 overflow-y-auto p-4 sm:p-5">
-                                {renderNavigationGrid()}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Floating Mobile Nav Button */}
-                {!navOpen && (
-                    <button 
-                        onClick={() => setNavOpen(true)}
-                        className="fixed bottom-6 right-4 sm:right-6 z-40 lg:hidden flex items-center justify-center bg-indigo-600 text-white p-4 rounded-full shadow-2xl hover:bg-indigo-700 transition"
-                    >
-                        <Grid size={24}/>
-                    </button>
-                )}
-
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 items-start relative">
-                    {/* MAIN CONTENT */}
-                    <div className="lg:col-span-3 space-y-4 sm:space-y-6">
-                        <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-                            <div className="flex justify-between items-start mb-3 sm:mb-4">
-                                <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                    <FileText size={20} className="sm:w-6 sm:h-6 text-indigo-600"/> 
-                                    Review: {item.packageTitle || item.category}
-                                </h2>
-                            </div>
-                            
-                            {/* Detailed Sub-test & Topic Analysis */}
-                            {item.questions && item.questions.length > 0 && (
-                                <SubtestWeaknessAnalysis
-                                     item={item}
-                                     isDarkMode={document.documentElement.classList.contains('dark')}
-                                     defaultExpanded={true}
-                                />
-                            )}
-                            
-                            {/* Basic Score Summary */}
-                            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                                <div className="bg-slate-50 dark:bg-slate-700/50 p-3 sm:p-4 rounded-xl border border-slate-100 dark:border-slate-600">
-                                    <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">Skor Total</div>
-                                    <div className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white">
-                                        {item.category === 'UTBK' ? (getUtbkDetails(item) as UtbkResultDetails).average : item.score}
-                                    </div>
-                                </div>
-                                <div className="bg-slate-50 dark:bg-slate-700/50 p-3 sm:p-4 rounded-xl border border-slate-100 dark:border-slate-600">
-                                    <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">Benar / Salah</div>
-                                    <div className="text-xl sm:text-2xl font-black">
-                                        <span className="text-emerald-500">{(item.answers || []).filter(a => a.isCorrect).length}</span>
-                                        <span className="text-slate-400 mx-1 sm:mx-2">/</span>
-                                        <span className="text-rose-500">{(item.answers || []).filter(a => !a.isCorrect).length}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* SKD Subtest Scores */}
-                            {item.category === 'SKD' && item.details && (
-                                (() => {
-                                    const details = item.details as SkdResultDetails;
-                                    const hasTwk = details.twk !== undefined;
-                                    const hasTiu = details.tiu !== undefined;
-                                    const hasTkp = details.tkp !== undefined;
-                                    const colCount = [hasTwk, hasTiu, hasTkp].filter(Boolean).length || 1;
-                                    
-                                    return (
-                                        <div className={`mt-4 grid grid-cols-${colCount} gap-2`}>
-                                            {hasTwk && (
-                                                <div className="bg-amber-50 dark:bg-amber-900/30 p-3 rounded-xl border border-amber-100 dark:border-amber-800 text-center">
-                                                    <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">TWK</div>
-                                                    <div className="text-lg font-black text-slate-800 dark:text-white">{details.twk}</div>
-                                                </div>
-                                            )}
-                                            {hasTiu && (
-                                                <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-xl border border-blue-100 dark:border-blue-800 text-center">
-                                                    <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">TIU</div>
-                                                    <div className="text-lg font-black text-slate-800 dark:text-white">{details.tiu}</div>
-                                                </div>
-                                            )}
-                                            {hasTkp && (
-                                                <div className="bg-purple-50 dark:bg-purple-900/30 p-3 rounded-xl border border-purple-100 dark:border-purple-800 text-center">
-                                                    <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase">TKP</div>
-                                                    <div className="text-lg font-black text-slate-800 dark:text-white">{details.tkp}</div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })()
-                            )}
-
-                            {/* UTBK Subtest Scores */}
-                            {item.category === 'UTBK' && item.details && (
-                                (() => {
-                                    const utbkDetails = getUtbkDetails(item) as UtbkResultDetails;
-                                    return (
-                                        <div className="mt-4">
-                                            <div className="text-xs font-bold text-slate-400 uppercase mb-2">Rincian Subtes</div>
-                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                                <div className="bg-slate-50 dark:bg-slate-700/30 p-2 rounded-lg border border-slate-100 dark:border-slate-600 text-center">
-                                                    <div className="text-[9px] font-bold text-slate-500 uppercase">PU</div>
-                                                    <div className="text-sm font-black text-slate-800 dark:text-white">{utbkDetails.pu}</div>
-                                                </div>
-                                                <div className="bg-slate-50 dark:bg-slate-700/30 p-2 rounded-lg border border-slate-100 dark:border-slate-600 text-center">
-                                                    <div className="text-[9px] font-bold text-slate-500 uppercase">PPU</div>
-                                                    <div className="text-sm font-black text-slate-800 dark:text-white">{utbkDetails.ppu}</div>
-                                                </div>
-                                                <div className="bg-slate-50 dark:bg-slate-700/30 p-2 rounded-lg border border-slate-100 dark:border-slate-600 text-center">
-                                                    <div className="text-[9px] font-bold text-slate-500 uppercase">PBM</div>
-                                                    <div className="text-sm font-black text-slate-800 dark:text-white">{utbkDetails.pbm}</div>
-                                                </div>
-                                                <div className="bg-slate-50 dark:bg-slate-700/30 p-2 rounded-lg border border-slate-100 dark:border-slate-600 text-center">
-                                                    <div className="text-[9px] font-bold text-slate-500 uppercase">PK</div>
-                                                    <div className="text-sm font-black text-slate-800 dark:text-white">{utbkDetails.pk}</div>
-                                                </div>
-                                                <div className="bg-slate-50 dark:bg-slate-700/30 p-2 rounded-lg border border-slate-100 dark:border-slate-600 text-center">
-                                                    <div className="text-[9px] font-bold text-slate-500 uppercase">LBI</div>
-                                                    <div className="text-sm font-black text-slate-800 dark:text-white">{utbkDetails.lbi}</div>
-                                                </div>
-                                                <div className="bg-slate-50 dark:bg-slate-700/30 p-2 rounded-lg border border-slate-100 dark:border-slate-600 text-center">
-                                                    <div className="text-[9px] font-bold text-slate-500 uppercase">LBE</div>
-                                                    <div className="text-sm font-black text-slate-800 dark:text-white">{utbkDetails.lbe}</div>
-                                                </div>
-                                                <div className="bg-slate-50 dark:bg-slate-700/30 p-2 rounded-lg border border-slate-100 dark:border-slate-600 text-center">
-                                                    <div className="text-[9px] font-bold text-slate-500 uppercase">PM</div>
-                                                    <div className="text-sm font-black text-slate-800 dark:text-white">{utbkDetails.pm}</div>
-                                                </div>
-                                                <div className="bg-indigo-50 dark:bg-indigo-900/30 p-2 rounded-lg border border-indigo-100 dark:border-indigo-800 text-center">
-                                                    <div className="text-[9px] font-bold text-indigo-600 uppercase">AVG</div>
-                                                    <div className="text-sm font-black text-indigo-700 dark:text-indigo-400">{utbkDetails.average}</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })()
-                            )}
-
-                            {/* TKA / PELAJARAN Subtest Scores */}
-                            {(item.category === 'TKA' || item.category === 'PELAJARAN') && item.details && (
-                                <div className="mt-4">
-                                    <div className="text-xs font-bold text-slate-400 uppercase mb-2">Rincian Subtes (IRT)</div>
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                        {(item.details as any).math !== undefined && (
-                                            <div className="bg-slate-50 dark:bg-slate-700/30 p-2 rounded-lg border border-slate-100 dark:border-slate-600 text-center">
-                                                <div className="text-[9px] font-bold text-slate-500 uppercase">MATEMATIKA</div>
-                                                <div className="text-sm font-black text-slate-800 dark:text-white">{(item.details as any).math}</div>
-                                            </div>
-                                        )}
-                                        {(item.details as any).indonesian !== undefined && (
-                                            <div className="bg-slate-50 dark:bg-slate-700/30 p-2 rounded-lg border border-slate-100 dark:border-slate-600 text-center">
-                                                <div className="text-[9px] font-bold text-slate-500 uppercase">B. INDONESIA</div>
-                                                <div className="text-sm font-black text-slate-800 dark:text-white">{(item.details as any).indonesian}</div>
-                                            </div>
-                                        )}
-                                        {(item.details as any).english !== undefined && (
-                                            <div className="bg-slate-50 dark:bg-slate-700/30 p-2 rounded-lg border border-slate-100 dark:border-slate-600 text-center">
-                                                <div className="text-[9px] font-bold text-slate-500 uppercase">B. INGGRIS</div>
-                                                <div className="text-sm font-black text-slate-800 dark:text-white">{(item.details as any).english}</div>
-                                            </div>
-                                        )}
-                                        {(item.details as any).average !== undefined && (
-                                            <div className="bg-indigo-50 dark:bg-indigo-900/30 p-2 rounded-lg border border-indigo-100 dark:border-indigo-800 text-center">
-                                                <div className="text-[9px] font-bold text-indigo-600 uppercase">AVG</div>
-                                                <div className="text-sm font-black text-indigo-700 dark:text-indigo-400">{(item.details as any).average}</div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="space-y-4">
-                            {(!item.questions || item.questions.length === 0) && !isTesKoran(item) && !isTesKecermatan(item) ? (
-                                <div className="text-center py-10 px-6 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">
-                                    <div className="text-slate-400 mb-3 flex justify-center"><AlertCircle size={40} /></div>
-                                    <div className="text-sm font-bold text-slate-700 dark:text-slate-300">Detail Soal Tidak Tersedia</div>
-                                    <p className="text-[11px] text-slate-500 mt-2 max-w-[240px] mx-auto leading-relaxed">
-                                        Data soal untuk riwayat lama ini telah dihapus dari cache lokal untuk menghemat ruang penyimpanan.
-                                    </p>
-                                </div>
-                            ) : (
-                                (item.questions || []).map((q, i) => {
-                                    const ans = (item.answers || []).find(a => a.questionId === q.id);
-                                    const containerClass = getReviewColorClass(q, ans);
-                                    
-                                    return (
-                                        <div id={`question-${i}`} key={i} className={`p-3 sm:p-4 border rounded-xl transition-all ${containerClass}`}>
-                                            <div className="flex justify-between items-start mb-2">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">Soal {i+1}</span>
-                                                    {ans?.isDoubtful && (
-                                                        <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 px-2 py-0.5 rounded-full">
-                                                            <Flag size={8} className="sm:w-[10px] sm:h-[10px]" /> Ditandai Ragu
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                {(() => {
-                                                    const isTkp = (q.tkpPoints && q.tkpPoints.length > 0) || (q.metadata?.subtest && q.metadata.subtest.includes('TKP'));
-                                                    if (isTkp) {
-                                                        const s = ans?.scoreEarned || 0;
-                                                        if (s >= 4) return <CheckCircle size={14} className="sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400"/>;
-                                                        if (s >= 2) return <CheckCircle size={14} className="sm:w-4 sm:h-4 text-yellow-600 dark:text-yellow-400"/>;
-                                                        return <XCircle size={14} className="sm:w-4 sm:h-4 text-rose-600 dark:text-rose-400"/>;
-                                                    }
-                                                    return ans?.isCorrect ? <CheckCircle size={14} className="sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400"/> : <XCircle size={14} className="sm:w-4 sm:h-4 text-rose-600 dark:text-rose-400"/>;
-                                                })()}
-                                            </div>
-                                            
-                                            <div className="mb-2 sm:mb-3 text-[11px] sm:text-sm text-slate-800 dark:text-slate-200 text-justify">
-                                                {(q.content && q.content.includes(':::MATRIX:::')) || (q.metadata && q.metadata.matrix && q.metadata.matrix.length > 0) ? (
-                                                    <MatrixQuestionRenderer content={q.content} metadataMatrix={q.metadata?.matrix} />
-                                                ) : (
-                                                    <SimpleMarkdown 
-                                                        text={q.content} 
-                                                        allowIndent={
-                                                            !!q.metadata?.subtest?.includes('Bahasa') || 
-                                                            !!q.metadata?.subtest?.includes('Verbal') ||
-                                                            !!q.metadata?.topic?.includes('Bacaan') ||
-                                                            (!!q.content && q.content.length > 350)
-                                                        }
-                                                    />
-                                                )}
-                                            </div>
-                                            
-                                            <div className="text-[10px] sm:text-sm space-y-1 mb-2 sm:mb-3">
-                                                <div className={`flex gap-2 ${
-                                                    (() => {
-                                                        const isTkp = (q.tkpPoints && q.tkpPoints.length > 0) || (q.metadata?.subtest && q.metadata.subtest.includes('TKP'));
-                                                        if (isTkp) {
-                                                            const s = ans?.scoreEarned || 0;
-                                                            if (s >= 4) return 'text-emerald-700 dark:text-emerald-300';
-                                                            if (s >= 2) return 'text-yellow-700 dark:text-yellow-300';
-                                                            return 'text-rose-700 dark:text-rose-300';
-                                                        }
-                                                        return ans?.isCorrect ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300';
-                                                    })()
-                                                }`}>
-                                                <span className="font-bold w-16 sm:w-24 shrink-0">Jwbn Anda:</span>
-                                                <span className="font-medium">
-                                                    {q.options && q.type === 'multiple_choice' ? (
-                                                        <SimpleMarkdown text={ans?.selectedAnswer || '-'} />
-                                                    ) : (
-                                                        ans?.selectedAnswer || '-'
-                                                    )}
-                                                </span>
-                                            </div>
-                                            {(!ans?.isCorrect && !((q.tkpPoints && q.tkpPoints.length > 0) || (q.metadata?.subtest && q.metadata.subtest.includes('TKP')))) && (
-                                                <div className="flex gap-2 text-slate-600 dark:text-slate-400">
-                                                    <span className="font-bold w-16 sm:w-24 shrink-0">Kunci:</span>
-                                                    <span className="font-medium">
-                                                        {q.options && q.type === 'multiple_choice' ? (
-                                                            <SimpleMarkdown text={q.correctAnswer} />
-                                                        ) : (
-                                                            q.correctAnswer
-                                                        )}
-                                                    </span>
-                                                </div>
-                                            )}
-                                            {(q.tkpPoints || (ans?.scoreEarned !== undefined && (q.metadata?.subtest?.includes('TKP') || q.metadata?.topic?.includes('TKP')))) && (
-                                                <div className="mt-2 sm:mt-3 space-y-1.5 sm:space-y-2">
-                                                    <div className="flex gap-2 text-slate-600 dark:text-slate-400">
-                                                        <span className="font-bold w-16 sm:w-24 shrink-0">Poin Anda:</span>
-                                                        <span className={`font-bold px-1.5 sm:px-2 rounded ${ans?.scoreEarned && ans.scoreEarned >= 4 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>{ans?.scoreEarned}</span>
-                                                    </div>
-                                                    
-                                                    {/* TKP Breakdown */}
-                                                    {q.tkpPoints && q.tkpPoints.length > 0 && (
-                                                        <div className="mt-2 bg-slate-50 dark:bg-slate-700/30 p-3 rounded-lg border border-slate-100 dark:border-slate-600">
-                                                            <div className="text-xs font-bold text-slate-400 uppercase mb-2">Rincian Poin Jawaban</div>
-                                                            <div className="space-y-1.5">
-                                                                {[...q.tkpPoints].sort((a, b) => b.points - a.points).map((pt, idx) => {
-                                                                    let isSelected = false;
-                                                                    if (ans?.selectedAnswer) {
-                                                                        if (ans.selectedAnswer === pt.option) {
-                                                                            isSelected = true;
-                                                                        } else if (q.options) {
-                                                                            const optIndex = q.options.findIndex(o => o === ans.selectedAnswer);
-                                                                            if (optIndex !== -1) {
-                                                                                const letter = String.fromCharCode(65 + optIndex);
-                                                                                if (pt.option.trim().toUpperCase() === letter) {
-                                                                                    isSelected = true;
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                    
-                                                                    // Get full text if pt.option is just A/B/C/D/E
-                                                                    let displayText = pt.option;
-                                                                    if (displayText.length === 1 && displayText.toUpperCase() >= 'A' && displayText.toUpperCase() <= 'E' && q.options) {
-                                                                        const idx = displayText.toUpperCase().charCodeAt(0) - 65;
-                                                                        if (idx >= 0 && idx < q.options.length) {
-                                                                            displayText = q.options[idx];
-                                                                        }
-                                                                    }
-
-                                                                    return (
-                                                                    <div key={idx} className="flex gap-2 text-xs items-start">
-                                                                        <span className={`font-bold w-6 shrink-0 text-center rounded ${
-                                                                            pt.points === 5 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' :
-                                                                            pt.points === 4 ? 'bg-lime-100 text-lime-700 dark:bg-lime-900/40 dark:text-lime-400' :
-                                                                            pt.points === 3 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400' :
-                                                                            pt.points === 2 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400' :
-                                                                            'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400'
-                                                                        }`}>{pt.points}</span>
-                                                                        <span className={`flex-1 ${isSelected ? 'font-bold text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`}>
-                                                                            <SimpleMarkdown text={displayText} />
-                                                                            {isSelected && <span className="ml-2 text-[10px] bg-slate-200 dark:bg-slate-600 px-1 rounded text-slate-600 dark:text-slate-300">(Jawabanmu)</span>}
-                                                                        </span>
-                                                                    </div>
-                                                                )})}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="mt-3 pt-3 border-t border-black/10 dark:border-white/10">
-                                            <details className="group/exp">
-                                                <summary className="flex items-center justify-between cursor-pointer list-none">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="text-xs font-bold text-slate-500 flex items-center gap-1 opacity-75">
-                                                            <Activity size={12}/> Penjelasan:
-                                                        </div>
-                                                        <span className="text-[10px] text-indigo-500 font-bold group-open/exp:hidden">Lihat Pembahasan</span>
-                                                        <span className="text-[10px] text-slate-400 font-bold hidden group-open/exp:inline">Tutup</span>
-                                                    </div>
-                                                    <button 
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                            window.dispatchEvent(new CustomEvent('openAiTutor', { 
-                                                                detail: { 
-                                                                    context: `Soal:\n${q.content}\n\nPembahasan:\n${q.explanation}\n\nSaya sedang mengulas hasil belajar saya dan ingin bertanya penjelasan ini...`
-                                                                } 
-                                                            }));
-                                                        }}
-                                                        className="text-[9px] sm:text-[10px] bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 sm:py-1 rounded font-bold flex items-center gap-1 hover:bg-indigo-200 dark:hover:bg-indigo-900 transition"
-                                                    >
-                                                        <Bot size={10} /> Tanya AI
-                                                    </button>
-                                                </summary>
-                                                <div className="mt-2 text-xs text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-black/20 p-2 sm:p-3 rounded-lg border border-black/5 dark:border-white/5 animate-fade-in">
-                                                    <SimpleMarkdown text={q.explanation} />
-                                                </div>
-                                            </details>
-                                        </div>
-                                    </div>
-                                );
-                            }))}
-                        </div>
-                    </div>
-
-                    {/* RIGHT SIDEBAR (Navigation) */}
-                    <div className="hidden lg:block lg:col-span-1 sticky top-4 z-20 self-start">
-                        {renderNavigationGrid()}
-                    </div>
-                </div>
-            </div>
-
-            {/* STICKY BOTTOM QUESTION BUBBLES GRID ON MOBILE REMOVED */}
-        </div>
-    );
-};
+export { ReviewView } from "./ReviewView";
