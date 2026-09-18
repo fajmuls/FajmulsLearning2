@@ -5,9 +5,20 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "4.1.0";
+export const APP_VERSION = "4.2.0";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "4.2.0",
+    date: new Date().toISOString().split('T')[0],
+    type: "minor",
+    notes: [
+      "Pengaturan Ukuran Font Dinamis (A- / A / A+): Kendali ukuran font fleksibel (XS hingga XL) di mode Review Belajar untuk kenyamanan membaca soal panjang dan pembahasan di semua perangkat.",
+      "Dukungan Shortcut Keyboard Lengkap: Navigasi cepat tombol panah (←/→), perbesar/perkecil font (+/-), tandai paham (P/U), tandai soal terbaik (B/S), mode uji mandiri (T/M), ganti mode belajar (V/L), dan salin soal (C) dengan modal panduan visual (?)",
+      "Visualisasi Khusus TKP Gradasi Warna Poin 1-5: Tampilan opsi soal TKP kini menonjolkan bobot nilai 1 hingga 5 dengan gradasi warna dari Merah (1 Poin) ke Hijau Unggul (5 Poin) lengkap dengan bar progres dan identifikasi jawaban pengguna.",
+      "Peningkatan Responsivitas Navigasi & Matrix Soal: Navigasi cepat antar butir soal dengan indikator status nilai TKP dan pemahaman yang lebih informatif."
+    ]
+  },
   {
     version: "4.1.0",
     date: new Date().toISOString().split('T')[0],

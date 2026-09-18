@@ -4,11 +4,13 @@ import {
     Bot, Award, CheckSquare, Square, Star, Bookmark, BookOpen, 
     ChevronLeft, ChevronRight, Eye, EyeOff, Volume2, VolumeX, 
     Copy, Check, Edit3, Search, X, Sparkles, Filter, Lightbulb,
-    FileText, HelpCircle, Layers, RefreshCw, AlertTriangle, ShieldCheck, GraduationCap, Brain, Package, Target
+    FileText, HelpCircle, Layers, RefreshCw, AlertTriangle, ShieldCheck, 
+    GraduationCap, Brain, Package, Target, Type, Keyboard, Plus, Minus, 
+    RotateCcw, Sliders, Info
 } from 'lucide-react';
 import { 
     TestHistoryItem, TesKoranResultDetails, TesKecermatanResultDetails, 
-    Question, UserAnswer 
+    Question, UserAnswer, AppFontSize 
 } from '../types';
 import { SimpleMarkdown, MatrixQuestionRenderer, SvgRenderer } from './QuestionRenderer';
 import { InteractiveFigural } from './InteractiveFigural';
@@ -25,6 +27,112 @@ interface ReviewViewProps {
 const STORAGE_KEY_UNDERSTOOD = 'fajmuls_understood_questions';
 const STORAGE_KEY_BEST_QUESTIONS = 'fajmuls_best_questions';
 const STORAGE_KEY_QUESTION_NOTES = 'fajmuls_question_notes';
+const STORAGE_KEY_REVIEW_FONT_SIZE = 'fajmuls_review_font_size';
+
+// Helper to determine TKP points for a given option
+const getTkpOptionPoints = (q: Question, optionText: string, optionIndex: number): number | null => {
+    const isTkp = q.metadata?.subtest?.toUpperCase().includes('TKP') || 
+                  (q.tkpPoints && q.tkpPoints.length > 0);
+    if (!isTkp) return null;
+
+    if (!q.tkpPoints || q.tkpPoints.length === 0) {
+        const letter = String.fromCharCode(65 + optionIndex);
+        if (q.correctAnswer === optionText || q.correctAnswer === letter) return 5;
+        return null;
+    }
+
+    const normalizeText = (text: string) => text.trim().toLowerCase().replace(/[^a-z0-9]/gi, '');
+    const normSelected = normalizeText(optionText);
+
+    // Exact text match
+    let match = q.tkpPoints.find(tp => normalizeText(tp.option) === normSelected);
+
+    // Substring match
+    if (!match) {
+        match = q.tkpPoints.find(tp => {
+            const normTp = normalizeText(tp.option);
+            return normTp.includes(normSelected) || normSelected.includes(normTp);
+        });
+    }
+
+    // Match by option letter (A, B, C, D, E)
+    if (!match) {
+        const letter = String.fromCharCode(65 + optionIndex);
+        match = q.tkpPoints.find(tp => {
+            const cleanTp = tp.option.trim().toUpperCase().replace(/[^A-E]/g, '');
+            return cleanTp === letter || tp.option.trim().toUpperCase().startsWith(letter);
+        });
+    }
+
+    // Index fallback
+    if (!match && q.tkpPoints[optionIndex]) {
+        match = q.tkpPoints[optionIndex];
+    }
+
+    return match ? Number(match.points) : null;
+};
+
+// Styling helper for TKP Points 1-5 (Red to Green gradient)
+const getTkpPointStyle = (points: number) => {
+    switch (points) {
+        case 5:
+            return {
+                badgeBg: 'bg-emerald-600 text-white',
+                border: 'border-emerald-500/80 dark:border-emerald-600',
+                bg: 'bg-emerald-50/90 dark:bg-emerald-950/40',
+                textColor: 'text-emerald-950 dark:text-emerald-100',
+                label: '5 Poin (Maksimal)',
+                barColor: 'bg-emerald-500',
+                ringColor: 'ring-emerald-500',
+                progressWidth: '100%'
+            };
+        case 4:
+            return {
+                badgeBg: 'bg-teal-600 text-white',
+                border: 'border-teal-400/80 dark:border-teal-600',
+                bg: 'bg-teal-50/80 dark:bg-teal-950/30',
+                textColor: 'text-teal-950 dark:text-teal-100',
+                label: '4 Poin',
+                barColor: 'bg-teal-500',
+                ringColor: 'ring-teal-500',
+                progressWidth: '80%'
+            };
+        case 3:
+            return {
+                badgeBg: 'bg-amber-500 text-slate-950 font-black',
+                border: 'border-amber-400/80 dark:border-amber-600',
+                bg: 'bg-amber-50/80 dark:bg-amber-950/30',
+                textColor: 'text-amber-950 dark:text-amber-100',
+                label: '3 Poin',
+                barColor: 'bg-amber-400',
+                ringColor: 'ring-amber-500',
+                progressWidth: '60%'
+            };
+        case 2:
+            return {
+                badgeBg: 'bg-orange-500 text-white',
+                border: 'border-orange-400/80 dark:border-orange-600',
+                bg: 'bg-orange-50/80 dark:bg-orange-950/30',
+                textColor: 'text-orange-950 dark:text-orange-100',
+                label: '2 Poin',
+                barColor: 'bg-orange-500',
+                ringColor: 'ring-orange-500',
+                progressWidth: '40%'
+            };
+        case 1:
+        default:
+            return {
+                badgeBg: 'bg-rose-600 text-white',
+                border: 'border-rose-400/80 dark:border-rose-600',
+                bg: 'bg-rose-50/80 dark:bg-rose-950/30',
+                textColor: 'text-rose-950 dark:text-rose-100',
+                label: '1 Poin (Terendah)',
+                barColor: 'bg-rose-500',
+                ringColor: 'ring-rose-500',
+                progressWidth: '20%'
+            };
+    }
+};
 
 export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleStudied }) => {
     // ----------------------------------------------------
@@ -56,6 +164,47 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
             return {};
         }
     });
+
+    // Font Size State
+    const [fontSize, setFontSize] = useState<AppFontSize>(() => {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY_REVIEW_FONT_SIZE);
+            return (saved as AppFontSize) || 'md';
+        } catch {
+            return 'md';
+        }
+    });
+
+    const fontSizes: AppFontSize[] = ['xs', 'sm', 'md', 'lg', 'xl'];
+
+    const changeFontSize = (dir: 'up' | 'down') => {
+        SoundManager.play('click');
+        setFontSize(prev => {
+            const idx = fontSizes.indexOf(prev);
+            let next = prev;
+            if (dir === 'up' && idx < fontSizes.length - 1) {
+                next = fontSizes[idx + 1];
+            } else if (dir === 'down' && idx > 0) {
+                next = fontSizes[idx - 1];
+            }
+            try {
+                localStorage.setItem(STORAGE_KEY_REVIEW_FONT_SIZE, next);
+            } catch (e) {
+                console.error(e);
+            }
+            return next;
+        });
+    };
+
+    const resetFontSize = () => {
+        SoundManager.play('click');
+        setFontSize('md');
+        try {
+            localStorage.setItem(STORAGE_KEY_REVIEW_FONT_SIZE, 'md');
+        } catch (e) {
+            console.error(e);
+        }
+    };
 
     // Save helper functions
     const toggleUnderstood = (questionId: string) => {
@@ -120,6 +269,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
     const [activeNoteEditor, setActiveNoteEditor] = useState<string | null>(null);
     const [copiedQuestionId, setCopiedQuestionId] = useState<string | null>(null);
     const [speakingQuestionId, setSpeakingQuestionId] = useState<string | null>(null);
+    const [showShortcutModal, setShowShortcutModal] = useState<boolean>(false);
 
     // ----------------------------------------------------
     // TEXT-TO-SPEECH (TTS)
@@ -167,21 +317,267 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
     };
 
     // ----------------------------------------------------
-    // KEYBOARD NAVIGATION IN FOCUS MODE
+    // DATA DERIVATION & FILTERING
+    // ----------------------------------------------------
+    const questions = useMemo(() => item.questions || [], [item.questions]);
+    const answers = useMemo(() => item.answers || [], [item.answers]);
+
+    // Questions count metrics
+    const wrongQuestionsCount = useMemo(() => {
+        return answers.filter(a => !a.isCorrect && (a.scoreEarned === undefined || a.scoreEarned < 4)).length;
+    }, [answers]);
+
+    const flaggedCount = useMemo(() => {
+        return answers.filter(a => a.isDoubtful).length;
+    }, [answers]);
+
+    const bestQuestionsCount = useMemo(() => {
+        return questions.filter(q => bestQuestionsSet.has(q.id)).length;
+    }, [questions, bestQuestionsSet]);
+
+    const understoodCount = useMemo(() => {
+        return questions.filter(q => understoodSet.has(q.id)).length;
+    }, [questions, understoodSet]);
+
+    const masteryPercentage = useMemo(() => {
+        if (questions.length === 0) return 0;
+        return Math.round((understoodCount / questions.length) * 100);
+    }, [understoodCount, questions.length]);
+
+    // Filtered Question List with original index mapping
+    const filteredQuestions = useMemo(() => {
+        return questions.map((q, originalIndex) => ({ q, originalIndex })).filter(({ q, originalIndex }) => {
+            const ans = answers.find(a => a.questionId === q.id) || answers[originalIndex];
+            const isCorrect = ans?.isCorrect || (ans?.scoreEarned && ans.scoreEarned >= 4);
+
+            if (filterType === 'WRONG') {
+                if (isCorrect) return false;
+            } else if (filterType === 'FLAGGED') {
+                if (!ans?.isDoubtful) return false;
+            } else if (filterType === 'BEST') {
+                if (!bestQuestionsSet.has(q.id)) return false;
+            } else if (filterType === 'UNDERSTOOD') {
+                if (!understoodSet.has(q.id)) return false;
+            } else if (filterType === 'UNUNDERSTOOD') {
+                if (understoodSet.has(q.id)) return false;
+            }
+
+            // Search query filter
+            if (searchQuery.trim()) {
+                const query = searchQuery.toLowerCase();
+                const contentMatch = q.content.toLowerCase().includes(query);
+                const explanationMatch = q.explanation?.toLowerCase().includes(query);
+                const subtestMatch = (q.metadata?.subtest || '').toLowerCase().includes(query);
+                const topicMatch = (q.metadata?.topic || '').toLowerCase().includes(query);
+                const noteMatch = (notesMap[q.id] || '').toLowerCase().includes(query);
+                if (!contentMatch && !explanationMatch && !subtestMatch && !topicMatch && !noteMatch) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+    }, [questions, answers, filterType, searchQuery, bestQuestionsSet, understoodSet, notesMap]);
+
+    // Active question helper for shortcut handlers
+    const currentActiveQuestion = useMemo(() => {
+        if (studyMode === 'FOCUS') {
+            const currentItem = filteredQuestions[Math.min(focusIndex, filteredQuestions.length - 1)];
+            return currentItem ? currentItem.q : questions[0];
+        } else {
+            const currentItem = filteredQuestions[0];
+            return currentItem ? currentItem.q : questions[0];
+        }
+    }, [studyMode, focusIndex, filteredQuestions, questions]);
+
+    // ----------------------------------------------------
+    // COMPREHENSIVE KEYBOARD SHORTCUTS
     // ----------------------------------------------------
     useEffect(() => {
-        if (studyMode !== 'FOCUS') return;
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-            if (e.key === 'ArrowLeft') {
-                setFocusIndex(prev => Math.max(0, prev - 1));
-            } else if (e.key === 'ArrowRight') {
-                setFocusIndex(prev => Math.min((item.questions?.length || 1) - 1, prev + 1));
+            // Ignore when typing in text input or textarea
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+                if (e.key === 'Escape') {
+                    (e.target as HTMLElement).blur();
+                }
+                return;
+            }
+
+            // Global shortcut handler
+            if (e.key === '?' || e.key === 'h' || e.key === 'H') {
+                e.preventDefault();
+                setShowShortcutModal(prev => !prev);
+                return;
+            }
+
+            if (e.key === 'Escape') {
+                if (showShortcutModal) {
+                    setShowShortcutModal(false);
+                    return;
+                }
+                if (searchQuery) {
+                    setSearchQuery('');
+                    return;
+                }
+                if (activeNoteEditor) {
+                    setActiveNoteEditor(null);
+                    return;
+                }
+            }
+
+            // Font size shortcuts
+            if (e.key === '+' || e.key === '=' || e.key === ']') {
+                e.preventDefault();
+                changeFontSize('up');
+                return;
+            }
+            if (e.key === '-' || e.key === '_' || e.key === '[') {
+                e.preventDefault();
+                changeFontSize('down');
+                return;
+            }
+            if (e.key === '0') {
+                e.preventDefault();
+                resetFontSize();
+                return;
+            }
+
+            // View Mode Toggle (V or L)
+            if (e.key === 'v' || e.key === 'V' || e.key === 'l' || e.key === 'L') {
+                e.preventDefault();
+                SoundManager.play('click');
+                setStudyMode(prev => prev === 'LIST' ? 'FOCUS' : 'LIST');
+                return;
+            }
+
+            // Self-Test Toggle (T or M)
+            if (e.key === 't' || e.key === 'T' || e.key === 'm' || e.key === 'M') {
+                e.preventDefault();
+                SoundManager.play('click');
+                setIsSelfTestMode(prev => {
+                    const next = !prev;
+                    if (!next) setRevealedSelfTestQuestions(new Set());
+                    return next;
+                });
+                return;
+            }
+
+            // Filter Shortcuts (1: All, 2: Wrong, 3: Flagged, 4: Best, 5: Understood, 6: Ununderstood)
+            if (e.key === '1') { setFilterType('ALL'); SoundManager.play('click'); return; }
+            if (e.key === '2') { setFilterType('WRONG'); SoundManager.play('click'); return; }
+            if (e.key === '3') { setFilterType('FLAGGED'); SoundManager.play('click'); return; }
+            if (e.key === '4') { setFilterType('BEST'); SoundManager.play('click'); return; }
+            if (e.key === '5') { setFilterType('UNDERSTOOD'); SoundManager.play('click'); return; }
+            if (e.key === '6') { setFilterType('UNUNDERSTOOD'); SoundManager.play('click'); return; }
+
+            // Actions on current question
+            if (currentActiveQuestion) {
+                // Toggle Understood (P or U)
+                if (e.key === 'p' || e.key === 'P' || e.key === 'u' || e.key === 'U') {
+                    e.preventDefault();
+                    toggleUnderstood(currentActiveQuestion.id);
+                    return;
+                }
+
+                // Toggle Best Question (B or S)
+                if (e.key === 'b' || e.key === 'B' || e.key === 's' || e.key === 'S') {
+                    e.preventDefault();
+                    toggleBestQuestion(currentActiveQuestion.id);
+                    return;
+                }
+
+                // Copy question (C)
+                if (e.key === 'c' || e.key === 'C') {
+                    e.preventDefault();
+                    const qIdx = questions.findIndex(q => q.id === currentActiveQuestion.id);
+                    handleCopyQuestion(currentActiveQuestion, qIdx >= 0 ? qIdx : 0);
+                    return;
+                }
+
+                // Speak TTS (A)
+                if (e.key === 'a' || e.key === 'A') {
+                    e.preventDefault();
+                    speakText(currentActiveQuestion.id, `${currentActiveQuestion.content}. Pembahasan: ${currentActiveQuestion.explanation}`);
+                    return;
+                }
+
+                // Toggle Note Editor (N or E)
+                if (e.key === 'n' || e.key === 'N' || e.key === 'e' || e.key === 'E') {
+                    e.preventDefault();
+                    setActiveNoteEditor(prev => prev === currentActiveQuestion.id ? null : currentActiveQuestion.id);
+                    return;
+                }
+            }
+
+            // Arrow keys navigation in Focus Mode
+            if (studyMode === 'FOCUS') {
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    setFocusIndex(prev => Math.max(0, prev - 1));
+                    SoundManager.play('click');
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    setFocusIndex(prev => Math.min(filteredQuestions.length - 1, prev + 1));
+                    SoundManager.play('click');
+                }
             }
         };
+
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [studyMode, item.questions]);
+    }, [studyMode, filteredQuestions, focusIndex, currentActiveQuestion, showShortcutModal, searchQuery, activeNoteEditor, questions]);
+
+    // Subtest stats for badge in header
+    const subtestBreakdown = useMemo(() => {
+        const map: Record<string, { total: number; correct: number }> = {};
+        questions.forEach((q, idx) => {
+            const sub = q.metadata?.subtest || q.metadata?.topic || 'Umum';
+            if (!map[sub]) map[sub] = { total: 0, correct: 0 };
+            map[sub].total++;
+            const ans = answers.find(a => a.questionId === q.id) || answers[idx];
+            if (ans?.isCorrect || (ans?.scoreEarned && ans.scoreEarned >= 4)) {
+                map[sub].correct++;
+            }
+        });
+        return map;
+    }, [questions, answers]);
+
+    // Font Size Class Resolvers
+    const fontClassPrompt = useMemo(() => {
+        switch (fontSize) {
+            case 'xs': return 'text-xs leading-normal';
+            case 'sm': return 'text-sm leading-relaxed';
+            case 'lg': return 'text-lg sm:text-xl leading-relaxed';
+            case 'xl': return 'text-xl sm:text-2xl leading-relaxed';
+            case 'md':
+            default:
+                return 'text-base sm:text-lg leading-relaxed';
+        }
+    }, [fontSize]);
+
+    const fontClassOption = useMemo(() => {
+        switch (fontSize) {
+            case 'xs': return 'text-xs';
+            case 'sm': return 'text-xs sm:text-sm';
+            case 'lg': return 'text-base sm:text-lg';
+            case 'xl': return 'text-lg sm:text-xl';
+            case 'md':
+            default:
+                return 'text-sm sm:text-base';
+        }
+    }, [fontSize]);
+
+    const fontClassExplanation = useMemo(() => {
+        switch (fontSize) {
+            case 'xs': return 'text-xs';
+            case 'sm': return 'text-xs sm:text-sm';
+            case 'lg': return 'text-base sm:text-lg';
+            case 'xl': return 'text-lg sm:text-xl';
+            case 'md':
+            default:
+                return 'text-xs sm:text-sm';
+        }
+    }, [fontSize]);
 
     // ----------------------------------------------------
     // SPECIAL TES KORAN & KECERMATAN HANDLING
@@ -225,13 +621,13 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                 <div className="max-w-4xl mx-auto space-y-6">
                     {/* Header */}
                     <div className="flex justify-between items-center">
-                        <button onClick={onBack} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+                        <button onClick={onBack} className="inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
                             <ArrowLeft size={16} /> Kembali ke Riwayat
                         </button>
                         {onToggleStudied && (
                             <button
                                 onClick={() => onToggleStudied(item.id)}
-                                className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${item.isStudied ? 'bg-emerald-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}
+                                className={`px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 ${item.isStudied ? 'bg-emerald-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}
                             >
                                 {item.isStudied ? <CheckSquare size={16} /> : <Square size={16} />}
                                 {item.isStudied ? 'Sudah Dipelajari' : 'Tandai Dipelajari'}
@@ -304,103 +700,14 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
         );
     }
 
-    // ----------------------------------------------------
-    // STANDARD QUESTIONS REVIEW & STUDY ENGINE
-    // ----------------------------------------------------
-    const questions = item.questions || [];
-    const answers = item.answers || [];
-
-    // Filter calculations
-    const wrongQuestionsCount = useMemo(() => {
-        return questions.filter((q, idx) => {
-            const ans = answers.find(a => a.questionId === q.id) || answers[idx];
-            return ans && !ans.isCorrect && (ans.scoreEarned === undefined || ans.scoreEarned < 4);
-        }).length;
-    }, [questions, answers]);
-
-    const flaggedCount = useMemo(() => {
-        return answers.filter(a => a.isDoubtful).length;
-    }, [answers]);
-
-    const bestQuestionsCount = useMemo(() => {
-        return questions.filter(q => bestQuestionsSet.has(q.id)).length;
-    }, [questions, bestQuestionsSet]);
-
-    const understoodCount = useMemo(() => {
-        return questions.filter(q => understoodSet.has(q.id)).length;
-    }, [questions, understoodSet]);
-
-    const masteryPercentage = questions.length > 0 
-        ? Math.round((understoodCount / questions.length) * 100) 
-        : 0;
-
-    // Filtered questions list
-    const filteredQuestions = useMemo(() => {
-        return questions.map((q, originalIndex) => ({ q, originalIndex })).filter(({ q, originalIndex }) => {
-            const ans = answers.find(a => a.questionId === q.id) || answers[originalIndex];
-            
-            // Status filters
-            if (filterType === 'WRONG') {
-                const isWrong = ans && !ans.isCorrect && (ans.scoreEarned === undefined || ans.scoreEarned < 4);
-                if (!isWrong) return false;
-            } else if (filterType === 'FLAGGED') {
-                if (!ans?.isDoubtful) return false;
-            } else if (filterType === 'BEST') {
-                if (!bestQuestionsSet.has(q.id)) return false;
-            } else if (filterType === 'UNDERSTOOD') {
-                if (!understoodSet.has(q.id)) return false;
-            } else if (filterType === 'UNUNDERSTOOD') {
-                if (understoodSet.has(q.id)) return false;
-            }
-
-            // Search query filter
-            if (searchQuery.trim()) {
-                const query = searchQuery.toLowerCase();
-                const contentMatch = q.content.toLowerCase().includes(query);
-                const explanationMatch = q.explanation?.toLowerCase().includes(query);
-                const subtestMatch = (q.metadata?.subtest || '').toLowerCase().includes(query);
-                const topicMatch = (q.metadata?.topic || '').toLowerCase().includes(query);
-                const noteMatch = (notesMap[q.id] || '').toLowerCase().includes(query);
-                if (!contentMatch && !explanationMatch && !subtestMatch && !topicMatch && !noteMatch) {
-                    return false;
-                }
-            }
-
-            return true;
-        });
-    }, [questions, answers, filterType, searchQuery, bestQuestionsSet, understoodSet, notesMap]);
-
-    // Subtest stats for badge in header
-    const subtestBreakdown = useMemo(() => {
-        const map: Record<string, { total: number; correct: number }> = {};
-        questions.forEach((q, idx) => {
-            const sub = q.metadata?.subtest || q.metadata?.topic || 'Umum';
-            if (!map[sub]) map[sub] = { total: 0, correct: 0 };
-            map[sub].total++;
-            const ans = answers.find(a => a.questionId === q.id) || answers[idx];
-            if (ans?.isCorrect || (ans?.scoreEarned && ans.scoreEarned >= 4)) {
-                map[sub].correct++;
-            }
-        });
-        return map;
-    }, [questions, answers]);
-
-    const getCategoryIcon = (category: string) => {
-        const cat = category.toUpperCase();
-        if (cat === 'SKD') return <ShieldCheck size={24} />;
-        if (cat === 'UTBK') return <GraduationCap size={24} />;
-        if (cat === 'PSIKOTEST') return <Brain size={24} />;
-        return <Package size={24} />;
-    };
-
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 px-4 md:px-6 py-4 md:py-6 transition-colors pb-24">
             <div className="max-w-6xl mx-auto space-y-6">
                 
                 {/* ---------------------------------------------------- */}
-                {/* TOP NAVIGATION BAR */}
+                {/* TOP NAVIGATION & UTILITY BAR */}
                 {/* ---------------------------------------------------- */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                         <button 
                             onClick={onBack} 
@@ -415,28 +722,73 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                         )}
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    {/* Right Tools: Font Size Control, Shortcuts Modal, Studied toggle */}
+                    <div className="flex items-center flex-wrap gap-2">
+                        {/* Font Size Adjuster Buttons */}
+                        <div className="flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-1 shadow-sm">
+                            <button
+                                onClick={() => changeFontSize('down')}
+                                disabled={fontSize === 'xs'}
+                                className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 transition"
+                                title="Perkecil Ukuran Font (- atau [)"
+                            >
+                                <Minus size={14} />
+                            </button>
+                            
+                            <button
+                                onClick={resetFontSize}
+                                className="px-2 py-0.5 text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"
+                                title="Reset Font ke Normal (Tekan 0)"
+                            >
+                                <span className="text-[11px]">A {fontSize.toUpperCase()}</span>
+                            </button>
+
+                            <button
+                                onClick={() => changeFontSize('up')}
+                                disabled={fontSize === 'xl'}
+                                className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 transition"
+                                title="Perbesar Ukuran Font (+ atau ])"
+                            >
+                                <Plus size={14} />
+                            </button>
+                        </div>
+
+                        {/* Keyboard Shortcut Help Button */}
+                        <button
+                            onClick={() => {
+                                SoundManager.play('click');
+                                setShowShortcutModal(true);
+                            }}
+                            className="px-3 py-2 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition flex items-center gap-1.5 shadow-sm"
+                            title="Buka Panduan Shortcut Keyboard (Tekan ? atau H)"
+                        >
+                            <Keyboard size={15} className="text-indigo-500" />
+                            <span className="hidden md:inline">Shortcut</span>
+                            <kbd className="hidden sm:inline-block px-1 py-0.2 bg-slate-100 dark:bg-slate-700 rounded text-[9px] font-mono text-slate-500">?</kbd>
+                        </button>
+
                         {/* Global Studied Status Toggle */}
                         {onToggleStudied && (
                             <button
                                 onClick={() => onToggleStudied(item.id)}
-                                className={`px-4 py-2 rounded-2xl text-xs font-black transition-all flex items-center gap-2 shadow-sm ${
+                                className={`px-3.5 py-2 rounded-2xl text-xs font-black transition-all flex items-center gap-2 shadow-sm ${
                                     item.isStudied 
                                         ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20' 
                                         : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
                                 }`}
                             >
-                                {item.isStudied ? <CheckCircle size={16} className="text-white" /> : <BookOpen size={16} className="text-indigo-500" />}
-                                {item.isStudied ? 'Paket Selesai Dipelajari' : 'Tandai Paket Dipelajari'}
+                                {item.isStudied ? <CheckCircle size={15} className="text-white" /> : <BookOpen size={15} className="text-indigo-500" />}
+                                <span className="hidden sm:inline">{item.isStudied ? 'Paket Selesai Dipelajari' : 'Tandai Paket Dipelajari'}</span>
+                                <span className="sm:hidden">{item.isStudied ? 'Selesai' : 'Dipelajari'}</span>
                             </button>
                         )}
                     </div>
                 </div>
 
                 {/* ---------------------------------------------------- */}
-                {/* HERO CARD (TO SELECTION STYLE) */}
+                {/* HERO OVERVIEW CARD */}
                 {/* ---------------------------------------------------- */}
-                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-950 p-6 sm:p-8 text-white shadow-2xl border border-indigo-500/20">
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 p-6 sm:p-8 text-white shadow-2xl border border-indigo-500/20">
                     <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
                     
                     <div className="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
@@ -444,7 +796,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                         <div className="lg:col-span-2 space-y-3">
                             <div className="flex flex-wrap items-center gap-2">
                                 <span className="px-3 py-1 bg-indigo-500/30 border border-indigo-400/40 rounded-full text-[10px] font-black uppercase tracking-wider text-indigo-200 flex items-center gap-1.5">
-                                    <Sparkles size={12} /> Modul Belajar & Pembahasan
+                                    <Sparkles size={12} /> Modul Belajar & Pembahasan v4.2.0
                                 </span>
                                 <span className="px-2.5 py-1 bg-white/10 rounded-full text-[10px] font-bold text-slate-300">
                                     {new Date(item.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })} WIB
@@ -527,6 +879,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                 }`}
                             >
                                 <Layers size={15} /> Daftar Lengkap ({questions.length})
+                                <kbd className="hidden sm:inline-block px-1 py-0.2 bg-slate-200/60 dark:bg-slate-700 rounded text-[9px] font-mono text-slate-500">V</kbd>
                             </button>
                             <button
                                 onClick={() => {
@@ -540,6 +893,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                 }`}
                             >
                                 <Target size={15} /> Mode Fokus Flashcard
+                                <kbd className="hidden sm:inline-block px-1 py-0.2 bg-slate-200/60 dark:bg-slate-700 rounded text-[9px] font-mono text-slate-500">L</kbd>
                             </button>
                         </div>
 
@@ -558,10 +912,11 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                         ? 'bg-amber-500 text-white border-amber-600 shadow-amber-500/20'
                                         : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
                                 }`}
-                                title="Sembunyikan kunci jawaban dan pembahasan untuk melatih kembali ingatan Anda"
+                                title="Sembunyikan kunci jawaban dan pembahasan untuk melatih ingatan Anda (Shortcut: T atau M)"
                             >
                                 {isSelfTestMode ? <EyeOff size={15} /> : <Eye size={15} />}
-                                {isSelfTestMode ? 'Mode Uji Mandiri: Aktif' : 'Mode Uji Mandiri (Tutup Kunci)'}
+                                <span>{isSelfTestMode ? 'Mode Uji Mandiri: Aktif' : 'Mode Uji Mandiri (Tutup Kunci)'}</span>
+                                <kbd className={`hidden sm:inline-block px-1 py-0.2 rounded text-[9px] font-mono ${isSelfTestMode ? 'bg-amber-700 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'}`}>T</kbd>
                             </button>
                         </div>
                     </div>
@@ -572,13 +927,14 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
                             <button
                                 onClick={() => setFilterType('ALL')}
-                                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1 ${
                                     filterType === 'ALL'
                                         ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
                                         : 'bg-slate-100 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                                 }`}
                             >
-                                Semua ({questions.length})
+                                <span>Semua ({questions.length})</span>
+                                <kbd className="hidden lg:inline text-[9px] opacity-60">1</kbd>
                             </button>
                             <button
                                 onClick={() => setFilterType('WRONG')}
@@ -588,7 +944,8 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                         : 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40'
                                 }`}
                             >
-                                <XCircle size={13} /> Salah Saja ({wrongQuestionsCount})
+                                <XCircle size={13} /> Salah ({wrongQuestionsCount})
+                                <kbd className="hidden lg:inline text-[9px] opacity-60">2</kbd>
                             </button>
                             {flaggedCount > 0 && (
                                 <button
@@ -599,7 +956,8 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                             : 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/40'
                                     }`}
                                 >
-                                    <Flag size={13} /> Ragu-Ragu ({flaggedCount})
+                                    <Flag size={13} /> Ragu ({flaggedCount})
+                                    <kbd className="hidden lg:inline text-[9px] opacity-60">3</kbd>
                                 </button>
                             )}
                             <button
@@ -611,6 +969,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                 }`}
                             >
                                 <Star size={13} className="fill-amber-400 text-amber-500" /> Soal Terbaik ({bestQuestionsCount})
+                                <kbd className="hidden lg:inline text-[9px] opacity-60">4</kbd>
                             </button>
                             <button
                                 onClick={() => setFilterType('UNDERSTOOD')}
@@ -621,6 +980,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                 }`}
                             >
                                 <CheckCircle size={13} /> Sudah Paham ({understoodCount})
+                                <kbd className="hidden lg:inline text-[9px] opacity-60">5</kbd>
                             </button>
                             <button
                                 onClick={() => setFilterType('UNUNDERSTOOD')}
@@ -631,6 +991,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                 }`}
                             >
                                 <Clock size={13} /> Belum Paham ({questions.length - understoodCount})
+                                <kbd className="hidden lg:inline text-[9px] opacity-60">6</kbd>
                             </button>
                         </div>
 
@@ -641,7 +1002,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Cari konsep, rumus, atau soal..."
+                                placeholder="Cari materi, konsep, atau catatan..."
                                 className="w-full pl-9 pr-8 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             />
                             {searchQuery && (
@@ -679,6 +1040,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                 const isBest = bestQuestionsSet.has(q.id);
                                 const isUnderstood = understoodSet.has(q.id);
                                 const isSelfTestRevealed = !isSelfTestMode || revealedSelfTestQuestions.has(q.id);
+                                const isTkp = q.metadata?.subtest?.toUpperCase().includes('TKP') || (q.tkpPoints && q.tkpPoints.length > 0);
 
                                 return (
                                     <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-lg p-6 sm:p-8 space-y-6">
@@ -689,9 +1051,16 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                     #{originalIndex + 1}
                                                 </div>
                                                 <div>
-                                                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                                                        {q.metadata?.subtest || q.metadata?.topic || item.category}
-                                                    </span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[11px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                                                            {q.metadata?.subtest || q.metadata?.topic || item.category}
+                                                        </span>
+                                                        {isTkp && (
+                                                            <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 text-[9px] font-extrabold">
+                                                                Skala Poin 1-5
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <div className="text-xs text-slate-400 font-medium">
                                                         Soal {currentIndex + 1} dari {filteredQuestions.length} dalam filter
                                                     </div>
@@ -708,10 +1077,11 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                             ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700'
                                                             : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
                                                     }`}
-                                                    title="Tandai sebagai Soal Terbaik"
+                                                    title="Tandai sebagai Soal Terbaik (Shortcut: B atau S)"
                                                 >
                                                     <Star size={14} className={isBest ? 'fill-amber-500 text-amber-500' : ''} />
-                                                    {isBest ? 'Soal Terbaik' : 'Tandai Terbaik'}
+                                                    <span>{isBest ? 'Soal Terbaik' : 'Tandai Terbaik'}</span>
+                                                    <kbd className="hidden sm:inline text-[9px] opacity-60 font-mono">B</kbd>
                                                 </button>
 
                                                 {/* Mark Understood Button */}
@@ -722,10 +1092,11 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                             ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
                                                             : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
                                                     }`}
-                                                    title="Tandai sudah paham materi ini"
+                                                    title="Tandai sudah paham materi ini (Shortcut: P atau U)"
                                                 >
                                                     <CheckCircle size={14} className={isUnderstood ? 'text-emerald-600' : ''} />
-                                                    {isUnderstood ? 'Sudah Paham' : 'Tandai Paham'}
+                                                    <span>{isUnderstood ? 'Sudah Paham' : 'Tandai Paham'}</span>
+                                                    <kbd className="hidden sm:inline text-[9px] opacity-60 font-mono">P</kbd>
                                                 </button>
 
                                                 {/* TTS Audio */}
@@ -734,9 +1105,9 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                     className={`p-2 rounded-xl text-xs font-bold transition ${
                                                         speakingQuestionId === q.id
                                                             ? 'bg-indigo-600 text-white animate-pulse'
-                                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
                                                     }`}
-                                                    title="Dengarkan soal dan pembahasan"
+                                                    title="Dengarkan soal dan pembahasan (Shortcut: A)"
                                                 >
                                                     {speakingQuestionId === q.id ? <VolumeX size={15} /> : <Volume2 size={15} />}
                                                 </button>
@@ -745,7 +1116,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                 <button
                                                     onClick={() => handleCopyQuestion(q, originalIndex)}
                                                     className="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition"
-                                                    title="Salin teks soal"
+                                                    title="Salin teks soal (Shortcut: C)"
                                                 >
                                                     {copiedQuestionId === q.id ? <Check size={15} className="text-emerald-500" /> : <Copy size={15} />}
                                                 </button>
@@ -753,9 +1124,28 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                         </div>
 
                                         {/* Question Content */}
-                                        <div className="text-base sm:text-lg font-medium text-slate-800 dark:text-slate-100 leading-relaxed">
+                                        <div className={`${fontClassPrompt} font-medium text-slate-800 dark:text-slate-100`}>
                                             <SimpleMarkdown text={q.content} />
                                         </div>
+
+                                        {/* TKP Scale Legend Indicator if TKP */}
+                                        {isTkp && isSelfTestRevealed && (
+                                            <div className="p-3 bg-slate-50/80 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700/80 space-y-1.5">
+                                                <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                                                    <span className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">
+                                                        <Activity size={13} /> Skala Gradasi Nilai TKP (1-5 Poin):
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-400">Merah (1 Poin) → Hijau (5 Poin)</span>
+                                                </div>
+                                                <div className="grid grid-cols-5 gap-1 text-[10px] text-center font-bold">
+                                                    <div className="p-1 rounded bg-rose-500 text-white">1 Poin</div>
+                                                    <div className="p-1 rounded bg-orange-500 text-white">2 Poin</div>
+                                                    <div className="p-1 rounded bg-amber-400 text-slate-900 font-extrabold">3 Poin</div>
+                                                    <div className="p-1 rounded bg-teal-500 text-white">4 Poin</div>
+                                                    <div className="p-1 rounded bg-emerald-600 text-white font-extrabold">5 Poin (Kunci)</div>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         {/* Options Grid */}
                                         {q.options && q.options.length > 0 && (
@@ -764,35 +1154,65 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                     const letter = String.fromCharCode(65 + oIdx);
                                                     const isUserSelected = ans?.selectedAnswer === opt || ans?.selectedAnswer === letter;
                                                     const isCorrectOption = q.correctAnswer === opt || q.correctAnswer === letter;
+                                                    const tkpPoints = getTkpOptionPoints(q, opt, oIdx);
 
-                                                    let optionStyle = 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300';
+                                                    let optionContainerClass = 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300';
+                                                    let tkpStyle = tkpPoints !== null ? getTkpPointStyle(tkpPoints) : null;
+
                                                     if (isSelfTestRevealed) {
-                                                        if (isCorrectOption) {
-                                                            optionStyle = 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-bold';
-                                                        } else if (isUserSelected && !isCorrectOption) {
-                                                            optionStyle = 'bg-rose-50 dark:bg-rose-950/30 border-rose-500 text-rose-900 dark:text-rose-200';
+                                                        if (isTkp && tkpStyle) {
+                                                            optionContainerClass = `${tkpStyle.bg} ${tkpStyle.border} ${tkpStyle.textColor} ${isUserSelected ? `ring-2 ${tkpStyle.ringColor} font-bold` : ''}`;
+                                                        } else {
+                                                            if (isCorrectOption) {
+                                                                optionContainerClass = 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-bold';
+                                                            } else if (isUserSelected && !isCorrectOption) {
+                                                                optionContainerClass = 'bg-rose-50 dark:bg-rose-950/30 border-rose-500 text-rose-900 dark:text-rose-200';
+                                                            }
                                                         }
                                                     } else if (isUserSelected) {
-                                                        optionStyle = 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-900 dark:text-indigo-200 font-bold';
+                                                        optionContainerClass = 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-900 dark:text-indigo-200 font-bold';
                                                     }
 
                                                     return (
-                                                        <div key={oIdx} className={`p-3.5 sm:p-4 rounded-2xl border transition flex items-start gap-3 ${optionStyle}`}>
-                                                            <span className="w-7 h-7 rounded-xl bg-black/5 dark:bg-white/10 flex items-center justify-center font-bold text-xs shrink-0">
-                                                                {letter}
-                                                            </span>
-                                                            <div className="flex-1 text-sm pt-0.5">
-                                                                <SimpleMarkdown text={opt} />
+                                                        <div key={oIdx} className={`p-3.5 sm:p-4 rounded-2xl border transition relative flex flex-col gap-2 ${optionContainerClass}`}>
+                                                            <div className="flex items-start gap-3">
+                                                                <span className="w-7 h-7 rounded-xl bg-black/5 dark:bg-white/10 flex items-center justify-center font-black text-xs shrink-0">
+                                                                    {letter}
+                                                                </span>
+                                                                <div className={`flex-1 pt-0.5 ${fontClassOption}`}>
+                                                                    <SimpleMarkdown text={opt} />
+                                                                </div>
+
+                                                                {/* TKP Points Badge or Standard Key Badge */}
+                                                                {isSelfTestRevealed && isTkp && tkpStyle && (
+                                                                    <div className="flex items-center gap-1.5 shrink-0">
+                                                                        <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-xl shadow-sm ${tkpStyle.badgeBg}`}>
+                                                                            {tkpPoints} Poin
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+
+                                                                {isSelfTestRevealed && !isTkp && isCorrectOption && (
+                                                                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-lg bg-emerald-500 text-white shrink-0">
+                                                                        Kunci
+                                                                    </span>
+                                                                )}
+
+                                                                {isUserSelected && (
+                                                                    <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-lg bg-indigo-600 text-white shrink-0 shadow-sm">
+                                                                        Jawabanmu {isTkp && tkpPoints !== null && `(${tkpPoints} Poin)`}
+                                                                    </span>
+                                                                )}
                                                             </div>
-                                                            {isSelfTestRevealed && isCorrectOption && (
-                                                                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-lg bg-emerald-500 text-white shrink-0">
-                                                                    Kunci
-                                                                </span>
-                                                            )}
-                                                            {isUserSelected && (
-                                                                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-lg bg-indigo-500 text-white shrink-0">
-                                                                    Jawabanmu
-                                                                </span>
+
+                                                            {/* TKP Mini Progress Bar */}
+                                                            {isSelfTestRevealed && isTkp && tkpStyle && (
+                                                                <div className="w-full bg-black/5 dark:bg-white/5 h-1.5 rounded-full overflow-hidden mt-1">
+                                                                    <div 
+                                                                        className={`h-full ${tkpStyle.barColor} transition-all duration-300`} 
+                                                                        style={{ width: tkpStyle.progressWidth }} 
+                                                                    />
+                                                                </div>
                                                             )}
                                                         </div>
                                                     );
@@ -838,7 +1258,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                             <Bot size={13} /> Tanya AI Guru
                                                         </button>
                                                     </div>
-                                                    <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
+                                                    <div className={`${fontClassExplanation} text-slate-700 dark:text-slate-200 leading-relaxed`}>
                                                         <SimpleMarkdown text={q.explanation} />
                                                     </div>
                                                 </div>
@@ -849,13 +1269,13 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                         <div className="text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
                                                             <Edit3 size={13} className="text-amber-500" /> Catatan Belajar Pribadi
                                                         </div>
-                                                        <span className="text-[10px] text-slate-400">Tersimpan otomatis</span>
+                                                        <span className="text-[10px] text-slate-400">Tersimpan otomatis (Shortcut: N atau E)</span>
                                                     </div>
                                                     <textarea
                                                         value={notesMap[q.id] || ''}
                                                         onChange={(e) => saveNote(q.id, e.target.value)}
                                                         placeholder="Tuliskan catatan, rumus cepat, atau pengingat jebakan untuk soal ini..."
-                                                        className="w-full p-3 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-white"
+                                                        className={`w-full p-3 ${fontClassExplanation} bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-white`}
                                                         rows={2}
                                                     />
                                                 </div>
@@ -901,7 +1321,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                         <div className="lg:col-span-3 space-y-4">
                             {filteredQuestions.length === 0 ? (
                                 <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-3">
-                                    <BookOpen size={40} className="mx-auto text-slate-300" />
+                                <BookOpen size={40} className="mx-auto text-slate-300" />
                                     <h3 className="text-base font-bold text-slate-700 dark:text-slate-300">Tidak ada soal yang cocok dengan filter</h3>
                                     <button onClick={() => { setFilterType('ALL'); setSearchQuery(''); }} className="text-xs font-bold text-indigo-600 dark:text-indigo-400 underline">
                                         Reset Filter
@@ -913,6 +1333,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                     const isBest = bestQuestionsSet.has(q.id);
                                     const isUnderstood = understoodSet.has(q.id);
                                     const isSelfTestRevealed = !isSelfTestMode || revealedSelfTestQuestions.has(q.id);
+                                    const isTkp = q.metadata?.subtest?.toUpperCase().includes('TKP') || (q.tkpPoints && q.tkpPoints.length > 0);
 
                                     return (
                                         <div 
@@ -935,6 +1356,11 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                     <span className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400">
                                                         {q.metadata?.subtest || q.metadata?.topic || item.category}
                                                     </span>
+                                                    {isTkp && (
+                                                        <span className="px-2 py-0.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-black border border-indigo-500/20">
+                                                            Poin 1-5
+                                                        </span>
+                                                    )}
                                                     {ans?.isDoubtful && (
                                                         <span className="px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-black border border-amber-500/20 flex items-center gap-1">
                                                             <Flag size={10} /> Ragu
@@ -952,7 +1378,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                                 ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
                                                                 : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600'
                                                         }`}
-                                                        title="Tandai Soal Terbaik"
+                                                        title="Tandai Soal Terbaik (Shortcut: B)"
                                                     >
                                                         <Star size={14} className={isBest ? 'fill-amber-500 text-amber-500' : ''} />
                                                         <span className="hidden sm:inline">{isBest ? 'Terbaik' : 'Tandai'}</span>
@@ -966,7 +1392,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                                 ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
                                                                 : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600'
                                                         }`}
-                                                        title="Tandai Sudah Paham"
+                                                        title="Tandai Sudah Paham (Shortcut: P)"
                                                     >
                                                         <CheckCircle size={14} className={isUnderstood ? 'text-emerald-600' : ''} />
                                                         <span className="hidden sm:inline">{isUnderstood ? 'Paham' : 'Paham?'}</span>
@@ -980,7 +1406,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                                 ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
                                                                 : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600'
                                                         }`}
-                                                        title="Tulis Catatan Pribadi"
+                                                        title="Tulis Catatan Pribadi (Shortcut: N)"
                                                     >
                                                         <Edit3 size={14} />
                                                     </button>
@@ -991,7 +1417,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                         className={`p-1.5 rounded-xl text-xs transition ${
                                                             speakingQuestionId === q.id ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600'
                                                         }`}
-                                                        title="Dengarkan Audio Soal"
+                                                        title="Dengarkan Audio Soal (Shortcut: A)"
                                                     >
                                                         <Volume2 size={14} />
                                                     </button>
@@ -1000,7 +1426,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                     <button
                                                         onClick={() => handleCopyQuestion(q, originalIndex)}
                                                         className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600 transition"
-                                                        title="Salin Teks Soal"
+                                                        title="Salin Teks Soal (Shortcut: C)"
                                                     >
                                                         {copiedQuestionId === q.id ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
                                                     </button>
@@ -1008,7 +1434,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                             </div>
 
                                             {/* Question Prompt */}
-                                            <div className="text-sm sm:text-base font-medium text-slate-800 dark:text-slate-100 leading-relaxed">
+                                            <div className={`${fontClassPrompt} font-medium text-slate-800 dark:text-slate-100`}>
                                                 <SimpleMarkdown text={q.content} />
                                             </div>
 
@@ -1019,35 +1445,60 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                         const letter = String.fromCharCode(65 + oIdx);
                                                         const isUserSelected = ans?.selectedAnswer === opt || ans?.selectedAnswer === letter;
                                                         const isCorrectOption = q.correctAnswer === opt || q.correctAnswer === letter;
+                                                        const tkpPoints = getTkpOptionPoints(q, opt, oIdx);
 
                                                         let optionClass = 'bg-slate-50 dark:bg-slate-900/30 border-slate-100 dark:border-slate-700 text-slate-700 dark:text-slate-300';
+                                                        let tkpStyle = tkpPoints !== null ? getTkpPointStyle(tkpPoints) : null;
+
                                                         if (isSelfTestRevealed) {
-                                                            if (isCorrectOption) {
-                                                                optionClass = 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-500/60 text-emerald-900 dark:text-emerald-200 font-bold';
-                                                            } else if (isUserSelected && !isCorrectOption) {
-                                                                optionClass = 'bg-rose-50 dark:bg-rose-950/30 border-rose-500/60 text-rose-900 dark:text-rose-200';
+                                                            if (isTkp && tkpStyle) {
+                                                                optionClass = `${tkpStyle.bg} ${tkpStyle.border} ${tkpStyle.textColor} ${isUserSelected ? `ring-2 ${tkpStyle.ringColor} font-bold` : ''}`;
+                                                            } else {
+                                                                if (isCorrectOption) {
+                                                                    optionClass = 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-500/60 text-emerald-900 dark:text-emerald-200 font-bold';
+                                                                } else if (isUserSelected && !isCorrectOption) {
+                                                                    optionClass = 'bg-rose-50 dark:bg-rose-950/30 border-rose-500/60 text-rose-900 dark:text-rose-200';
+                                                                }
                                                             }
                                                         } else if (isUserSelected) {
                                                             optionClass = 'bg-indigo-50 dark:bg-indigo-950/30 border-indigo-500/60 text-indigo-900 dark:text-indigo-200 font-bold';
                                                         }
 
                                                         return (
-                                                            <div key={oIdx} className={`p-3 rounded-2xl border text-xs sm:text-sm flex items-start gap-2.5 transition ${optionClass}`}>
-                                                                <span className="w-5 h-5 rounded-lg bg-black/5 dark:bg-white/10 flex items-center justify-center font-bold text-[11px] shrink-0">
-                                                                    {letter}
-                                                                </span>
-                                                                <div className="flex-1">
-                                                                    <SimpleMarkdown text={opt} />
+                                                            <div key={oIdx} className={`p-3 rounded-2xl border flex flex-col gap-1.5 transition ${optionClass}`}>
+                                                                <div className="flex items-start gap-2.5">
+                                                                    <span className="w-5 h-5 rounded-lg bg-black/5 dark:bg-white/10 flex items-center justify-center font-black text-[11px] shrink-0">
+                                                                        {letter}
+                                                                    </span>
+                                                                    <div className={`flex-1 ${fontClassOption}`}>
+                                                                        <SimpleMarkdown text={opt} />
+                                                                    </div>
+                                                                    
+                                                                    {/* TKP Points Badge or Normal Key Badge */}
+                                                                    {isSelfTestRevealed && isTkp && tkpStyle && (
+                                                                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-lg shrink-0 shadow-xs ${tkpStyle.badgeBg}`}>
+                                                                            {tkpPoints} Poin
+                                                                        </span>
+                                                                    )}
+
+                                                                    {isSelfTestRevealed && !isTkp && isCorrectOption && (
+                                                                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500 text-white shrink-0">
+                                                                            Kunci
+                                                                        </span>
+                                                                    )}
+                                                                    
+                                                                    {isUserSelected && (
+                                                                        <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-indigo-600 text-white shrink-0 shadow-xs">
+                                                                            Jawabanmu {isTkp && tkpPoints !== null && `(${tkpPoints} Poin)`}
+                                                                        </span>
+                                                                    )}
                                                                 </div>
-                                                                {isSelfTestRevealed && isCorrectOption && (
-                                                                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500 text-white shrink-0">
-                                                                        Kunci
-                                                                    </span>
-                                                                )}
-                                                                {isUserSelected && (
-                                                                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-indigo-500 text-white shrink-0">
-                                                                        Jawabanmu
-                                                                    </span>
+
+                                                                {/* TKP Mini Bar in List Mode */}
+                                                                {isSelfTestRevealed && isTkp && tkpStyle && (
+                                                                    <div className="w-full bg-black/5 dark:bg-white/5 h-1 rounded-full overflow-hidden">
+                                                                        <div className={`h-full ${tkpStyle.barColor}`} style={{ width: tkpStyle.progressWidth }} />
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                         );
@@ -1055,17 +1506,25 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                 </div>
                                             )}
 
-                                            {/* TKP Points Breakdown if applicable */}
-                                            {isSelfTestRevealed && q.tkpPoints && q.tkpPoints.length > 0 && (
+                                            {/* TKP Points Summary Bar */}
+                                            {isSelfTestRevealed && isTkp && (
                                                 <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs space-y-1.5">
-                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Skala Poin Opsi (TKP 1-5):</div>
+                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                                                        <span>Rincian Bobot Nilai TKP:</span>
+                                                        <span className="text-emerald-500 font-bold">1 (Merah) → 5 (Hijau)</span>
+                                                    </div>
                                                     <div className="flex flex-wrap gap-2">
-                                                        {[...q.tkpPoints].sort((a, b) => b.points - a.points).map((pt, pIdx) => (
-                                                            <div key={pIdx} className="px-2 py-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-1 text-[11px]">
-                                                                <span className="font-bold text-indigo-600 dark:text-indigo-400">{pt.option}:</span>
-                                                                <span className="font-black text-emerald-600 dark:text-emerald-400">{pt.points} Poin</span>
-                                                            </div>
-                                                        ))}
+                                                        {q.options && q.options.map((opt, oIdx) => {
+                                                            const letter = String.fromCharCode(65 + oIdx);
+                                                            const pts = getTkpOptionPoints(q, opt, oIdx) || (oIdx + 1);
+                                                            const st = getTkpPointStyle(pts);
+                                                            return (
+                                                                <div key={oIdx} className={`px-2 py-1 rounded-lg border text-[11px] flex items-center gap-1.5 ${st.bg} ${st.border}`}>
+                                                                    <span className="font-bold">{letter}:</span>
+                                                                    <span className={`px-1.5 py-0.2 rounded font-black text-[10px] ${st.badgeBg}`}>{pts} Poin</span>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 </div>
                                             )}
@@ -1105,7 +1564,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                             <Bot size={12} /> Tanya AI Guru
                                                         </button>
                                                     </div>
-                                                    <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                                                    <div className={`${fontClassExplanation} text-slate-700 dark:text-slate-300 leading-relaxed`}>
                                                         <SimpleMarkdown text={q.explanation} />
                                                     </div>
                                                 </div>
@@ -1124,7 +1583,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                         value={notesMap[q.id] || ''}
                                                         onChange={(e) => saveNote(q.id, e.target.value)}
                                                         placeholder="Tulis catatan rumus, pola logika, atau pengingat..."
-                                                        className="w-full p-2.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-white"
+                                                        className={`w-full p-2.5 ${fontClassExplanation} bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-white`}
                                                         rows={2}
                                                     />
                                                 </div>
@@ -1202,6 +1661,115 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                             </div>
                         </div>
 
+                    </div>
+                )}
+
+                {/* ---------------------------------------------------- */}
+                {/* KEYBOARD SHORTCUTS MODAL GUIDE */}
+                {/* ---------------------------------------------------- */}
+                {showShortcutModal && (
+                    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+                            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                                        <Keyboard size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-black text-slate-900 dark:text-white">Daftar Shortcut Keyboard</h3>
+                                        <p className="text-xs text-slate-400">Trik navigasi cepat & efisien saat mengulas soal</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setShowShortcutModal(false)}
+                                    className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            {/* Shortcut Categories */}
+                            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 text-xs">
+                                <div>
+                                    <div className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2">
+                                        Ukuran Font & Tampilan
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
+                                            <span className="text-slate-700 dark:text-slate-300">Perbesar Font Teks</span>
+                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">+</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">]</kbd></div>
+                                        </div>
+                                        <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
+                                            <span className="text-slate-700 dark:text-slate-300">Perkecil Font Teks</span>
+                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">-</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">[</kbd></div>
+                                        </div>
+                                        <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
+                                            <span className="text-slate-700 dark:text-slate-300">Reset Ukuran Font Normal</span>
+                                            <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">0</kbd>
+                                        </div>
+                                        <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
+                                            <span className="text-slate-700 dark:text-slate-300">Ganti Mode (Daftar / Flashcard)</span>
+                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">V</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">L</kbd></div>
+                                        </div>
+                                        <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
+                                            <span className="text-slate-700 dark:text-slate-300">Mode Uji Mandiri (Tutup/Buka Kunci)</span>
+                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">T</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">M</kbd></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2">
+                                        Tindakan Pembelajaran
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
+                                            <span className="text-slate-700 dark:text-slate-300">Tandai Sudah Paham (✅)</span>
+                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">P</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">U</kbd></div>
+                                        </div>
+                                        <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
+                                            <span className="text-slate-700 dark:text-slate-300">Tandai Soal Terbaik (⭐)</span>
+                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">B</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">S</kbd></div>
+                                        </div>
+                                        <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
+                                            <span className="text-slate-700 dark:text-slate-300">Catatan Belajar Pribadi</span>
+                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">N</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">E</kbd></div>
+                                        </div>
+                                        <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
+                                            <span className="text-slate-700 dark:text-slate-300">Salin Teks Soal & Pembahasan</span>
+                                            <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">C</kbd>
+                                        </div>
+                                        <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
+                                            <span className="text-slate-700 dark:text-slate-300">Bacakan Teks Soal (Audio TTS)</span>
+                                            <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">A</kbd>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2">
+                                        Navigasi & Filter
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
+                                            <span className="text-slate-700 dark:text-slate-300">Soal Sebelumnya / Selanjutnya</span>
+                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">←</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">→</kbd></div>
+                                        </div>
+                                        <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
+                                            <span className="text-slate-700 dark:text-slate-300">Pilih Filter Soal (1 - 6)</span>
+                                            <div className="flex gap-1"><kbd className="px-1.5 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">1</kbd>..<kbd className="px-1.5 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">6</kbd></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => setShowShortcutModal(false)}
+                                className="w-full py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition shadow-md shadow-indigo-600/20"
+                            >
+                                Tutup Panduan (Esc)
+                            </button>
+                        </div>
                     </div>
                 )}
 
