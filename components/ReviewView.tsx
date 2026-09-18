@@ -73,30 +73,50 @@ const getTkpOptionPoints = (q: Question, optionText: string, optionIndex: number
     return match ? Number(match.points) : null;
 };
 
-// Styling helper for TKP Points 1-5 (Red to Green gradient)
+// Helper to determine earned TKP points from UserAnswer
+const getTkpEarnedPoints = (q: Question, ans?: UserAnswer): number | null => {
+    if (!ans) return null;
+    if (typeof ans.scoreEarned === 'number' && ans.scoreEarned >= 1 && ans.scoreEarned <= 5) {
+        return ans.scoreEarned;
+    }
+    if (ans.selectedAnswer && q.options) {
+        const optIdx = q.options.findIndex((opt, idx) => 
+            opt === ans.selectedAnswer || 
+            String.fromCharCode(65 + idx) === ans.selectedAnswer
+        );
+        return getTkpOptionPoints(q, ans.selectedAnswer, optIdx >= 0 ? optIdx : 0);
+    }
+    return null;
+};
+
+// Styling helper for TKP Points 1-5 (Strict Red-to-Green gradient, No Blue)
 const getTkpPointStyle = (points: number) => {
     switch (points) {
         case 5:
             return {
-                badgeBg: 'bg-emerald-600 text-white',
+                badgeBg: 'bg-emerald-600 text-white font-black',
                 border: 'border-emerald-500/80 dark:border-emerald-600',
                 bg: 'bg-emerald-50/90 dark:bg-emerald-950/40',
                 textColor: 'text-emerald-950 dark:text-emerald-100',
-                label: '5 Poin (Maksimal)',
-                barColor: 'bg-emerald-500',
+                label: '5 Poin (Hijau Banget - Maksimal)',
+                barColor: 'bg-emerald-600',
                 ringColor: 'ring-emerald-500',
-                progressWidth: '100%'
+                progressWidth: '100%',
+                navBoxClass: 'bg-emerald-600 text-white border-emerald-700 dark:border-emerald-500 shadow-xs hover:bg-emerald-700',
+                navDotColor: 'bg-emerald-600'
             };
         case 4:
             return {
-                badgeBg: 'bg-teal-600 text-white',
-                border: 'border-teal-400/80 dark:border-teal-600',
-                bg: 'bg-teal-50/80 dark:bg-teal-950/30',
-                textColor: 'text-teal-950 dark:text-teal-100',
-                label: '4 Poin',
-                barColor: 'bg-teal-500',
-                ringColor: 'ring-teal-500',
-                progressWidth: '80%'
+                badgeBg: 'bg-lime-600 text-white font-black',
+                border: 'border-lime-500/80 dark:border-lime-600',
+                bg: 'bg-lime-50/80 dark:bg-lime-950/30',
+                textColor: 'text-lime-950 dark:text-lime-100',
+                label: '4 Poin (Hijau Muda)',
+                barColor: 'bg-lime-600',
+                ringColor: 'ring-lime-500',
+                progressWidth: '80%',
+                navBoxClass: 'bg-lime-600 text-white border-lime-700 dark:border-lime-500 shadow-xs hover:bg-lime-700',
+                navDotColor: 'bg-lime-600'
             };
         case 3:
             return {
@@ -104,33 +124,39 @@ const getTkpPointStyle = (points: number) => {
                 border: 'border-amber-400/80 dark:border-amber-600',
                 bg: 'bg-amber-50/80 dark:bg-amber-950/30',
                 textColor: 'text-amber-950 dark:text-amber-100',
-                label: '3 Poin',
-                barColor: 'bg-amber-400',
+                label: '3 Poin (Kuning-Oranye)',
+                barColor: 'bg-amber-500',
                 ringColor: 'ring-amber-500',
-                progressWidth: '60%'
+                progressWidth: '60%',
+                navBoxClass: 'bg-amber-500 text-slate-950 border-amber-600 dark:border-amber-400 shadow-xs font-black hover:bg-amber-400',
+                navDotColor: 'bg-amber-500'
             };
         case 2:
             return {
-                badgeBg: 'bg-orange-500 text-white',
+                badgeBg: 'bg-orange-500 text-white font-black',
                 border: 'border-orange-400/80 dark:border-orange-600',
                 bg: 'bg-orange-50/80 dark:bg-orange-950/30',
                 textColor: 'text-orange-950 dark:text-orange-100',
-                label: '2 Poin',
+                label: '2 Poin (Oranye)',
                 barColor: 'bg-orange-500',
                 ringColor: 'ring-orange-500',
-                progressWidth: '40%'
+                progressWidth: '40%',
+                navBoxClass: 'bg-orange-500 text-white border-orange-600 dark:border-orange-400 shadow-xs hover:bg-orange-600',
+                navDotColor: 'bg-orange-500'
             };
         case 1:
         default:
             return {
-                badgeBg: 'bg-rose-600 text-white',
-                border: 'border-rose-400/80 dark:border-rose-600',
-                bg: 'bg-rose-50/80 dark:bg-rose-950/30',
-                textColor: 'text-rose-950 dark:text-rose-100',
-                label: '1 Poin (Terendah)',
-                barColor: 'bg-rose-500',
-                ringColor: 'ring-rose-500',
-                progressWidth: '20%'
+                badgeBg: 'bg-red-800 text-white font-black',
+                border: 'border-red-700/80 dark:border-red-800',
+                bg: 'bg-red-50/90 dark:bg-red-950/50',
+                textColor: 'text-red-950 dark:text-red-100',
+                label: '1 Poin (Merah Tua - Terendah)',
+                barColor: 'bg-red-800',
+                ringColor: 'ring-red-800',
+                progressWidth: '20%',
+                navBoxClass: 'bg-red-800 text-white border-red-950 dark:border-red-900 shadow-xs font-black hover:bg-red-900',
+                navDotColor: 'bg-red-800'
             };
     }
 };
@@ -958,24 +984,24 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                             Sebaran Bobot Jawaban Sesi Ini
                                         </div>
                                         <div className="grid grid-cols-5 gap-1.5 text-center">
-                                            <div className="p-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                                                <div className="text-[9px] font-bold">5 Poin</div>
+                                            <div className="p-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-bold">
+                                                <div className="text-[9px]">5 Poin</div>
                                                 <div className="text-sm font-black">{tkpAnalysis.overallPointDistribution.points5}</div>
                                             </div>
-                                            <div className="p-1.5 rounded-xl bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
-                                                <div className="text-[9px] font-bold">4 Poin</div>
+                                            <div className="p-1.5 rounded-xl bg-lime-100 dark:bg-lime-950/60 text-lime-800 dark:text-lime-300 border border-lime-200 dark:border-lime-800 font-bold">
+                                                <div className="text-[9px]">4 Poin</div>
                                                 <div className="text-sm font-black">{tkpAnalysis.overallPointDistribution.points4}</div>
                                             </div>
-                                            <div className="p-1.5 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                                                <div className="text-[9px] font-bold">3 Poin</div>
+                                            <div className="p-1.5 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-bold">
+                                                <div className="text-[9px]">3 Poin</div>
                                                 <div className="text-sm font-black">{tkpAnalysis.overallPointDistribution.points3}</div>
                                             </div>
-                                            <div className="p-1.5 rounded-xl bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-800">
-                                                <div className="text-[9px] font-bold">2 Poin</div>
+                                            <div className="p-1.5 rounded-xl bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-800 font-bold">
+                                                <div className="text-[9px]">2 Poin</div>
                                                 <div className="text-sm font-black">{tkpAnalysis.overallPointDistribution.points2}</div>
                                             </div>
-                                            <div className="p-1.5 rounded-xl bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-                                                <div className="text-[9px] font-bold">1 Poin</div>
+                                            <div className="p-1.5 rounded-xl bg-red-100 dark:bg-red-950/80 text-red-900 dark:text-red-200 border border-red-300 dark:border-red-900 font-black">
+                                                <div className="text-[9px]">1 Poin</div>
                                                 <div className="text-sm font-black">{tkpAnalysis.overallPointDistribution.points1}</div>
                                             </div>
                                         </div>
@@ -1064,7 +1090,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                             <span className="px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
                                                                 P5: {aspect.pointDistribution.points5}
                                                             </span>
-                                                            <span className="px-1.5 py-0.5 rounded-md bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300">
+                                                            <span className="px-1.5 py-0.5 rounded-md bg-lime-100 text-lime-800 dark:bg-lime-950/60 dark:text-lime-300 font-bold">
                                                                 P4: {aspect.pointDistribution.points4}
                                                             </span>
                                                             {aspect.pointDistribution.points3 > 0 && (
@@ -1600,27 +1626,91 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                             </div>
                                         )}
 
-                                        {/* Focus Navigation Bar (Prev / Next Buttons) */}
-                                        <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
-                                            <button
-                                                onClick={() => setFocusIndex(prev => Math.max(0, prev - 1))}
-                                                disabled={currentIndex === 0}
-                                                className="px-4 py-2 rounded-2xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold disabled:opacity-40 flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-600 transition"
-                                            >
-                                                <ChevronLeft size={16} /> Sebelumnya (←)
-                                            </button>
+                                        {/* Focus Navigation Bar (Prev / Next Buttons & Question Palette) */}
+                                        <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+                                            <div className="flex items-center justify-between">
+                                                <button
+                                                    onClick={() => setFocusIndex(prev => Math.max(0, prev - 1))}
+                                                    disabled={currentIndex === 0}
+                                                    className="px-4 py-2 rounded-2xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold disabled:opacity-40 flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-600 transition cursor-pointer"
+                                                >
+                                                    <ChevronLeft size={16} /> Sebelumnya (←)
+                                                </button>
 
-                                            <span className="text-xs font-bold text-slate-500">
-                                                {currentIndex + 1} / {filteredQuestions.length}
-                                            </span>
+                                                <span className="text-xs font-bold text-slate-500">
+                                                    Soal {currentIndex + 1} dari {filteredQuestions.length}
+                                                </span>
 
-                                            <button
-                                                onClick={() => setFocusIndex(prev => Math.min(filteredQuestions.length - 1, prev + 1))}
-                                                disabled={currentIndex === filteredQuestions.length - 1}
-                                                className="px-4 py-2 rounded-2xl bg-indigo-600 text-white text-xs font-black disabled:opacity-40 flex items-center gap-2 hover:bg-indigo-700 transition"
-                                            >
-                                                Selanjutnya (→) <ChevronRight size={16} />
-                                            </button>
+                                                <button
+                                                    onClick={() => setFocusIndex(prev => Math.min(filteredQuestions.length - 1, prev + 1))}
+                                                    disabled={currentIndex === filteredQuestions.length - 1}
+                                                    className="px-4 py-2 rounded-2xl bg-indigo-600 text-white text-xs font-black disabled:opacity-40 flex items-center gap-2 hover:bg-indigo-700 transition cursor-pointer"
+                                                >
+                                                    Selanjutnya (→) <ChevronRight size={16} />
+                                                </button>
+                                            </div>
+
+                                            {/* Quick Jump Palette for Focus Mode */}
+                                            <div className="pt-3 border-t border-slate-100 dark:border-slate-700/80">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                                        Lompat ke Soal (Gradasi TKP 1-5 / TWK-TIU)
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-400 font-semibold">
+                                                        {understoodCount}/{questions.length} Paham
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 overflow-x-auto pb-2 pt-1 px-0.5">
+                                                    {filteredQuestions.map(({ q: fq, originalIndex: realQIdx }, fIdx) => {
+                                                        const ans = answers.find(a => a.questionId === fq.id) || answers[realQIdx];
+                                                        const isBest = bestQuestionsSet.has(fq.id);
+                                                        const isUnderstood = understoodSet.has(fq.id);
+                                                        const isTkp = Boolean(fq.metadata?.subtest?.toUpperCase().includes('TKP') || (fq.tkpPoints && fq.tkpPoints.length > 0));
+                                                        const isCurrent = fIdx === currentIndex;
+
+                                                        let boxStyle = '';
+                                                        let pointLabel: number | null = null;
+
+                                                        if (isTkp) {
+                                                            const points = getTkpEarnedPoints(fq, ans);
+                                                            pointLabel = points;
+                                                            if (points !== null) {
+                                                                const tkpStyle = getTkpPointStyle(points);
+                                                                boxStyle = tkpStyle.navBoxClass;
+                                                            } else {
+                                                                boxStyle = 'bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700';
+                                                            }
+                                                        } else {
+                                                            const isCorrect = ans?.isCorrect || (ans?.scoreEarned && ans.scoreEarned >= 4);
+                                                            boxStyle = isCorrect
+                                                                ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
+                                                                : 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-700';
+                                                        }
+
+                                                        return (
+                                                            <button
+                                                                key={fq.id}
+                                                                onClick={() => setFocusIndex(fIdx)}
+                                                                className={`relative shrink-0 w-10 h-10 rounded-xl font-black text-xs transition-all flex flex-col items-center justify-center ${boxStyle} ${
+                                                                    isCurrent ? 'ring-2 ring-indigo-500 ring-offset-2 scale-105' : 'opacity-85 hover:opacity-100'
+                                                                }`}
+                                                                title={isTkp ? `Soal #${realQIdx + 1} (TKP: ${pointLabel !== null ? `${pointLabel} Poin` : 'Belum Dijawab'})` : `Soal #${realQIdx + 1}`}
+                                                            >
+                                                                <span className="leading-none">{realQIdx + 1}</span>
+                                                                {isTkp && pointLabel !== null && (
+                                                                    <span className="text-[7px] font-black opacity-95 leading-none mt-0.5">
+                                                                        {pointLabel}p
+                                                                    </span>
+                                                                )}
+                                                                <div className="flex items-center gap-0.5 absolute -top-1 -right-1">
+                                                                    {isBest && <span className="w-2 h-2 rounded-full bg-amber-400 border border-white" />}
+                                                                    {isUnderstood && <span className="w-2 h-2 rounded-full bg-emerald-500 border border-white" />}
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 );
@@ -1930,7 +2020,26 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                         const ans = answers.find(a => a.questionId === q.id) || answers[qIdx];
                                         const isBest = bestQuestionsSet.has(q.id);
                                         const isUnderstood = understoodSet.has(q.id);
-                                        const isCorrect = ans?.isCorrect || (ans?.scoreEarned && ans.scoreEarned >= 4);
+                                        const isTkp = Boolean(q.metadata?.subtest?.toUpperCase().includes('TKP') || (q.tkpPoints && q.tkpPoints.length > 0));
+
+                                        let boxStyle = '';
+                                        let pointLabel: number | null = null;
+
+                                        if (isTkp) {
+                                            const points = getTkpEarnedPoints(q, ans);
+                                            pointLabel = points;
+                                            if (points !== null) {
+                                                const tkpStyle = getTkpPointStyle(points);
+                                                boxStyle = tkpStyle.navBoxClass;
+                                            } else {
+                                                boxStyle = 'bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700';
+                                            }
+                                        } else {
+                                            const isCorrect = ans?.isCorrect || (ans?.scoreEarned && ans.scoreEarned >= 4);
+                                            boxStyle = isCorrect
+                                                ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100'
+                                                : 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-700 hover:bg-rose-100';
+                                        }
 
                                         return (
                                             <button
@@ -1941,13 +2050,15 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                                     }
                                                 }}
-                                                className={`relative h-10 rounded-xl font-black text-xs transition-all flex flex-col items-center justify-center ${
-                                                    isCorrect
-                                                        ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
-                                                        : 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-700'
-                                                } hover:scale-105`}
+                                                className={`relative h-11 rounded-xl font-black text-xs transition-all flex flex-col items-center justify-center ${boxStyle} hover:scale-105 shadow-xs`}
+                                                title={isTkp ? `Soal #${qIdx + 1} (TKP: ${pointLabel !== null ? `${pointLabel} Poin` : 'Belum Dijawab'})` : `Soal #${qIdx + 1} (${ans?.isCorrect ? 'Benar' : 'Salah'})`}
                                             >
-                                                <span>{qIdx + 1}</span>
+                                                <span className="leading-tight">{qIdx + 1}</span>
+                                                {isTkp && pointLabel !== null && (
+                                                    <span className="text-[8px] font-black opacity-95 leading-none">
+                                                        {pointLabel}p
+                                                    </span>
+                                                )}
                                                 <div className="flex items-center gap-0.5 absolute -top-1 -right-1">
                                                     {isBest && <span className="w-2.5 h-2.5 rounded-full bg-amber-400 border border-white" />}
                                                     {isUnderstood && <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white" />}
@@ -1958,22 +2069,50 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                 </div>
 
                                 {/* Legend */}
-                                <div className="pt-3 border-t border-slate-100 dark:border-slate-700 text-[10px] space-y-1.5 text-slate-500">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 rounded bg-emerald-500" />
-                                        <span>Benar / Jawaban Baik</span>
+                                <div className="pt-3 border-t border-slate-100 dark:border-slate-700 text-[10px] space-y-2.5 text-slate-500 dark:text-slate-400">
+                                    <div className="space-y-1">
+                                        <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                                            TWK / TIU:
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-2.5 h-2.5 rounded bg-emerald-500 shrink-0" />
+                                                <span>Benar</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-2.5 h-2.5 rounded bg-rose-500 shrink-0" />
+                                                <span>Salah</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 rounded bg-rose-500" />
-                                        <span>Salah / Perlu Dipelajari</span>
+
+                                    <div className="space-y-1.5 pt-1 border-t border-slate-100 dark:border-slate-800">
+                                        <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                                            Gradasi TKP (1 s/d 5 Poin):
+                                        </div>
+                                        <div className="grid grid-cols-5 gap-1 text-center font-black text-[8px]">
+                                            <div className="py-1 px-0.5 rounded bg-red-800 text-white leading-tight">1 Poin</div>
+                                            <div className="py-1 px-0.5 rounded bg-orange-500 text-white leading-tight">2 Poin</div>
+                                            <div className="py-1 px-0.5 rounded bg-amber-500 text-slate-950 leading-tight font-black">3 Poin</div>
+                                            <div className="py-1 px-0.5 rounded bg-lime-600 text-white leading-tight">4 Poin</div>
+                                            <div className="py-1 px-0.5 rounded bg-emerald-600 text-white leading-tight font-black">5 Poin</div>
+                                        </div>
+                                        <div className="flex justify-between text-[8px] text-slate-400 font-semibold px-0.5">
+                                            <span>Merah Tua (1)</span>
+                                            <span>→</span>
+                                            <span>Hijau Banget (5)</span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                                        <span>Soal Terbaik (⭐)</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                                        <span>Sudah Paham (✅)</span>
+
+                                    <div className="flex items-center gap-3 pt-1 border-t border-slate-100 dark:border-slate-800">
+                                        <div className="flex items-center gap-1">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                                            <span>Terbaik (⭐)</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                                            <span>Paham (✅)</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

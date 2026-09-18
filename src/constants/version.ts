@@ -5,9 +5,19 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "4.3.0";
+export const APP_VERSION = "4.4.0";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "4.4.0",
+    date: new Date().toISOString().split('T')[0],
+    type: "minor",
+    notes: [
+      "Gradasi Warna Poin TKP di Box Navigasi Soal: Box nomor navigasi soal (pada sidebar Mode List maupun palette Mode Focus) kini secara visual mengikuti gradasi murni nilai TKP dari Merah Tua (Poin 1) hingga Hijau Banget (Poin 5) tanpa warna biru.",
+      "Indikator Poin & Tooltip Real-time: Setiap kotak soal TKP menampilkan subskrip poin perolehan (1p-5p) serta tooltip deskriptif untuk evaluasi cepat.",
+      "Legenda Navigasi Khusus TKP: Keterangan visual skala 5 tingkat poin TKP dan status benar/salah untuk soal TWK & TIU yang lebih rapi dan intuitif."
+    ]
+  },
   {
     version: "4.3.0",
     date: new Date().toISOString().split('T')[0],
