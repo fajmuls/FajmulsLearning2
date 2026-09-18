@@ -5,9 +5,20 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "4.2.0";
+export const APP_VERSION = "4.3.0";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "4.3.0",
+    date: new Date().toISOString().split('T')[0],
+    type: "minor",
+    notes: [
+      "Analisis Pola Jawaban TKP per Aspek: Metrik rata-rata perolehan poin TKP per aspek (Pelayanan Publik, Jejaring Kerja, Sosial Budaya, TIK, Profesionalisme, Anti Radikalisme) untuk mengevaluasi pemahaman nilai 1-5 secara komprehensif.",
+      "Deteksi & Peringatan Aspek Kritis (Poin 1-3): Sorotan otomatis untuk aspek TKP yang paling sering mendapatkan poin 1–3 lengkap dengan pesan diagnosis dan tips pola pikir standar kedinasan.",
+      "Filter Cepat Soal Poin Rendah TKP: Tombol filter instan 'Poin 1-3 TKP' dan filter per-aspek untuk langsung membedah dan mempelajari butir-butir soal yang perlu perbaikan nilai.",
+      "Visual Bar Gradasi Bobot TKP: Tampilan bar visual indikator rata-rata poin dengan gradasi warna dari Merah hingga Hijau Unggul serta rincian sebaran poin 5, 4, 3, 2, dan 1."
+    ]
+  },
   {
     version: "4.2.0",
     date: new Date().toISOString().split('T')[0],

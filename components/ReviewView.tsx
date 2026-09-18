@@ -16,6 +16,7 @@ import { SimpleMarkdown, MatrixQuestionRenderer, SvgRenderer } from './QuestionR
 import { InteractiveFigural } from './InteractiveFigural';
 import { SoundManager } from '../services/soundService';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { analyzeTkpSessionPatterns, TkpAspectAnalysis, detectQuestionTopic } from '../src/utils/performanceAnalytics';
 
 interface ReviewViewProps {
     item: TestHistoryItem;
@@ -264,7 +265,9 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
     const [focusIndex, setFocusIndex] = useState<number>(0);
     const [isSelfTestMode, setIsSelfTestMode] = useState<boolean>(false);
     const [revealedSelfTestQuestions, setRevealedSelfTestQuestions] = useState<Set<string>>(new Set());
-    const [filterType, setFilterType] = useState<'ALL' | 'WRONG' | 'FLAGGED' | 'BEST' | 'UNDERSTOOD' | 'UNUNDERSTOOD'>('ALL');
+    const [filterType, setFilterType] = useState<'ALL' | 'WRONG' | 'FLAGGED' | 'BEST' | 'UNDERSTOOD' | 'UNUNDERSTOOD' | 'TKP_LOW'>('ALL');
+    const [selectedTkpAspect, setSelectedTkpAspect] = useState<string | null>(null);
+    const [isTkpAnalysisExpanded, setIsTkpAnalysisExpanded] = useState<boolean>(true);
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [activeNoteEditor, setActiveNoteEditor] = useState<string | null>(null);
     const [copiedQuestionId, setCopiedQuestionId] = useState<string | null>(null);
@@ -322,6 +325,9 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
     const questions = useMemo(() => item.questions || [], [item.questions]);
     const answers = useMemo(() => item.answers || [], [item.answers]);
 
+    // TKP Session Pattern Analysis (Poin 1-5 per Aspek)
+    const tkpAnalysis = useMemo(() => analyzeTkpSessionPatterns(item), [item]);
+
     // Questions count metrics
     const wrongQuestionsCount = useMemo(() => {
         return answers.filter(a => !a.isCorrect && (a.scoreEarned === undefined || a.scoreEarned < 4)).length;
@@ -360,6 +366,29 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                 if (!understoodSet.has(q.id)) return false;
             } else if (filterType === 'UNUNDERSTOOD') {
                 if (understoodSet.has(q.id)) return false;
+            } else if (filterType === 'TKP_LOW') {
+                const isTkp = q.metadata?.subtest?.toUpperCase().includes('TKP') || (q.tkpPoints && q.tkpPoints.length > 0);
+                if (!isTkp) return false;
+                let earned = 1;
+                if (typeof ans?.scoreEarned === 'number' && ans.scoreEarned > 0) {
+                    earned = ans.scoreEarned;
+                } else if (ans?.selectedAnswer && q.tkpPoints && q.tkpPoints.length > 0) {
+                    const normSelected = ans.selectedAnswer.trim().toLowerCase().replace(/[^a-z0-9]/gi, '');
+                    const matched = q.tkpPoints.find(tp => tp.option.trim().toLowerCase().replace(/[^a-z0-9]/gi, '') === normSelected);
+                    earned = matched ? Number(matched.points) : (ans.isCorrect ? 5 : 1);
+                } else if (ans?.isCorrect) {
+                    earned = 5;
+                }
+                if (earned > 3) return false; // Hanya tampilkan butir soal dengan skor 1, 2, atau 3
+            }
+
+            // Filter berdasarkan Aspek TKP terpilih
+            if (selectedTkpAspect) {
+                const detected = detectQuestionTopic(q);
+                const qAspect = detected.topic || q.metadata?.topic || '';
+                if (qAspect !== selectedTkpAspect && !qAspect.toLowerCase().includes(selectedTkpAspect.toLowerCase())) {
+                    return false;
+                }
             }
 
             // Search query filter
@@ -377,7 +406,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
 
             return true;
         });
-    }, [questions, answers, filterType, searchQuery, bestQuestionsSet, understoodSet, notesMap]);
+    }, [questions, answers, filterType, selectedTkpAspect, searchQuery, bestQuestionsSet, understoodSet, notesMap]);
 
     // Active question helper for shortcut handlers
     const currentActiveQuestion = useMemo(() => {
@@ -796,7 +825,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                         <div className="lg:col-span-2 space-y-3">
                             <div className="flex flex-wrap items-center gap-2">
                                 <span className="px-3 py-1 bg-indigo-500/30 border border-indigo-400/40 rounded-full text-[10px] font-black uppercase tracking-wider text-indigo-200 flex items-center gap-1.5">
-                                    <Sparkles size={12} /> Modul Belajar & Pembahasan v4.2.0
+                                    <Sparkles size={12} /> Modul Belajar & Pembahasan v4.3.0
                                 </span>
                                 <span className="px-2.5 py-1 bg-white/10 rounded-full text-[10px] font-bold text-slate-300">
                                     {new Date(item.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })} WIB
@@ -858,6 +887,263 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                         </div>
                     </div>
                 </div>
+
+                {/* ---------------------------------------------------- */}
+                {/* ANALISIS POLA JAWABAN TKP PER ASPEK (POIN 1-5) */}
+                {/* ---------------------------------------------------- */}
+                {tkpAnalysis.hasTkpQuestions && (
+                    <div className="rounded-3xl bg-white dark:bg-slate-800 border border-indigo-100 dark:border-indigo-900/50 shadow-md overflow-hidden transition-all text-left">
+                        {/* Header Toggle */}
+                        <div 
+                            onClick={() => setIsTkpAnalysisExpanded(!isTkpAnalysisExpanded)}
+                            className="p-5 sm:p-6 bg-gradient-to-r from-indigo-50/70 via-purple-50/30 to-white dark:from-slate-800 dark:via-indigo-950/20 dark:to-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-indigo-50/90 dark:hover:bg-slate-750 transition"
+                        >
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="p-1.5 rounded-xl bg-indigo-600 text-white shadow-sm">
+                                        <Activity size={16} />
+                                    </span>
+                                    <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                                        Analisis Pola Jawaban TKP per Aspek
+                                    </h2>
+                                    {tkpAnalysis.criticalAspects.length > 0 ? (
+                                        <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-900 flex items-center gap-1">
+                                            <AlertTriangle size={12} /> {tkpAnalysis.totalLowPoints} Soal Skor 1–3 ({tkpAnalysis.criticalAspects.length} Aspek Kritis)
+                                        </span>
+                                    ) : (
+                                        <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 flex items-center gap-1">
+                                            <CheckCircle size={12} /> Pola Jawaban Unggul (Aman)
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    Evaluasi perolehan bobot nilai 1 s/d 5 pada 6 Aspek TKP (Pelayanan Publik, Jejaring Kerja, Sosial Budaya, TIK, Profesionalisme, Anti Radikalisme).
+                                </p>
+                            </div>
+
+                            {/* Score & Toggle */}
+                            <div className="flex items-center gap-3 self-start md:self-auto">
+                                <div className="text-right">
+                                    <div className="text-[10px] uppercase font-bold text-slate-400">Rata-rata Skor TKP</div>
+                                    <div className="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400">
+                                        {tkpAnalysis.overallAverageScore} <span className="text-xs text-slate-400 font-semibold">/ 5.00</span>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="p-2 rounded-2xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:text-indigo-600 shadow-xs"
+                                >
+                                    <Sliders size={16} className={`transition-transform duration-200 ${isTkpAnalysisExpanded ? 'rotate-180' : ''}`} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Expanded Body */}
+                        {isTkpAnalysisExpanded && (
+                            <div className="p-5 sm:p-6 border-t border-indigo-100/80 dark:border-slate-700 space-y-6">
+                                
+                                {/* Diagnostic Message & Point Distribution */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                    <div className="lg:col-span-2 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/60 flex items-start gap-3">
+                                        <Sparkles size={18} className="text-amber-500 shrink-0 mt-0.5" />
+                                        <div className="space-y-1 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
+                                            <span className="font-bold text-slate-900 dark:text-white">Diagnosis Performa TKP: </span>
+                                            <span>{tkpAnalysis.summaryMessage}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Overall 1-5 Point Distribution Card */}
+                                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/60 space-y-2">
+                                        <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                            Sebaran Bobot Jawaban Sesi Ini
+                                        </div>
+                                        <div className="grid grid-cols-5 gap-1.5 text-center">
+                                            <div className="p-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                                <div className="text-[9px] font-bold">5 Poin</div>
+                                                <div className="text-sm font-black">{tkpAnalysis.overallPointDistribution.points5}</div>
+                                            </div>
+                                            <div className="p-1.5 rounded-xl bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+                                                <div className="text-[9px] font-bold">4 Poin</div>
+                                                <div className="text-sm font-black">{tkpAnalysis.overallPointDistribution.points4}</div>
+                                            </div>
+                                            <div className="p-1.5 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                                <div className="text-[9px] font-bold">3 Poin</div>
+                                                <div className="text-sm font-black">{tkpAnalysis.overallPointDistribution.points3}</div>
+                                            </div>
+                                            <div className="p-1.5 rounded-xl bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-800">
+                                                <div className="text-[9px] font-bold">2 Poin</div>
+                                                <div className="text-sm font-black">{tkpAnalysis.overallPointDistribution.points2}</div>
+                                            </div>
+                                            <div className="p-1.5 rounded-xl bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                                                <div className="text-[9px] font-bold">1 Poin</div>
+                                                <div className="text-sm font-black">{tkpAnalysis.overallPointDistribution.points1}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Aspect Cards Grid */}
+                                <div>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                            <Target size={14} className="text-indigo-500" />
+                                            Rincian Evaluasi Aspek & Rekomendasi Poin 5
+                                        </h3>
+                                        {selectedTkpAspect && (
+                                            <button
+                                                onClick={() => setSelectedTkpAspect(null)}
+                                                className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1"
+                                            >
+                                                <X size={12} /> Hapus Filter Aspek ({selectedTkpAspect})
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {tkpAnalysis.aspects.map((aspect, aIdx) => {
+                                            const isCritical = aspect.status === 'CRITICAL';
+                                            const isSelected = selectedTkpAspect === aspect.aspect;
+
+                                            // Gradient progress bar color
+                                            let barColor = 'from-emerald-500 to-emerald-400';
+                                            let avgBadgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800';
+
+                                            if (aspect.averageScore < 3.5 || aspect.lowPointsCount >= 2) {
+                                                barColor = 'from-rose-500 to-orange-400';
+                                                avgBadgeColor = 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800';
+                                            } else if (aspect.averageScore < 4.2 || aspect.lowPointsCount >= 1) {
+                                                barColor = 'from-amber-500 to-yellow-400';
+                                                avgBadgeColor = 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800';
+                                            }
+
+                                            return (
+                                                <div 
+                                                    key={aIdx}
+                                                    className={`rounded-2xl p-4 transition-all flex flex-col justify-between space-y-3.5 border ${
+                                                        isSelected 
+                                                            ? 'ring-2 ring-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/30 border-indigo-400' 
+                                                            : isCritical
+                                                            ? 'bg-rose-50/30 dark:bg-slate-900/60 border-rose-200/70 dark:border-rose-900/40 hover:border-rose-300'
+                                                            : 'bg-white dark:bg-slate-850 border-slate-200/80 dark:border-slate-700/80 hover:border-indigo-200'
+                                                    }`}
+                                                >
+                                                    <div className="space-y-2">
+                                                        {/* Aspect Title & Average Score */}
+                                                        <div className="flex items-start justify-between gap-2">
+                                                            <div>
+                                                                <h4 className="text-sm font-black text-slate-900 dark:text-white leading-snug">
+                                                                    {aspect.aspect}
+                                                                </h4>
+                                                                <span className="text-[10px] text-slate-400 font-medium">
+                                                                    {aspect.totalQuestions} Butir Soal ({aspect.scoreEarned}/{aspect.maxScore} Poin)
+                                                                </span>
+                                                            </div>
+                                                            
+                                                            <div className={`px-2 py-1 rounded-xl text-xs font-black border shrink-0 text-right ${avgBadgeColor}`}>
+                                                                <span>{aspect.averageScore}</span>
+                                                                <span className="text-[9px] opacity-70"> / 5.0</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Visual Progress Bar */}
+                                                        <div className="space-y-1">
+                                                            <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                                <div 
+                                                                    className={`h-full rounded-full bg-gradient-to-r ${barColor} transition-all duration-300`}
+                                                                    style={{ width: `${Math.min(100, Math.max(10, aspect.percentageOfMax))}%` }}
+                                                                />
+                                                            </div>
+                                                            <div className="flex justify-between text-[9px] text-slate-400 font-semibold">
+                                                                <span>Akurasi {aspect.percentageOfMax}%</span>
+                                                                <span>{aspect.statusLabel}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Point Breakdown Dots */}
+                                                        <div className="flex items-center gap-1 pt-1 flex-wrap text-[10px] font-bold">
+                                                            <span className="px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                                                P5: {aspect.pointDistribution.points5}
+                                                            </span>
+                                                            <span className="px-1.5 py-0.5 rounded-md bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300">
+                                                                P4: {aspect.pointDistribution.points4}
+                                                            </span>
+                                                            {aspect.pointDistribution.points3 > 0 && (
+                                                                <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                                                                P3: {aspect.pointDistribution.points3}
+                                                                </span>
+                                                            )}
+                                                            {aspect.pointDistribution.points2 > 0 && (
+                                                                <span className="px-1.5 py-0.5 rounded-md bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300">
+                                                                P2: {aspect.pointDistribution.points2}
+                                                                </span>
+                                                            )}
+                                                            {aspect.pointDistribution.points1 > 0 && (
+                                                                <span className="px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 font-black">
+                                                                P1: {aspect.pointDistribution.points1}
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Critical Low-Points Warning */}
+                                                        {aspect.lowPointsCount > 0 && (
+                                                            <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/60 text-[11px] text-rose-700 dark:text-rose-300 leading-snug flex items-start gap-1.5">
+                                                                <AlertTriangle size={13} className="shrink-0 mt-0.5 text-rose-500" />
+                                                                <div>
+                                                                    <span className="font-bold">Perlu Perhatian: </span>
+                                                                    <span>Ada <b>{aspect.lowPointsCount} soal</b> yang mendapat poin 1-3.</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Strategy Tip */}
+                                                        <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                                                            <span className="font-bold text-indigo-600 dark:text-indigo-400">💡 Tips Pola Pikir: </span>
+                                                            <span>{aspect.strategyTip}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Action Buttons */}
+                                                    <div className="pt-2 border-t border-slate-100 dark:border-slate-750 flex items-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                SoundManager.play('click');
+                                                                setSelectedTkpAspect(isSelected ? null : aspect.aspect);
+                                                                setFilterType('ALL');
+                                                            }}
+                                                            className={`flex-1 py-1.5 px-2.5 rounded-xl text-xs font-bold transition text-center ${
+                                                                isSelected
+                                                                    ? 'bg-indigo-600 text-white shadow-xs'
+                                                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-600'
+                                                            }`}
+                                                        >
+                                                            {isSelected ? '✓ Aspek Terpilih' : `Semua Soal (${aspect.totalQuestions})`}
+                                                        </button>
+
+                                                        {aspect.lowPointsCount > 0 && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    SoundManager.play('click');
+                                                                    setSelectedTkpAspect(aspect.aspect);
+                                                                    setFilterType('TKP_LOW');
+                                                                }}
+                                                                className="py-1.5 px-2.5 rounded-xl text-xs font-black bg-rose-600 hover:bg-rose-700 text-white transition flex items-center gap-1 shadow-xs"
+                                                                title="Filter hanya butir soal aspek ini yang mendapatkan poin 1-3"
+                                                            >
+                                                                <XCircle size={12} /> Poin 1-3 ({aspect.lowPointsCount})
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* ---------------------------------------------------- */}
                 {/* TOOLBAR & STUDY MODE CONTROLS */}
@@ -993,6 +1279,38 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                 <Clock size={13} /> Belum Paham ({questions.length - understoodCount})
                                 <kbd className="hidden lg:inline text-[9px] opacity-60">6</kbd>
                             </button>
+
+                            {/* TKP Low Points (1-3) Filter Pill */}
+                            {tkpAnalysis.hasTkpQuestions && tkpAnalysis.totalLowPoints > 0 && (
+                                <button
+                                    onClick={() => setFilterType(filterType === 'TKP_LOW' ? 'ALL' : 'TKP_LOW')}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-black whitespace-nowrap transition flex items-center gap-1.5 ${
+                                        filterType === 'TKP_LOW'
+                                            ? 'bg-rose-600 text-white shadow-md ring-2 ring-rose-300 dark:ring-rose-900'
+                                            : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 hover:bg-rose-100'
+                                    }`}
+                                    title="Filter hanya butir soal TKP dengan skor 1 s/d 3"
+                                >
+                                    <AlertTriangle size={13} className="text-rose-500" />
+                                    <span>Poin 1–3 TKP ({tkpAnalysis.totalLowPoints})</span>
+                                    <kbd className="hidden lg:inline text-[9px] opacity-70">7</kbd>
+                                </button>
+                            )}
+
+                            {/* Active Aspect Filter Chip */}
+                            {selectedTkpAspect && (
+                                <div className="px-3 py-1.5 rounded-xl text-xs font-black whitespace-nowrap bg-indigo-600 text-white shadow-xs flex items-center gap-1.5">
+                                    <span>Aspek: {selectedTkpAspect}</span>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setSelectedTkpAspect(null)} 
+                                        className="hover:bg-indigo-700 p-0.5 rounded-md"
+                                        title="Hapus filter aspek"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         {/* Search Bar */}

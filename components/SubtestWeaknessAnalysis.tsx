@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { AlertTriangle, CheckCircle, HelpCircle, ChevronDown, ChevronUp, Target, Sparkles, BookOpen } from 'lucide-react';
+import { AlertTriangle, CheckCircle, HelpCircle, ChevronDown, ChevronUp, Target, Sparkles, BookOpen, Activity } from 'lucide-react';
 import { TestHistoryItem } from '../types';
-import { analyzeSessionWeaknesses, SessionDiagnostic, TopicPerformance } from '../src/utils/performanceAnalytics';
+import { analyzeSessionWeaknesses, analyzeTkpSessionPatterns, SessionDiagnostic, TopicPerformance } from '../src/utils/performanceAnalytics';
 
 interface SubtestWeaknessAnalysisProps {
     item: TestHistoryItem;
@@ -16,6 +16,7 @@ export const SubtestWeaknessAnalysis: React.FC<SubtestWeaknessAnalysisProps> = (
 }) => {
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
     const diagnostic = React.useMemo(() => analyzeSessionWeaknesses(item), [item]);
+    const tkpData = React.useMemo(() => analyzeTkpSessionPatterns(item), [item]);
 
     if (!diagnostic.hasQuestions || diagnostic.subtestSummaries.length === 0) {
         return null;
@@ -97,7 +98,13 @@ export const SubtestWeaknessAnalysis: React.FC<SubtestWeaknessAnalysisProps> = (
                                                 {sub.subtestName}
                                             </span>
                                             <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                                                {sub.correctCount}/{sub.totalQuestions} Soal Benar
+                                                {isTkp && tkpData.hasTkpQuestions ? (
+                                                    <span className="font-semibold text-purple-700 dark:text-purple-300">
+                                                        Rata-rata {tkpData.overallAverageScore} / 5.0 ({tkpData.totalTkpScore} Poin)
+                                                    </span>
+                                                ) : (
+                                                    `${sub.correctCount}/${sub.totalQuestions} Soal Benar`
+                                                )}
                                             </span>
                                         </div>
                                         <div className="text-right">

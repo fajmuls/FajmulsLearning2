@@ -495,6 +495,255 @@ function getTopicRecommendation(topic: string, isCritical: boolean): string {
     if (t.includes('deret')) return 'Latihlah kepekaan pada deret fibonacci, larik ganda, dan pangkat berulang.';
     if (t.includes('pelayanan publik')) return 'Pilih opsi yang paling menguntungkan institusi dan masyarakat tanpa melanggar SOP.';
     if (t.includes('jejaring')) return 'Fokus pada opsi yang menekankan kolaborasi dan win-win solution.';
+    if (t.includes('sosial budaya')) return 'Pilih opsi yang paling toleran, menghargai keberagaman, dan cepat beradaptasi di lingkungan baru.';
+    if (t.includes('tik') || t.includes('teknologi')) return 'Pilih opsi yang adaptif memanfaatkan teknologi digital untuk efisiensi kerja tanpa takut perubahan.';
+    if (t.includes('profesionalisme')) return 'Pilih opsi yang mengutamakan ketuntasan tugas, integritas, dan disiplin tinggi dalam segala kondisi.';
+    if (t.includes('anti radikalisme')) return 'Pilih opsi yang menjunjung tinggi toleransi, moderasi, serta berani melaporkan atau menangkal paham radikal.';
     
     return 'Lakukan evaluasi ulang (review) pada soal-soal salah di topik ini dan pahami pembahasannya.';
 }
+
+// ----------------------------------------------------
+// ANALISIS POLA JAWABAN TKP PER ASPEK (POIN 1-5)
+// ----------------------------------------------------
+export interface TkpAspectAnalysis {
+    aspect: string;
+    totalQuestions: number;
+    scoreEarned: number;
+    maxScore: number;
+    averageScore: number;
+    pointDistribution: {
+        points5: number;
+        points4: number;
+        points3: number;
+        points2: number;
+        points1: number;
+    };
+    lowPointsCount: number; // Jumlah soal dengan skor 1, 2, atau 3
+    highPointsCount: number; // Jumlah soal dengan skor 4 atau 5
+    percentageOfMax: number;
+    status: 'EXCELLENT' | 'ADEQUATE' | 'CRITICAL';
+    statusLabel: string;
+    criticalAlert: string | null;
+    strategyTip: string;
+    questionIndices: number[]; // Index asli dari array questions
+    lowPointQuestionIndices: number[]; // Index soal yang mendapat poin 1-3
+}
+
+export interface TkpSessionAnalysis {
+    hasTkpQuestions: boolean;
+    totalTkpQuestions: number;
+    totalTkpScore: number;
+    maxPossibleTkpScore: number;
+    overallAverageScore: number;
+    overallPointDistribution: {
+        points5: number;
+        points4: number;
+        points3: number;
+        points2: number;
+        points1: number;
+    };
+    aspects: TkpAspectAnalysis[];
+    criticalAspects: TkpAspectAnalysis[];
+    totalLowPoints: number;
+    summaryMessage: string;
+}
+
+const TKP_ASPECT_TIPS: Record<string, string> = {
+    'Pelayanan Publik': 'Kunci Poin 5: Utamakan kepuasan masyarakat/pelanggan secara ramah, cepat, dan tulus tanpa melanggar regulasi resmi atau mengorbankan integritas.',
+    'Jejaring Kerja': 'Kunci Poin 5: Tunjukkan sikap terbuka menjalin kemitraan, kolaboratif, mendengarkan masukan tim, serta membangun relasi kerja yang positif dan produktif.',
+    'Sosial Budaya': 'Kunci Poin 5: Tunjukkan sikap toleransi tinggi, tidak diskriminatif, menghargai keberagaman adat/suku/agama, dan cepat beradaptasi dengan budaya baru.',
+    'Teknologi Informasi (TIK)': 'Kunci Poin 5: Bersikap antusias dan proaktif memanfaatkan teknologi serta sistem digital untuk mempercepat kerja dan meningkatkan efektivitas organisasi.',
+    'Profesionalisme': 'Kunci Poin 5: Tuntaskan tugas tepat waktu dengan standar mutu tinggi, utamakan kepentingan kedinasan di atas urusan pribadi, dan patuhi SOP kerja.',
+    'Anti Radikalisme': 'Kunci Poin 5: Junjung teguh ideologi Pancasila dan NKRI, bersikap moderat, serta berani mengambil sikap tegas jika ada indikasi paham intoleran/radikal.',
+    'Karakteristik Pribadi (Lainnya)': 'Kunci Poin 5: Pilih tindakan yang paling solutif, tenang dalam tekanan, dan menunjukkan kedewasaan berpikir seorang aparatur negara.'
+};
+
+export function analyzeTkpSessionPatterns(item: TestHistoryItem): TkpSessionAnalysis {
+    const questions = item.questions || [];
+    const answers = item.answers || [];
+
+    const answerMap = new Map<string, UserAnswer>();
+    answers.forEach(a => answerMap.set(a.questionId, a));
+
+    const overallDist = { points5: 0, points4: 0, points3: 0, points2: 0, points1: 0 };
+    let totalScore = 0;
+    let totalTkpCount = 0;
+
+    const aspectMap = new Map<string, {
+        total: number;
+        score: number;
+        dist: { points5: number; points4: number; points3: number; points2: number; points1: number };
+        indices: number[];
+        lowPointIndices: number[];
+    }>();
+
+    // Inisialisasi 6 Aspek Utama TKP agar urutan selalu konsisten
+    const standardAspects = [
+        'Pelayanan Publik',
+        'Jejaring Kerja',
+        'Sosial Budaya',
+        'Teknologi Informasi (TIK)',
+        'Profesionalisme',
+        'Anti Radikalisme'
+    ];
+
+    questions.forEach((q, idx) => {
+        const rawSubtest = (q.metadata?.subtest || '').toUpperCase();
+        const hasTkpPoints = q.tkpPoints && q.tkpPoints.length > 0;
+        const isTkp = rawSubtest.includes('TKP') || hasTkpPoints || item.category === 'SKD' && rawSubtest.includes('TKP');
+
+        if (!isTkp) return;
+
+        totalTkpCount += 1;
+        const detected = detectQuestionTopic(q);
+        const aspectName = detected.topic || 'Karakteristik Pribadi (Lainnya)';
+
+        if (!aspectMap.has(aspectName)) {
+            aspectMap.set(aspectName, {
+                total: 0,
+                score: 0,
+                dist: { points5: 0, points4: 0, points3: 0, points2: 0, points1: 0 },
+                indices: [],
+                lowPointIndices: []
+            });
+        }
+
+        const data = aspectMap.get(aspectName)!;
+        data.total += 1;
+        data.indices.push(idx);
+
+        // Ambil poin yang diperoleh
+        const ans = answerMap.get(q.id) || answers[idx];
+        let earnedPoints = 1;
+
+        if (ans) {
+            if (typeof ans.scoreEarned === 'number' && ans.scoreEarned > 0) {
+                earnedPoints = Math.min(5, Math.max(1, Math.round(ans.scoreEarned)));
+            } else if (ans.selectedAnswer && q.tkpPoints && q.tkpPoints.length > 0) {
+                // Cari dari array tkpPoints
+                const normSelected = ans.selectedAnswer.trim().toLowerCase().replace(/[^a-z0-9]/gi, '');
+                let matched = q.tkpPoints.find(tp => tp.option.trim().toLowerCase().replace(/[^a-z0-9]/gi, '') === normSelected);
+                if (!matched && q.options) {
+                    const optIdx = q.options.findIndex(o => o === ans.selectedAnswer);
+                    if (optIdx !== -1 && q.tkpPoints[optIdx]) {
+                        matched = q.tkpPoints[optIdx];
+                    }
+                }
+                earnedPoints = matched ? Number(matched.points) : (ans.isCorrect ? 5 : 1);
+            } else if (ans.isCorrect) {
+                earnedPoints = 5;
+            }
+        }
+
+        data.score += earnedPoints;
+        totalScore += earnedPoints;
+
+        // Distribusi poin
+        if (earnedPoints === 5) { data.dist.points5++; overallDist.points5++; }
+        else if (earnedPoints === 4) { data.dist.points4++; overallDist.points4++; }
+        else if (earnedPoints === 3) { data.dist.points3++; overallDist.points3++; data.lowPointIndices.push(idx); }
+        else if (earnedPoints === 2) { data.dist.points2++; overallDist.points2++; data.lowPointIndices.push(idx); }
+        else { data.dist.points1++; overallDist.points1++; data.lowPointIndices.push(idx); }
+    });
+
+    if (totalTkpCount === 0) {
+        return {
+            hasTkpQuestions: false,
+            totalTkpQuestions: 0,
+            totalTkpScore: 0,
+            maxPossibleTkpScore: 0,
+            overallAverageScore: 0,
+            overallPointDistribution: overallDist,
+            aspects: [],
+            criticalAspects: [],
+            totalLowPoints: 0,
+            summaryMessage: 'Tidak ada soal TKP pada sesi ini.'
+        };
+    }
+
+    const aspects: TkpAspectAnalysis[] = [];
+    const criticalAspects: TkpAspectAnalysis[] = [];
+    let totalLowPoints = 0;
+
+    aspectMap.forEach((data, aspectName) => {
+        const averageScore = Math.round((data.score / data.total) * 10) / 10;
+        const maxScore = data.total * 5;
+        const percentageOfMax = Math.round((data.score / maxScore) * 100);
+        const lowPointsCount = data.dist.points1 + data.dist.points2 + data.dist.points3;
+        const highPointsCount = data.dist.points4 + data.dist.points5;
+        totalLowPoints += lowPointsCount;
+
+        let status: 'EXCELLENT' | 'ADEQUATE' | 'CRITICAL' = 'ADEQUATE';
+        let statusLabel = 'Cukup (Standar)';
+        let criticalAlert: string | null = null;
+
+        if (averageScore >= 4.5 && lowPointsCount === 0) {
+            status = 'EXCELLENT';
+            statusLabel = 'Sangat Unggul ⭐';
+        } else if (averageScore < 4.0 || lowPointsCount >= 2 || (data.total <= 2 && lowPointsCount >= 1)) {
+            status = 'CRITICAL';
+            statusLabel = 'Kritis (Banyak Poin 1-3) ⚠️';
+            criticalAlert = `Terdapat ${lowPointsCount} dari ${data.total} soal pada aspek ini yang memperoleh poin 1–3. Pola pemikiran perlu disesuaikan dengan standar poin 5 kedinasan.`;
+        }
+
+        const strategyTip = TKP_ASPECT_TIPS[aspectName] || 'Pilih opsi yang paling solutif, proaktif, dan bertanggung jawab penuh.';
+
+        const aspectAnalysis: TkpAspectAnalysis = {
+            aspect: aspectName,
+            totalQuestions: data.total,
+            scoreEarned: data.score,
+            maxScore,
+            averageScore,
+            pointDistribution: data.dist,
+            lowPointsCount,
+            highPointsCount,
+            percentageOfMax,
+            status,
+            statusLabel,
+            criticalAlert,
+            strategyTip,
+            questionIndices: data.indices,
+            lowPointQuestionIndices: data.lowPointIndices
+        };
+
+        aspects.push(aspectAnalysis);
+        if (status === 'CRITICAL') {
+            criticalAspects.push(aspectAnalysis);
+        }
+    });
+
+    // Urutkan aspek: aspek kritis paling atas, lalu skor terendah ke tertinggi
+    aspects.sort((a, b) => {
+        if (a.status === 'CRITICAL' && b.status !== 'CRITICAL') return -1;
+        if (a.status !== 'CRITICAL' && b.status === 'CRITICAL') return 1;
+        return a.averageScore - b.averageScore;
+    });
+
+    const overallAverageScore = Math.round((totalScore / totalTkpCount) * 100) / 100;
+    const maxPossibleTkpScore = totalTkpCount * 5;
+
+    let summaryMessage = '';
+    if (criticalAspects.length > 0) {
+        const criticalNames = criticalAspects.map(a => `${a.aspect} (Rata-rata ${a.averageScore})`).join(', ');
+        summaryMessage = `Perlu perbaikan pola pikir pada aspek: ${criticalNames}. Ditemukan ${totalLowPoints} butir soal dengan perolehan poin 1–3 yang menurunkan skor total TKP.`;
+    } else if (overallAverageScore >= 4.5) {
+        summaryMessage = `Pola jawaban TKP Anda sangat tajam! Rata-rata perolehan mencapai ${overallAverageScore}/5.00 dengan konsistensi poin 4 dan 5 di seluruh aspek.`;
+    } else {
+        summaryMessage = `Pola jawaban TKP Anda sudah berada pada rentang aman (rata-rata ${overallAverageScore}/5.00). Tingkatkan beberapa butir bernilai 4 menjadi poin maksimal 5.`;
+    }
+
+    return {
+        hasTkpQuestions: true,
+        totalTkpQuestions: totalTkpCount,
+        totalTkpScore: totalScore,
+        maxPossibleTkpScore,
+        overallAverageScore,
+        overallPointDistribution: overallDist,
+        aspects,
+        criticalAspects,
+        totalLowPoints,
+        summaryMessage
+    };
+}
+
