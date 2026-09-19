@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { 
     TestHistoryItem, TesKoranResultDetails, TesKecermatanResultDetails, 
-    Question, UserAnswer, AppFontSize 
+    Question, UserAnswer, AppFontSize, AppSettings 
 } from '../types';
 import { SimpleMarkdown, MatrixQuestionRenderer, SvgRenderer } from './QuestionRenderer';
 import { InteractiveFigural } from './InteractiveFigural';
@@ -22,6 +22,8 @@ interface ReviewViewProps {
     item: TestHistoryItem;
     onBack: () => void;
     onToggleStudied?: (id: string) => void;
+    settings?: AppSettings;
+    isDarkMode?: boolean;
 }
 
 // LocalStorage Keys for persistent study features
@@ -161,7 +163,7 @@ const getTkpPointStyle = (points: number) => {
     }
 };
 
-export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleStudied }) => {
+export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleStudied, settings, isDarkMode }) => {
     // ----------------------------------------------------
     // PERSISTENT STUDY STATE
     // ----------------------------------------------------
@@ -289,6 +291,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
     // ----------------------------------------------------
     const [studyMode, setStudyMode] = useState<'LIST' | 'FOCUS'>('LIST');
     const [focusIndex, setFocusIndex] = useState<number>(0);
+    const [activeListIndex, setActiveListIndex] = useState<number>(0);
     const [isSelfTestMode, setIsSelfTestMode] = useState<boolean>(false);
     const [revealedSelfTestQuestions, setRevealedSelfTestQuestions] = useState<Set<string>>(new Set());
     const [filterType, setFilterType] = useState<'ALL' | 'WRONG' | 'FLAGGED' | 'BEST' | 'UNDERSTOOD' | 'UNUNDERSTOOD' | 'TKP_LOW'>('ALL');
@@ -299,6 +302,28 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
     const [copiedQuestionId, setCopiedQuestionId] = useState<string | null>(null);
     const [speakingQuestionId, setSpeakingQuestionId] = useState<string | null>(null);
     const [showShortcutModal, setShowShortcutModal] = useState<boolean>(false);
+
+    // Scroll helper for List Mode
+    const scrollToQuestion = (originalIndex: number) => {
+        const el = document.getElementById(`question-card-${originalIndex}`);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    };
+
+    // Theme and background derivation
+    const isFajmulsTheme = settings?.theme === 'fajmuls';
+    const isDark = isDarkMode || settings?.darkMode || settings?.theme === 'dark';
+
+    const containerBgClass = useMemo(() => {
+        if (isFajmulsTheme) {
+            return 'bg-gradient-to-br from-indigo-50/70 via-purple-50/40 to-slate-100/90 dark:from-slate-950 dark:via-indigo-950/20 dark:to-slate-900 text-slate-900 dark:text-slate-100';
+        }
+        if (isDark) {
+            return 'bg-slate-950 text-slate-100';
+        }
+        return 'bg-slate-100/80 text-slate-800';
+    }, [isFajmulsTheme, isDark]);
 
     // ----------------------------------------------------
     // TEXT-TO-SPEECH (TTS)
@@ -440,10 +465,10 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
             const currentItem = filteredQuestions[Math.min(focusIndex, filteredQuestions.length - 1)];
             return currentItem ? currentItem.q : questions[0];
         } else {
-            const currentItem = filteredQuestions[0];
+            const currentItem = filteredQuestions[Math.min(activeListIndex, filteredQuestions.length - 1)];
             return currentItem ? currentItem.q : questions[0];
         }
-    }, [studyMode, focusIndex, filteredQuestions, questions]);
+    }, [studyMode, focusIndex, activeListIndex, filteredQuestions, questions]);
 
     // ----------------------------------------------------
     // COMPREHENSIVE KEYBOARD SHORTCUTS
@@ -564,23 +589,51 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                 }
             }
 
-            // Arrow keys navigation in Focus Mode
-            if (studyMode === 'FOCUS') {
-                if (e.key === 'ArrowLeft') {
-                    e.preventDefault();
-                    setFocusIndex(prev => Math.max(0, prev - 1));
-                    SoundManager.play('click');
-                } else if (e.key === 'ArrowRight') {
-                    e.preventDefault();
-                    setFocusIndex(prev => Math.min(filteredQuestions.length - 1, prev + 1));
-                    SoundManager.play('click');
+            // Arrow keys & j/k navigation for BOTH Focus Mode and List Mode
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'k' || e.key === 'K') {
+                e.preventDefault();
+                if (studyMode === 'FOCUS') {
+                    setFocusIndex(prev => {
+                        const next = Math.max(0, prev - 1);
+                        SoundManager.play('click');
+                        return next;
+                    });
+                } else {
+                    setActiveListIndex(prev => {
+                        const next = Math.max(0, prev - 1);
+                        const target = filteredQuestions[next];
+                        if (target) scrollToQuestion(target.originalIndex);
+                        SoundManager.play('click');
+                        return next;
+                    });
                 }
+                return;
+            }
+
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'j' || e.key === 'J') {
+                e.preventDefault();
+                if (studyMode === 'FOCUS') {
+                    setFocusIndex(prev => {
+                        const next = Math.min(filteredQuestions.length - 1, prev + 1);
+                        SoundManager.play('click');
+                        return next;
+                    });
+                } else {
+                    setActiveListIndex(prev => {
+                        const next = Math.min(filteredQuestions.length - 1, prev + 1);
+                        const target = filteredQuestions[next];
+                        if (target) scrollToQuestion(target.originalIndex);
+                        SoundManager.play('click');
+                        return next;
+                    });
+                }
+                return;
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [studyMode, filteredQuestions, focusIndex, currentActiveQuestion, showShortcutModal, searchQuery, activeNoteEditor, questions]);
+    }, [studyMode, filteredQuestions, focusIndex, activeListIndex, currentActiveQuestion, showShortcutModal, searchQuery, activeNoteEditor, questions]);
 
     // Subtest stats for badge in header
     const subtestBreakdown = useMemo(() => {
@@ -672,7 +725,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
         }
 
         return (
-            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 px-4 md:px-6 py-6 transition-colors">
+            <div className={`min-h-screen ${containerBgClass} px-4 md:px-6 py-6 transition-colors`}>
                 <div className="max-w-4xl mx-auto space-y-6">
                     {/* Header */}
                     <div className="flex justify-between items-center">
@@ -756,7 +809,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 px-4 md:px-6 py-4 md:py-6 transition-colors pb-24">
+        <div className={`min-h-screen ${containerBgClass} px-4 md:px-6 py-4 md:py-6 transition-colors pb-24`}>
             <div className="max-w-6xl mx-auto space-y-6">
                 
                 {/* ---------------------------------------------------- */}
@@ -1524,7 +1577,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                                     {letter}
                                                                 </span>
                                                                 <div className={`flex-1 pt-0.5 ${fontClassOption}`}>
-                                                                    <SimpleMarkdown text={opt} />
+                                                                    <SimpleMarkdown text={opt} isOption={true} />
                                                                 </div>
 
                                                                 {/* TKP Points Badge or Standard Key Badge */}
@@ -1736,19 +1789,25 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                     </button>
                                 </div>
                             ) : (
-                                filteredQuestions.map(({ q, originalIndex }) => {
+                                filteredQuestions.map(({ q, originalIndex }, fIdx) => {
                                     const ans = answers.find(a => a.questionId === q.id) || answers[originalIndex];
                                     const isBest = bestQuestionsSet.has(q.id);
                                     const isUnderstood = understoodSet.has(q.id);
                                     const isSelfTestRevealed = !isSelfTestMode || revealedSelfTestQuestions.has(q.id);
                                     const isTkp = q.metadata?.subtest?.toUpperCase().includes('TKP') || (q.tkpPoints && q.tkpPoints.length > 0);
+                                    const isActiveInList = filteredQuestions[activeListIndex]?.originalIndex === originalIndex;
 
                                     return (
                                         <div 
                                             key={q.id} 
                                             id={`question-card-${originalIndex}`}
-                                            className={`rounded-3xl bg-white dark:bg-slate-800 border transition-all p-5 sm:p-6 space-y-4 shadow-sm ${
-                                                isBest ? 'ring-2 ring-amber-400/40 border-amber-300 dark:border-amber-700' : 'border-slate-200 dark:border-slate-700'
+                                            onClick={() => setActiveListIndex(fIdx)}
+                                            className={`rounded-3xl bg-white dark:bg-slate-800 border transition-all p-5 sm:p-6 space-y-4 shadow-sm cursor-pointer ${
+                                                isActiveInList 
+                                                    ? 'ring-2 ring-indigo-500 border-indigo-400 dark:border-indigo-500 shadow-md'
+                                                    : isBest 
+                                                        ? 'ring-2 ring-amber-400/40 border-amber-300 dark:border-amber-700' 
+                                                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                                             }`}
                                         >
                                             {/* Card Top Action Bar */}
@@ -1879,7 +1938,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                                         {letter}
                                                                     </span>
                                                                     <div className={`flex-1 ${fontClassOption}`}>
-                                                                        <SimpleMarkdown text={opt} />
+                                                                        <SimpleMarkdown text={opt} isOption={true} />
                                                                     </div>
                                                                     
                                                                     {/* TKP Points Badge or Normal Key Badge */}
@@ -2041,16 +2100,20 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                 : 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-700 hover:bg-rose-100';
                                         }
 
+                                        const isCurrentInList = filteredQuestions[activeListIndex]?.originalIndex === qIdx;
+
                                         return (
                                             <button
                                                 key={q.id}
                                                 onClick={() => {
-                                                    const el = document.getElementById(`question-card-${qIdx}`);
-                                                    if (el) {
-                                                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                                    }
+                                                    scrollToQuestion(qIdx);
+                                                    const fIdx = filteredQuestions.findIndex(f => f.originalIndex === qIdx);
+                                                    if (fIdx >= 0) setActiveListIndex(fIdx);
+                                                    SoundManager.play('click');
                                                 }}
-                                                className={`relative h-11 rounded-xl font-black text-xs transition-all flex flex-col items-center justify-center ${boxStyle} hover:scale-105 shadow-xs`}
+                                                className={`relative h-11 rounded-xl font-black text-xs transition-all flex flex-col items-center justify-center ${boxStyle} ${
+                                                    isCurrentInList ? 'ring-2 ring-slate-900 dark:ring-white ring-offset-2 scale-105 shadow-md z-10' : 'hover:scale-105 shadow-xs'
+                                                }`}
                                                 title={isTkp ? `Soal #${qIdx + 1} (TKP: ${pointLabel !== null ? `${pointLabel} Poin` : 'Belum Dijawab'})` : `Soal #${qIdx + 1} (${ans?.isCorrect ? 'Benar' : 'Salah'})`}
                                             >
                                                 <span className="leading-tight">{qIdx + 1}</span>
@@ -2118,6 +2181,77 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                             </div>
                         </div>
 
+                    </div>
+                )}
+
+                {/* Floating Quick Navigation & Font Bar in LIST Mode */}
+                {studyMode === 'LIST' && filteredQuestions.length > 0 && (
+                    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-xl rounded-2xl px-4 py-2 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-200">
+                        <button
+                            onClick={() => {
+                                const next = Math.max(0, activeListIndex - 1);
+                                setActiveListIndex(next);
+                                const target = filteredQuestions[next];
+                                if (target) scrollToQuestion(target.originalIndex);
+                                SoundManager.play('click');
+                            }}
+                            disabled={activeListIndex === 0}
+                            className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-slate-600 transition flex items-center gap-1 text-xs font-bold"
+                            title="Soal Sebelumnya (← atau ↑)"
+                        >
+                            <ChevronLeft size={16} />
+                            <span className="hidden sm:inline">Prev</span>
+                        </button>
+
+                        <div className="text-xs font-black text-slate-700 dark:text-slate-300 px-2 flex items-center gap-1.5">
+                            <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">
+                                #{filteredQuestions[Math.min(activeListIndex, filteredQuestions.length - 1)]?.originalIndex + 1 || 1}
+                            </span>
+                            <span className="text-slate-400 font-normal">
+                                ({Math.min(activeListIndex + 1, filteredQuestions.length)} / {filteredQuestions.length})
+                            </span>
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                const next = Math.min(filteredQuestions.length - 1, activeListIndex + 1);
+                                setActiveListIndex(next);
+                                const target = filteredQuestions[next];
+                                if (target) scrollToQuestion(target.originalIndex);
+                                SoundManager.play('click');
+                            }}
+                            disabled={activeListIndex >= filteredQuestions.length - 1}
+                            className="p-1.5 rounded-xl bg-indigo-600 text-white disabled:opacity-30 hover:bg-indigo-700 transition flex items-center gap-1 text-xs font-bold shadow-xs"
+                            title="Soal Selanjutnya (→ atau ↓)"
+                        >
+                            <span className="hidden sm:inline">Next</span>
+                            <ChevronRight size={16} />
+                        </button>
+
+                        <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block" />
+
+                        {/* Font size quick toggles */}
+                        <div className="hidden sm:flex items-center gap-1">
+                            <button
+                                onClick={() => changeFontSize('down')}
+                                disabled={fontSize === 'xs'}
+                                className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 transition"
+                                title="Perkecil Font (-)"
+                            >
+                                <Minus size={13} />
+                            </button>
+                            <span className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 px-1">
+                                {fontSize.toUpperCase()}
+                            </span>
+                            <button
+                                onClick={() => changeFontSize('up')}
+                                disabled={fontSize === 'xl'}
+                                className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 transition"
+                                title="Perbesar Font (+)"
+                            >
+                                <Plus size={13} />
+                            </button>
+                        </div>
                     </div>
                 )}
 

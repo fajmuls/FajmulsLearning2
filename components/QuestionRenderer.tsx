@@ -49,30 +49,90 @@ export const SvgRenderer: React.FC<SvgRendererProps> = ({ svgString }) => {
     );
 };
 
-const ensureLaTeXWrapping = (text: string): string => {
+const ensureLaTeXWrapping = (text: string, isOption: boolean = false): string => {
     if (!text) return text;
     
-    // Convert plain fractions like "1/2" to "\frac{1}{2}", carefully ignoring dates like "12/10/2024"
-    // We use a capture group for the preceding character to avoid lookbehinds for better browser support.
-    let preparedText = text.replace(/(^|[^\d/])(\d+)\/(\d+)(?=[^\d/]|$)/g, '$1\\frac{$2}{$3}');
+    // 1. Convert common unicode superscripts/subscripts and math operators
+    let preparedText = text
+        .replace(/²/g, '^2')
+        .replace(/³/g, '^3')
+        .replace(/⁴/g, '^4')
+        .replace(/⁵/g, '^5')
+        .replace(/⁶/g, '^6')
+        .replace(/⁷/g, '^7')
+        .replace(/⁸/g, '^8')
+        .replace(/⁹/g, '^9')
+        .replace(/⁰/g, '^0')
+        .replace(/¹/g, '^1')
+        .replace(/⁺/g, '^+')
+        .replace(/⁻/g, '^-')
+        .replace(/₁/g, '_1')
+        .replace(/₂/g, '_2')
+        .replace(/₃/g, '_3')
+        .replace(/₄/g, '_4')
+        .replace(/₅/g, '_5')
+        .replace(/₆/g, '_6')
+        .replace(/₇/g, '_7')
+        .replace(/₈/g, '_8')
+        .replace(/₉/g, '_9')
+        .replace(/₀/g, '_0')
+        .replace(/×/g, '\\times ')
+        .replace(/÷/g, '\\div ')
+        .replace(/±/g, '\\pm ')
+        .replace(/≤/g, '\\le ')
+        .replace(/≥/g, '\\ge ')
+        .replace(/≠/g, '\\neq ')
+        .replace(/√/g, '\\sqrt');
+
+    // 2. Convert plain fractions like "1/2" to "\frac{1}{2}", carefully ignoring dates like "12/10/2024"
+    preparedText = preparedText.replace(/(^|[^\d/])(\d+)\/(\d+)(?=[^\d/]|$)/g, '$1\\frac{$2}{$3}');
+
+    // 3. Convert ellipsis in number series e.g. "4, 9, 19, 39, ..." -> "\dots"
+    preparedText = preparedText.replace(/(\d+[\s]*[,;]\s*)+(?:\.{3,}|…)/g, (match) => {
+        const clean = match.replace(/\.{3,}|…/g, '\\dots');
+        return `\\(${clean}\\)`;
+    });
+
+    // 4. Special handling if this is an option and contains pure numbers or algebraic expressions
+    if (isOption) {
+        const trimmed = preparedText.trim();
+        const prefixMatch = trimmed.match(/^([A-E]\.\s*)(.*)$/);
+        const prefix = prefixMatch ? prefixMatch[1] : '';
+        const body = prefixMatch ? prefixMatch[2].trim() : trimmed;
+
+        if (body && !body.startsWith('\\(') && !body.startsWith('$') && !body.startsWith('<svg')) {
+            const isPureMathOrNumber = /^[-+]?[\d.,]+%?$/.test(body) ||
+                                       /^[a-zA-Z]\s*=\s*[-+]?[\d.,]+%?$/.test(body) ||
+                                       /^\\frac\{\d+\}\{\d+\}$/.test(body) ||
+                                       (/^[-+]?[\d\w\^\+\-\*\/\=\<\>\(\)\s.,\\]+$/.test(body) && /[\d\+\-\*\/\=\<\>\^\\]/.test(body) && !/[a-zA-Z]{5,}/.test(body));
+            if (isPureMathOrNumber) {
+                return `${prefix}\\(${body}\\)`;
+            }
+        }
+    }
+
+    // Split text by existing math blocks or SVG to avoid double wrapping
+    const parts = preparedText.split(/(\\\([\s\S]*?\\\))|(\$\$[\s\S]*?\$\$)|(\$[\s\S]*?\$)|(<svg[\s\S]*?<\/svg>)/g);
     
-    const commonLaTeXRegex = /\\(frac|sqrt|pm|times|le|ge|approx|neq|cdot|div|alpha|beta|gamma|delta|theta|pi|sigma|omega|infty|partial|sum|prod|int|oint|text|degree|log|ln|sin|cos|tan|cot|sec|csc|subset|supset|in|cap|cup|perp|parallel|angle)(\{[^{}]*\}|[a-zA-Z0-9\.\,])*|([0-9]+[\+\-\*\/\=\<\>\^][0-9\(\)\.\,]+)/g;
-    
-    // Split text by existing math blocks to avoid double wrapping
-    const parts = preparedText.split(/(\\\([\s\S]*?\\\))|(\$[\s\S]*?\$)|(\$\$[\s\S]*?\$\$)/g);
-    
+    // Regex for:
+    // - LaTeX keywords: \frac, \sqrt, \times, etc.
+    // - Formulas/equations: e.g. "x = 2", "y = -3", "2x^2 - xy + y^2", "4 x 2 + 1 = 9", "2(4) - (-6) + 9"
+    // - Percentages: "25%", "15.5%"
+    // - Number series: "4, 9, 19, 39"
+    const commonLaTeXRegex = /\\(frac|sqrt|pm|times|le|ge|approx|neq|cdot|div|alpha|beta|gamma|delta|theta|pi|sigma|omega|infty|partial|sum|prod|int|oint|text|degree|log|ln|sin|cos|tan|cot|sec|csc|subset|supset|in|cap|cup|perp|parallel|angle)(\{[^{}]*\}|[a-zA-Z0-9\.\,])*|(?:\b[a-zA-Z]\s*[\=\<\>\+\-\*\/\^]\s*[-0-9a-zA-Z\(\)\.\,\^\+\-\*\/\\]+)|(?:[-0-9\(\)]+[\s]*[\+\-\*\/\=\<\>\^]\s*[-0-9a-zA-Z\(\)\.\,\^\+\-\*\/\\]+)|(?:\b\d+(?:[.,]\d+)?\s*%)|(?:(?:\d+[\s]*[,;]\s*){2,}\d+)/g;
+
     let processed = "";
     for (let i = 0; i < parts.length; i++) {
         const part = parts[i];
         if (!part) continue;
         
-        // If this is already a math block, keep it as is
-        if (part.startsWith('\\(') || part.startsWith('$') || part.startsWith('$$')) {
+        // If this is already a math block or SVG, keep it as is
+        if (part.startsWith('\\(') || part.startsWith('$') || part.startsWith('$$') || part.startsWith('<svg')) {
             processed += part;
         } else {
-            // This is regular text, find and wrap raw LaTeX
+            // Find and wrap raw LaTeX & mathematical expressions
             processed += part.replace(commonLaTeXRegex, (match) => {
-                if (match.length < 2) return match;
+                if (match.length < 1) return match;
                 return `\\(${match}\\)`;
             });
         }
@@ -92,8 +152,8 @@ export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean; isO
             return match;
         });
 
-    // 2. Wrap raw LaTeX
-    processedText = ensureLaTeXWrapping(processedText);
+    // 2. Wrap raw LaTeX and numbers
+    processedText = ensureLaTeXWrapping(processedText, isOption);
     
     // 3. Fix unclosed delims
     const openDelims = (processedText.match(/\\\(/g) || []).length;

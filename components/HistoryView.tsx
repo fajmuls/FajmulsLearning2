@@ -9,7 +9,7 @@ import {
     Briefcase, GraduationCap, Brain, FileText, MessageSquare, Palette, Book, BookOpen, Library, School, Package,
     Square, CheckSquare, Grid, ShieldCheck, AlertTriangle, Flag, Bot, AlertCircle, Info, Target, Lightbulb, EyeOff, Search, X, Sparkles
 } from 'lucide-react';
-import { TestHistoryItem, CategoryType, SkdResultDetails, TesKoranResultDetails, TesKecermatanResultDetails, UtbkResultDetails, BenchmarkResultDetails, Question, UserAnswer, UserProfile, StudyMode } from '../types';
+import { TestHistoryItem, CategoryType, SkdResultDetails, TesKoranResultDetails, TesKecermatanResultDetails, UtbkResultDetails, BenchmarkResultDetails, Question, UserAnswer, UserProfile, StudyMode, AppSettings } from '../types';
 import { CATEGORIES } from '../constants';
 import { SoundManager } from '../services/soundService';
 import { SimpleMarkdown, MatrixQuestionRenderer, SvgRenderer } from './QuestionRenderer';
@@ -32,6 +32,8 @@ interface HistoryProps {
     onToggleStudied: (id: string) => void;
     isDarkMode?: boolean;
     userProfile?: UserProfile | null;
+    settings?: AppSettings;
+    theme?: string;
 }
 
 const isTesKoran = (item: TestHistoryItem): boolean => {
@@ -142,20 +144,22 @@ const getKecermatanLabel = (mode: string) => {
 const getReviewColorClass = (q: Question, ans: UserAnswer | undefined) => {
     if (!ans) return 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'; // No answer / Neutral
 
-    // TKP Logic (1-5 Points)
-    // Check if points exist or if it's explicitly marked as TKP in metadata
+    // TKP Logic (1-5 Points): Pure red-to-green gradient without any blue
     if ((q.tkpPoints && q.tkpPoints.length > 0) || (q.metadata?.subtest && q.metadata.subtest.includes('TKP'))) {
         const s = ans.scoreEarned;
-        if (s >= 5) return 'bg-emerald-200 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700'; // Full Green
-        if (s === 4) return 'bg-lime-200 dark:bg-lime-900/40 border-lime-300 dark:border-lime-700'; // Light Green
-        if (s === 3) return 'bg-yellow-200 dark:bg-yellow-900/40 border-yellow-300 dark:border-yellow-700'; // Yellow
-        if (s === 2) return 'bg-orange-200 dark:bg-orange-900/40 border-orange-300 dark:border-orange-700'; // Orange
-        return 'bg-rose-200 dark:bg-rose-900/40 border-rose-300 dark:border-rose-700'; // Red (1 or 0)
+        if (s !== undefined && s !== null) {
+            if (s >= 5) return 'bg-emerald-600 text-white border-emerald-700 font-bold'; // Hijau Banget (5 Poin)
+            if (s === 4) return 'bg-lime-600 text-white border-lime-700 font-bold'; // Hijau Muda (4 Poin)
+            if (s === 3) return 'bg-amber-500 text-slate-950 border-amber-600 font-black'; // Kuning/Oranye (3 Poin)
+            if (s === 2) return 'bg-orange-500 text-white border-orange-600 font-bold'; // Oranye (2 Poin)
+            return 'bg-red-800 text-white border-red-950 font-black'; // Merah Tua (1 Poin)
+        }
+        return 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-300 dark:border-slate-700';
     }
 
     // Standard Logic (Correct/Incorrect)
-    if (ans.isCorrect) return 'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800'; // Green
-    return 'bg-rose-100 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800'; // Red
+    if (ans.isCorrect) return 'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'; // Green
+    return 'bg-rose-100 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200'; // Red
 };
 
 export const getUtbkDetails = (item: TestHistoryItem) => {
@@ -207,7 +211,34 @@ export const getUtbkDetails = (item: TestHistoryItem) => {
     return { pu, ppu, pbm, pk, lbi, lbe, pm, average: avg };
 };
 
-export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview, username, onExport, onImport, onDelete, onDeleteMultiple, onToggleStudied, userProfile, isDarkMode }) => {
+export const HistoryView: React.FC<HistoryProps> = ({ 
+    history, 
+    onBack, 
+    onReview, 
+    username, 
+    onExport, 
+    onImport, 
+    onDelete, 
+    onDeleteMultiple, 
+    onToggleStudied, 
+    userProfile, 
+    isDarkMode,
+    settings,
+    theme
+}) => {
+    const isFajmulsTheme = theme === 'fajmuls' || settings?.theme === 'fajmuls' || userProfile?.settings?.theme === 'fajmuls';
+    const isDark = isDarkMode || settings?.darkMode || false;
+
+    const containerBgClass = useMemo(() => {
+        if (isFajmulsTheme) {
+            return 'bg-gradient-to-br from-indigo-50/70 via-purple-50/40 to-slate-100/90 dark:from-slate-950 dark:via-indigo-950/20 dark:to-slate-900 text-slate-900 dark:text-slate-100';
+        }
+        if (isDark) {
+            return 'bg-slate-950 text-slate-100';
+        }
+        return 'bg-[#EEF2F6] text-slate-800';
+    }, [isFajmulsTheme, isDark]);
+
     const [filterCategory, setFilterCategory] = useState<'ALL' | CategoryType>('ALL');
     const [skdSubFilter, setSkdSubFilter] = useState<'ALL' | 'TWK' | 'TIU' | 'TKP'>('ALL');
     const [timeFilter, setTimeFilter] = useState<'ALL' | 'TODAY' | 'WEEK' | 'MONTH'>('ALL');
@@ -511,7 +542,7 @@ export const HistoryView: React.FC<HistoryProps> = ({ history, onBack, onReview,
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 px-4 md:px-6 py-2 md:py-4 transition-colors">
+        <div className={`min-h-screen px-4 md:px-6 py-2 md:py-4 transition-colors ${containerBgClass}`}>
             {/* Delete Confirmation Modal (Single Item) */}
             {deleteId && (
                 <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">

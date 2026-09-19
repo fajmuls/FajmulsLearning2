@@ -5,9 +5,21 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "4.4.0";
+export const APP_VERSION = "4.5.0";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "4.5.0",
+    date: new Date().toISOString().split('T')[0],
+    type: "minor",
+    notes: [
+      "Background UI Riwayat & Review Adaptif Sesuai Tema: Tampilan riwayat belajar kini tidak lagi serba putih yang nyaru dengan kartu soal, melainkan otomatis mengikuti tema pengguna (Fajmuls Soft Mesh Gradient, Dark Slate, atau High-Contrast Neutral).",
+      "Auto-Render LaTeX untuk Soal Berisi Angka: Seluruh notasi numerik, pecahan, pangkat unicode, mata uang, dan ekspresi aljabar pada soal dan opsi jawaban otomatis di-render rapi dan presisi menggunakan LaTeX/KaTeX.",
+      "Navigasi Tombol Panah di Mode List & Focus: Kemudahan berpindah soal menggunakan panah keyboard (←/→ atau ↑/↓ atau j/k) secara mulus di Mode List maupun Mode Focus dilengkapi bilah navigasi melayang.",
+      "Kontrol Ukuran Font Soal & Shortcut Cepat: Fitur perbesar dan perkecil ukuran teks soal dan pembahasan secara instan melalui tombol A-/A/A+ serta shortcut keyboard (+, -, dan 0).",
+      "Gradasi Poin TKP Murni Merah Tua ke Hijau Banget: Box navigasi soal TKP kini sepenuhnya mengikuti gradasi 1 (Merah Tua), 2 (Oranye), 3 (Kuning-Oranye), 4 (Hijau Muda), hingga 5 (Hijau Banget) tanpa warna biru."
+    ]
+  },
   {
     version: "4.4.0",
     date: new Date().toISOString().split('T')[0],

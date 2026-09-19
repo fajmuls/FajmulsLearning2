@@ -5515,6 +5515,8 @@ function App() {
                 onDeleteMultiple={handleDeleteMultipleHistory}
                 onToggleStudied={handleToggleStudied}
                 userProfile={userProfile}
+                settings={settings}
+                theme={settings.theme}
               />
             </motion.div>
           )}
@@ -5538,6 +5540,8 @@ function App() {
                   // Update the review item so UI re-renders immediately
                   setReviewItem(prev => prev ? {...prev, isStudied: !prev.isStudied} : null);
                 }}
+                settings={settings}
+                isDarkMode={settings.darkMode}
               />
             </motion.div>
           )}
