@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { 
     ArrowLeft, CheckCircle, XCircle, Flag, Zap, Activity, Clock, 
     Bot, Award, CheckSquare, Square, Star, Bookmark, BookOpen, 
@@ -163,6 +163,321 @@ const getTkpPointStyle = (points: number) => {
     }
 };
 
+interface QuestionReviewCardProps {
+    q: Question;
+    originalIndex: number;
+    fIdx: number;
+    itemCategory: string;
+    ans?: UserAnswer;
+    isBest: boolean;
+    isUnderstood: boolean;
+    isSelfTestRevealed: boolean;
+    isSelfTestMode: boolean;
+    isTkp: boolean;
+    isActiveInList: boolean;
+    fontClassPrompt: string;
+    fontClassOption: string;
+    fontClassExplanation: string;
+    isSpeaking: boolean;
+    isCopied: boolean;
+    isNoteOpen: boolean;
+    noteText: string;
+    onSelectCard: (fIdx: number) => void;
+    onToggleBest: (id: string) => void;
+    onToggleUnderstood: (id: string) => void;
+    onToggleNoteEditor: (id: string) => void;
+    onSaveNote: (id: string, text: string) => void;
+    onSpeak: (id: string, text: string) => void;
+    onCopy: (q: Question, idx: number) => void;
+    onRevealSelfTest: (id: string) => void;
+}
+
+const QuestionReviewCard: React.FC<QuestionReviewCardProps> = React.memo(({
+    q,
+    originalIndex,
+    fIdx,
+    itemCategory,
+    ans,
+    isBest,
+    isUnderstood,
+    isSelfTestRevealed,
+    isSelfTestMode,
+    isTkp,
+    isActiveInList,
+    fontClassPrompt,
+    fontClassOption,
+    fontClassExplanation,
+    isSpeaking,
+    isCopied,
+    isNoteOpen,
+    noteText,
+    onSelectCard,
+    onToggleBest,
+    onToggleUnderstood,
+    onToggleNoteEditor,
+    onSaveNote,
+    onSpeak,
+    onCopy,
+    onRevealSelfTest,
+}) => {
+    return (
+        <div 
+            id={`question-card-${originalIndex}`}
+            onClick={() => onSelectCard(fIdx)}
+            className={`rounded-3xl bg-white dark:bg-slate-800 border transition-all p-5 sm:p-6 space-y-4 shadow-sm cursor-pointer ${
+                isActiveInList 
+                    ? 'ring-2 ring-indigo-500 border-indigo-400 dark:border-indigo-500 shadow-md'
+                    : isBest 
+                        ? 'ring-2 ring-amber-400/40 border-amber-300 dark:border-amber-700' 
+                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+            }`}
+        >
+            {/* Card Top Action Bar */}
+            <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-slate-100 dark:border-slate-700/60">
+                <div className="flex items-center gap-2.5">
+                    <span className={`w-7 h-7 rounded-xl font-black text-xs flex items-center justify-center ${
+                        ans?.isCorrect || (ans?.scoreEarned && ans.scoreEarned >= 4)
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-rose-500 text-white'
+                    }`}>
+                        {originalIndex + 1}
+                    </span>
+                    <span className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400">
+                        {q.metadata?.subtest || q.metadata?.topic || itemCategory}
+                    </span>
+                    {isTkp && (
+                        <span className="px-2 py-0.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-black border border-indigo-500/20">
+                            Poin 1-5
+                        </span>
+                    )}
+                    {ans?.isDoubtful && (
+                        <span className="px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-black border border-amber-500/20 flex items-center gap-1">
+                            <Flag size={10} /> Ragu
+                        </span>
+                    )}
+                </div>
+
+                {/* Action Buttons (Best, Understood, Note Toggle, TTS, AI) */}
+                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    {/* Mark Best */}
+                    <button
+                        onClick={() => onToggleBest(q.id)}
+                        className={`p-1.5 sm:px-2.5 sm:py-1 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
+                            isBest
+                                ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
+                                : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600'
+                        }`}
+                        title="Tandai Soal Terbaik (Shortcut: B)"
+                    >
+                        <Star size={14} className={isBest ? 'fill-amber-500 text-amber-500' : ''} />
+                        <span className="hidden sm:inline">{isBest ? 'Terbaik' : 'Tandai'}</span>
+                    </button>
+
+                    {/* Mark Understood */}
+                    <button
+                        onClick={() => onToggleUnderstood(q.id)}
+                        className={`p-1.5 sm:px-2.5 sm:py-1 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
+                            isUnderstood
+                                ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
+                                : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600'
+                        }`}
+                        title="Tandai Sudah Paham (Shortcut: P)"
+                    >
+                        <CheckCircle size={14} className={isUnderstood ? 'text-emerald-600' : ''} />
+                        <span className="hidden sm:inline">{isUnderstood ? 'Paham' : 'Paham?'}</span>
+                    </button>
+
+                    {/* Toggle Personal Note Editor */}
+                    <button
+                        onClick={() => onToggleNoteEditor(q.id)}
+                        className={`p-1.5 rounded-xl text-xs transition ${
+                            noteText || isNoteOpen
+                                ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
+                                : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600'
+                        }`}
+                        title="Tulis Catatan Pribadi (Shortcut: N)"
+                    >
+                        <Edit3 size={14} />
+                    </button>
+
+                    {/* TTS Reader */}
+                    <button
+                        onClick={() => onSpeak(q.id, `${q.content}. Pembahasan: ${q.explanation}`)}
+                        className={`p-1.5 rounded-xl text-xs transition ${
+                            isSpeaking ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600'
+                        }`}
+                        title="Dengarkan Audio Soal (Shortcut: A)"
+                    >
+                        <Volume2 size={14} />
+                    </button>
+
+                    {/* Copy */}
+                    <button
+                        onClick={() => onCopy(q, originalIndex)}
+                        className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600 transition"
+                        title="Salin Teks Soal (Shortcut: C)"
+                    >
+                        {isCopied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                    </button>
+                </div>
+            </div>
+
+            {/* Question Prompt */}
+            <div className={`${fontClassPrompt} font-medium text-slate-800 dark:text-slate-100`}>
+                <SimpleMarkdown text={q.content} />
+            </div>
+
+            {/* Options */}
+            {q.options && q.options.length > 0 && (
+                <div className="space-y-2 pt-1">
+                    {q.options.map((opt, oIdx) => {
+                        const letter = String.fromCharCode(65 + oIdx);
+                        const isUserSelected = ans?.selectedAnswer === opt || ans?.selectedAnswer === letter;
+                        const isCorrectOption = q.correctAnswer === opt || q.correctAnswer === letter;
+                        const tkpPoints = getTkpOptionPoints(q, opt, oIdx);
+
+                        let optionClass = 'bg-slate-50 dark:bg-slate-900/30 border-slate-100 dark:border-slate-700 text-slate-700 dark:text-slate-300';
+                        let tkpStyle = tkpPoints !== null ? getTkpPointStyle(tkpPoints) : null;
+
+                        if (isSelfTestRevealed) {
+                            if (isTkp && tkpStyle) {
+                                optionClass = `${tkpStyle.bg} ${tkpStyle.border} ${tkpStyle.textColor} ${isUserSelected ? `ring-2 ${tkpStyle.ringColor} font-bold` : ''}`;
+                            } else {
+                                if (isCorrectOption) {
+                                    optionClass = 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-500/60 text-emerald-900 dark:text-emerald-200 font-bold';
+                                } else if (isUserSelected && !isCorrectOption) {
+                                    optionClass = 'bg-rose-50 dark:bg-rose-950/30 border-rose-500/60 text-rose-900 dark:text-rose-200';
+                                }
+                            }
+                        } else if (isUserSelected) {
+                            optionClass = 'bg-indigo-50 dark:bg-indigo-950/30 border-indigo-500/60 text-indigo-900 dark:text-indigo-200 font-bold';
+                        }
+
+                        return (
+                            <div key={oIdx} className={`p-3 rounded-2xl border flex flex-col gap-1.5 transition ${optionClass}`}>
+                                <div className="flex items-start gap-2.5">
+                                    <span className="w-5 h-5 rounded-lg bg-black/5 dark:bg-white/10 flex items-center justify-center font-black text-[11px] shrink-0">
+                                        {letter}
+                                    </span>
+                                    <div className={`flex-1 ${fontClassOption}`}>
+                                        <SimpleMarkdown text={opt} isOption={true} />
+                                    </div>
+                                    
+                                    {/* TKP Points Badge or Normal Key Badge */}
+                                    {isSelfTestRevealed && isTkp && tkpStyle && (
+                                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-lg shrink-0 shadow-xs ${tkpStyle.badgeBg}`}>
+                                            {tkpPoints} Poin
+                                        </span>
+                                    )}
+
+                                    {isSelfTestRevealed && !isTkp && isCorrectOption && (
+                                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500 text-white shrink-0">
+                                            Kunci
+                                        </span>
+                                    )}
+                                    
+                                    {isUserSelected && (
+                                        <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-indigo-600 text-white shrink-0 shadow-xs">
+                                            Jawabanmu {isTkp && tkpPoints !== null && `(${tkpPoints} Poin)`}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* TKP Mini Bar in List Mode */}
+                                {isSelfTestRevealed && isTkp && tkpStyle && (
+                                    <div className="w-full bg-black/5 dark:bg-white/5 h-1 rounded-full overflow-hidden">
+                                        <div className={`h-full ${tkpStyle.barColor}`} style={{ width: tkpStyle.progressWidth }} />
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* TKP Points Summary Bar */}
+            {isSelfTestRevealed && isTkp && (
+                <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs space-y-1.5">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                        <span>Rincian Bobot Nilai TKP:</span>
+                        <span className="text-emerald-500 font-bold">1 (Merah) → 5 (Hijau)</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {q.options && q.options.map((opt, oIdx) => {
+                            const letter = String.fromCharCode(65 + oIdx);
+                            const pts = getTkpOptionPoints(q, opt, oIdx) || (oIdx + 1);
+                            const st = getTkpPointStyle(pts);
+                            return (
+                                <div key={oIdx} className={`px-2 py-1 rounded-lg border text-[11px] flex items-center gap-1.5 ${st.bg} ${st.border}`}>
+                                    <span className="font-bold">{letter}:</span>
+                                    <span className={`px-1.5 py-0.2 rounded font-black text-[10px] ${st.badgeBg}`}>{pts} Poin</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Self-Test Reveal Barrier or Explanation Block */}
+            {isSelfTestMode && !isSelfTestRevealed ? (
+                <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800/60 rounded-2xl flex items-center justify-between gap-3">
+                    <div className="text-xs text-amber-800 dark:text-amber-300 font-bold flex items-center gap-2">
+                        <EyeOff size={15} /> Kunci & Pembahasan disembunyikan untuk uji mandiri
+                    </div>
+                    <button
+                        onClick={() => onRevealSelfTest(q.id)}
+                        className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black transition"
+                    >
+                        Buka Pembahasan
+                    </button>
+                </div>
+            ) : (
+                <div className="p-4 bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+                            <Activity size={13} /> Pembahasan & Kunci:
+                        </span>
+                        <button
+                            onClick={() => {
+                                window.dispatchEvent(new CustomEvent('openAiTutor', {
+                                    detail: {
+                                        context: `Soal:\n${q.content}\n\nPembahasan:\n${q.explanation}\n\nSaya sedang mengulas hasil belajar saya dan ingin bertanya penjelasan ini...`
+                                    }
+                                }));
+                            }}
+                            className="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-xl font-black flex items-center gap-1 transition"
+                        >
+                            <Bot size={12} /> Tanya AI Guru
+                        </button>
+                    </div>
+                    <div className={`${fontClassExplanation} text-slate-700 dark:text-slate-300 leading-relaxed`}>
+                        <SimpleMarkdown text={q.explanation} />
+                    </div>
+                </div>
+            )}
+
+            {/* Collapsible / Active Note Editor */}
+            {(isNoteOpen || noteText) && (
+                <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                        <span className="flex items-center gap-1 text-amber-500">
+                            <Edit3 size={12} /> Catatan Belajar Pribadi
+                        </span>
+                        <span className="text-[10px] text-slate-400">Tersimpan otomatis</span>
+                    </div>
+                    <textarea
+                        value={noteText}
+                        onChange={(e) => onSaveNote(q.id, e.target.value)}
+                        placeholder="Tulis catatan rumus, pola logika, atau pengingat..."
+                        className={`w-full p-2.5 ${fontClassExplanation} bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-white`}
+                        rows={2}
+                    />
+                </div>
+            )}
+        </div>
+    );
+});
+
 export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleStudied, settings, isDarkMode }) => {
     // ----------------------------------------------------
     // PERSISTENT STUDY STATE
@@ -236,7 +551,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
     };
 
     // Save helper functions
-    const toggleUnderstood = (questionId: string) => {
+    const toggleUnderstood = useCallback((questionId: string) => {
         SoundManager.play('click');
         setUnderstoodSet(prev => {
             const next = new Set(prev);
@@ -253,9 +568,9 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
             }
             return next;
         });
-    };
+    }, []);
 
-    const toggleBestQuestion = (questionId: string) => {
+    const toggleBestQuestion = useCallback((questionId: string) => {
         SoundManager.play('click');
         setBestQuestionsSet(prev => {
             const next = new Set(prev);
@@ -272,9 +587,9 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
             }
             return next;
         });
-    };
+    }, []);
 
-    const saveNote = (questionId: string, noteText: string) => {
+    const saveNote = useCallback((questionId: string, noteText: string) => {
         setNotesMap(prev => {
             const next = { ...prev, [questionId]: noteText };
             try {
@@ -284,7 +599,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
             }
             return next;
         });
-    };
+    }, []);
 
     // ----------------------------------------------------
     // STUDY INTERFACE CONTROLS
@@ -303,13 +618,13 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
     const [speakingQuestionId, setSpeakingQuestionId] = useState<string | null>(null);
     const [showShortcutModal, setShowShortcutModal] = useState<boolean>(false);
 
-    // Scroll helper for List Mode
-    const scrollToQuestion = (originalIndex: number) => {
+    // Scroll helper for List Mode (smooth and non-intrusive)
+    const scrollToQuestion = useCallback((originalIndex: number) => {
         const el = document.getElementById(`question-card-${originalIndex}`);
         if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
-    };
+    }, []);
 
     // Theme and background derivation
     const isFajmulsTheme = settings?.theme === 'fajmuls';
@@ -328,7 +643,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
     // ----------------------------------------------------
     // TEXT-TO-SPEECH (TTS)
     // ----------------------------------------------------
-    const speakText = (questionId: string, textToSpeak: string) => {
+    const speakText = useCallback((questionId: string, textToSpeak: string) => {
         if (!('speechSynthesis' in window)) return;
         if (speakingQuestionId === questionId) {
             window.speechSynthesis.cancel();
@@ -349,7 +664,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
         utterance.onerror = () => setSpeakingQuestionId(null);
         setSpeakingQuestionId(questionId);
         window.speechSynthesis.speak(utterance);
-    };
+    }, [speakingQuestionId]);
 
     useEffect(() => {
         return () => {
@@ -362,13 +677,47 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
     // ----------------------------------------------------
     // COPY TO CLIPBOARD
     // ----------------------------------------------------
-    const handleCopyQuestion = (q: Question, qIndex: number) => {
+    const handleCopyQuestion = useCallback((q: Question, qIndex: number) => {
         const text = `Soal No. ${qIndex + 1} (${q.metadata?.subtest || q.metadata?.topic || item.category}):\n\n${q.content}\n\nKunci Jawaban: ${q.correctAnswer}\n\nPembahasan:\n${q.explanation}`;
         navigator.clipboard.writeText(text);
         setCopiedQuestionId(q.id);
         SoundManager.play('click');
         setTimeout(() => setCopiedQuestionId(null), 2000);
-    };
+    }, [item.category]);
+
+    // Stable card action callbacks for QuestionReviewCard
+    const handleSelectCard = useCallback((fIdx: number) => {
+        setActiveListIndex(fIdx);
+    }, []);
+
+    const handleToggleBest = useCallback((id: string) => {
+        toggleBestQuestion(id);
+    }, [toggleBestQuestion]);
+
+    const handleToggleUnderstood = useCallback((id: string) => {
+        toggleUnderstood(id);
+    }, [toggleUnderstood]);
+
+    const handleToggleNoteEditor = useCallback((id: string) => {
+        setActiveNoteEditor(prev => prev === id ? null : id);
+    }, []);
+
+    const handleSaveNote = useCallback((id: string, text: string) => {
+        saveNote(id, text);
+    }, [saveNote]);
+
+    const handleSpeak = useCallback((id: string, text: string) => {
+        speakText(id, text);
+    }, [speakText]);
+
+    const handleCopy = useCallback((q: Question, idx: number) => {
+        handleCopyQuestion(q, idx);
+    }, [handleCopyQuestion]);
+
+    const handleRevealSelfTest = useCallback((id: string) => {
+        SoundManager.play('click');
+        setRevealedSelfTestQuestions(prev => new Set([...prev, id]));
+    }, []);
 
     // ----------------------------------------------------
     // DATA DERIVATION & FILTERING
@@ -505,13 +854,13 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                 }
             }
 
-            // Font size shortcuts
-            if (e.key === '+' || e.key === '=' || e.key === ']') {
+            // Font size shortcuts (matching Session Engine: Q = down, W = up)
+            if (e.key === 'w' || e.key === 'W' || e.key === '+' || e.key === '=' || e.key === ']') {
                 e.preventDefault();
                 changeFontSize('up');
                 return;
             }
-            if (e.key === '-' || e.key === '_' || e.key === '[') {
+            if (e.key === 'q' || e.key === 'Q' || e.key === '-' || e.key === '_' || e.key === '[') {
                 e.preventDefault();
                 changeFontSize('down');
                 return;
@@ -590,42 +939,49 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
             }
 
             // Arrow keys & j/k navigation for BOTH Focus Mode and List Mode
-            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'k' || e.key === 'K') {
+            // ArrowUp and ArrowDown are deliberately omitted so they perform smooth natural page scrolling!
+            if (e.key === 'ArrowLeft' || e.key === 'k' || e.key === 'K') {
                 e.preventDefault();
                 if (studyMode === 'FOCUS') {
-                    setFocusIndex(prev => {
-                        const next = Math.max(0, prev - 1);
-                        SoundManager.play('click');
-                        return next;
-                    });
+                    if (focusIndex > 0) {
+                        setFocusIndex(prev => {
+                            SoundManager.play('click');
+                            return Math.max(0, prev - 1);
+                        });
+                    }
                 } else {
-                    setActiveListIndex(prev => {
-                        const next = Math.max(0, prev - 1);
-                        const target = filteredQuestions[next];
-                        if (target) scrollToQuestion(target.originalIndex);
+                    if (activeListIndex > 0) {
+                        const next = activeListIndex - 1;
+                        setActiveListIndex(next);
                         SoundManager.play('click');
-                        return next;
-                    });
+                        const target = filteredQuestions[next];
+                        if (target) {
+                            requestAnimationFrame(() => scrollToQuestion(target.originalIndex));
+                        }
+                    }
                 }
                 return;
             }
 
-            if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'j' || e.key === 'J') {
+            if (e.key === 'ArrowRight' || e.key === 'j' || e.key === 'J') {
                 e.preventDefault();
                 if (studyMode === 'FOCUS') {
-                    setFocusIndex(prev => {
-                        const next = Math.min(filteredQuestions.length - 1, prev + 1);
-                        SoundManager.play('click');
-                        return next;
-                    });
+                    if (focusIndex < filteredQuestions.length - 1) {
+                        setFocusIndex(prev => {
+                            SoundManager.play('click');
+                            return Math.min(filteredQuestions.length - 1, prev + 1);
+                        });
+                    }
                 } else {
-                    setActiveListIndex(prev => {
-                        const next = Math.min(filteredQuestions.length - 1, prev + 1);
-                        const target = filteredQuestions[next];
-                        if (target) scrollToQuestion(target.originalIndex);
+                    if (activeListIndex < filteredQuestions.length - 1) {
+                        const next = activeListIndex + 1;
+                        setActiveListIndex(next);
                         SoundManager.play('click');
-                        return next;
-                    });
+                        const target = filteredQuestions[next];
+                        if (target) {
+                            requestAnimationFrame(() => scrollToQuestion(target.originalIndex));
+                        }
+                    }
                 }
                 return;
             }
@@ -633,7 +989,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [studyMode, filteredQuestions, focusIndex, activeListIndex, currentActiveQuestion, showShortcutModal, searchQuery, activeNoteEditor, questions]);
+    }, [studyMode, filteredQuestions, focusIndex, activeListIndex, currentActiveQuestion, showShortcutModal, searchQuery, activeNoteEditor, questions, scrollToQuestion, toggleUnderstood, toggleBestQuestion, handleCopyQuestion, speakText]);
 
     // Subtest stats for badge in header
     const subtestBreakdown = useMemo(() => {
@@ -1794,268 +2150,39 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                     const isBest = bestQuestionsSet.has(q.id);
                                     const isUnderstood = understoodSet.has(q.id);
                                     const isSelfTestRevealed = !isSelfTestMode || revealedSelfTestQuestions.has(q.id);
-                                    const isTkp = q.metadata?.subtest?.toUpperCase().includes('TKP') || (q.tkpPoints && q.tkpPoints.length > 0);
+                                    const isTkp = Boolean(q.metadata?.subtest?.toUpperCase().includes('TKP') || (q.tkpPoints && q.tkpPoints.length > 0));
                                     const isActiveInList = filteredQuestions[activeListIndex]?.originalIndex === originalIndex;
 
                                     return (
-                                        <div 
-                                            key={q.id} 
-                                            id={`question-card-${originalIndex}`}
-                                            onClick={() => setActiveListIndex(fIdx)}
-                                            className={`rounded-3xl bg-white dark:bg-slate-800 border transition-all p-5 sm:p-6 space-y-4 shadow-sm cursor-pointer ${
-                                                isActiveInList 
-                                                    ? 'ring-2 ring-indigo-500 border-indigo-400 dark:border-indigo-500 shadow-md'
-                                                    : isBest 
-                                                        ? 'ring-2 ring-amber-400/40 border-amber-300 dark:border-amber-700' 
-                                                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                                            }`}
-                                        >
-                                            {/* Card Top Action Bar */}
-                                            <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-slate-100 dark:border-slate-700/60">
-                                                <div className="flex items-center gap-2.5">
-                                                    <span className={`w-7 h-7 rounded-xl font-black text-xs flex items-center justify-center ${
-                                                        ans?.isCorrect || (ans?.scoreEarned && ans.scoreEarned >= 4)
-                                                            ? 'bg-emerald-500 text-white'
-                                                            : 'bg-rose-500 text-white'
-                                                    }`}>
-                                                        {originalIndex + 1}
-                                                    </span>
-                                                    <span className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400">
-                                                        {q.metadata?.subtest || q.metadata?.topic || item.category}
-                                                    </span>
-                                                    {isTkp && (
-                                                        <span className="px-2 py-0.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-black border border-indigo-500/20">
-                                                            Poin 1-5
-                                                        </span>
-                                                    )}
-                                                    {ans?.isDoubtful && (
-                                                        <span className="px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-black border border-amber-500/20 flex items-center gap-1">
-                                                            <Flag size={10} /> Ragu
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {/* Action Buttons (Best, Understood, Note Toggle, TTS, AI) */}
-                                                <div className="flex items-center gap-1.5">
-                                                    {/* Mark Best */}
-                                                    <button
-                                                        onClick={() => toggleBestQuestion(q.id)}
-                                                        className={`p-1.5 sm:px-2.5 sm:py-1 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
-                                                            isBest
-                                                                ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
-                                                                : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600'
-                                                        }`}
-                                                        title="Tandai Soal Terbaik (Shortcut: B)"
-                                                    >
-                                                        <Star size={14} className={isBest ? 'fill-amber-500 text-amber-500' : ''} />
-                                                        <span className="hidden sm:inline">{isBest ? 'Terbaik' : 'Tandai'}</span>
-                                                    </button>
-
-                                                    {/* Mark Understood */}
-                                                    <button
-                                                        onClick={() => toggleUnderstood(q.id)}
-                                                        className={`p-1.5 sm:px-2.5 sm:py-1 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
-                                                            isUnderstood
-                                                                ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
-                                                                : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600'
-                                                        }`}
-                                                        title="Tandai Sudah Paham (Shortcut: P)"
-                                                    >
-                                                        <CheckCircle size={14} className={isUnderstood ? 'text-emerald-600' : ''} />
-                                                        <span className="hidden sm:inline">{isUnderstood ? 'Paham' : 'Paham?'}</span>
-                                                    </button>
-
-                                                    {/* Toggle Personal Note Editor */}
-                                                    <button
-                                                        onClick={() => setActiveNoteEditor(activeNoteEditor === q.id ? null : q.id)}
-                                                        className={`p-1.5 rounded-xl text-xs transition ${
-                                                            notesMap[q.id] || activeNoteEditor === q.id
-                                                                ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
-                                                                : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600'
-                                                        }`}
-                                                        title="Tulis Catatan Pribadi (Shortcut: N)"
-                                                    >
-                                                        <Edit3 size={14} />
-                                                    </button>
-
-                                                    {/* TTS Reader */}
-                                                    <button
-                                                        onClick={() => speakText(q.id, `${q.content}. Pembahasan: ${q.explanation}`)}
-                                                        className={`p-1.5 rounded-xl text-xs transition ${
-                                                            speakingQuestionId === q.id ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600'
-                                                        }`}
-                                                        title="Dengarkan Audio Soal (Shortcut: A)"
-                                                    >
-                                                        <Volume2 size={14} />
-                                                    </button>
-
-                                                    {/* Copy */}
-                                                    <button
-                                                        onClick={() => handleCopyQuestion(q, originalIndex)}
-                                                        className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600 transition"
-                                                        title="Salin Teks Soal (Shortcut: C)"
-                                                    >
-                                                        {copiedQuestionId === q.id ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {/* Question Prompt */}
-                                            <div className={`${fontClassPrompt} font-medium text-slate-800 dark:text-slate-100`}>
-                                                <SimpleMarkdown text={q.content} />
-                                            </div>
-
-                                            {/* Options */}
-                                            {q.options && q.options.length > 0 && (
-                                                <div className="space-y-2 pt-1">
-                                                    {q.options.map((opt, oIdx) => {
-                                                        const letter = String.fromCharCode(65 + oIdx);
-                                                        const isUserSelected = ans?.selectedAnswer === opt || ans?.selectedAnswer === letter;
-                                                        const isCorrectOption = q.correctAnswer === opt || q.correctAnswer === letter;
-                                                        const tkpPoints = getTkpOptionPoints(q, opt, oIdx);
-
-                                                        let optionClass = 'bg-slate-50 dark:bg-slate-900/30 border-slate-100 dark:border-slate-700 text-slate-700 dark:text-slate-300';
-                                                        let tkpStyle = tkpPoints !== null ? getTkpPointStyle(tkpPoints) : null;
-
-                                                        if (isSelfTestRevealed) {
-                                                            if (isTkp && tkpStyle) {
-                                                                optionClass = `${tkpStyle.bg} ${tkpStyle.border} ${tkpStyle.textColor} ${isUserSelected ? `ring-2 ${tkpStyle.ringColor} font-bold` : ''}`;
-                                                            } else {
-                                                                if (isCorrectOption) {
-                                                                    optionClass = 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-500/60 text-emerald-900 dark:text-emerald-200 font-bold';
-                                                                } else if (isUserSelected && !isCorrectOption) {
-                                                                    optionClass = 'bg-rose-50 dark:bg-rose-950/30 border-rose-500/60 text-rose-900 dark:text-rose-200';
-                                                                }
-                                                            }
-                                                        } else if (isUserSelected) {
-                                                            optionClass = 'bg-indigo-50 dark:bg-indigo-950/30 border-indigo-500/60 text-indigo-900 dark:text-indigo-200 font-bold';
-                                                        }
-
-                                                        return (
-                                                            <div key={oIdx} className={`p-3 rounded-2xl border flex flex-col gap-1.5 transition ${optionClass}`}>
-                                                                <div className="flex items-start gap-2.5">
-                                                                    <span className="w-5 h-5 rounded-lg bg-black/5 dark:bg-white/10 flex items-center justify-center font-black text-[11px] shrink-0">
-                                                                        {letter}
-                                                                    </span>
-                                                                    <div className={`flex-1 ${fontClassOption}`}>
-                                                                        <SimpleMarkdown text={opt} isOption={true} />
-                                                                    </div>
-                                                                    
-                                                                    {/* TKP Points Badge or Normal Key Badge */}
-                                                                    {isSelfTestRevealed && isTkp && tkpStyle && (
-                                                                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-lg shrink-0 shadow-xs ${tkpStyle.badgeBg}`}>
-                                                                            {tkpPoints} Poin
-                                                                        </span>
-                                                                    )}
-
-                                                                    {isSelfTestRevealed && !isTkp && isCorrectOption && (
-                                                                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500 text-white shrink-0">
-                                                                            Kunci
-                                                                        </span>
-                                                                    )}
-                                                                    
-                                                                    {isUserSelected && (
-                                                                        <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-indigo-600 text-white shrink-0 shadow-xs">
-                                                                            Jawabanmu {isTkp && tkpPoints !== null && `(${tkpPoints} Poin)`}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-
-                                                                {/* TKP Mini Bar in List Mode */}
-                                                                {isSelfTestRevealed && isTkp && tkpStyle && (
-                                                                    <div className="w-full bg-black/5 dark:bg-white/5 h-1 rounded-full overflow-hidden">
-                                                                        <div className={`h-full ${tkpStyle.barColor}`} style={{ width: tkpStyle.progressWidth }} />
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
-
-                                            {/* TKP Points Summary Bar */}
-                                            {isSelfTestRevealed && isTkp && (
-                                                <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs space-y-1.5">
-                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                                                        <span>Rincian Bobot Nilai TKP:</span>
-                                                        <span className="text-emerald-500 font-bold">1 (Merah) → 5 (Hijau)</span>
-                                                    </div>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {q.options && q.options.map((opt, oIdx) => {
-                                                            const letter = String.fromCharCode(65 + oIdx);
-                                                            const pts = getTkpOptionPoints(q, opt, oIdx) || (oIdx + 1);
-                                                            const st = getTkpPointStyle(pts);
-                                                            return (
-                                                                <div key={oIdx} className={`px-2 py-1 rounded-lg border text-[11px] flex items-center gap-1.5 ${st.bg} ${st.border}`}>
-                                                                    <span className="font-bold">{letter}:</span>
-                                                                    <span className={`px-1.5 py-0.2 rounded font-black text-[10px] ${st.badgeBg}`}>{pts} Poin</span>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Self-Test Reveal Barrier or Explanation Block */}
-                                            {isSelfTestMode && !revealedSelfTestQuestions.has(q.id) ? (
-                                                <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800/60 rounded-2xl flex items-center justify-between gap-3">
-                                                    <div className="text-xs text-amber-800 dark:text-amber-300 font-bold flex items-center gap-2">
-                                                        <EyeOff size={15} /> Kunci & Pembahasan disembunyikan untuk uji mandiri
-                                                    </div>
-                                                    <button
-                                                        onClick={() => {
-                                                            SoundManager.play('click');
-                                                            setRevealedSelfTestQuestions(prev => new Set([...prev, q.id]));
-                                                        }}
-                                                        className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black transition"
-                                                    >
-                                                        Buka Pembahasan
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <div className="p-4 bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 rounded-2xl space-y-2">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
-                                                            <Activity size={13} /> Pembahasan & Kunci:
-                                                        </span>
-                                                        <button
-                                                            onClick={() => {
-                                                                window.dispatchEvent(new CustomEvent('openAiTutor', {
-                                                                    detail: {
-                                                                        context: `Soal:\n${q.content}\n\nPembahasan:\n${q.explanation}\n\nSaya sedang mengulas hasil belajar saya dan ingin bertanya penjelasan ini...`
-                                                                    }
-                                                                }));
-                                                            }}
-                                                            className="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-xl font-black flex items-center gap-1 transition"
-                                                        >
-                                                            <Bot size={12} /> Tanya AI Guru
-                                                        </button>
-                                                    </div>
-                                                    <div className={`${fontClassExplanation} text-slate-700 dark:text-slate-300 leading-relaxed`}>
-                                                        <SimpleMarkdown text={q.explanation} />
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Collapsible / Active Note Editor */}
-                                            {(activeNoteEditor === q.id || notesMap[q.id]) && (
-                                                <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-1.5">
-                                                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                                                        <span className="flex items-center gap-1 text-amber-500">
-                                                            <Edit3 size={12} /> Catatan Belajar Pribadi
-                                                        </span>
-                                                        <span className="text-[10px] text-slate-400">Tersimpan otomatis</span>
-                                                    </div>
-                                                    <textarea
-                                                        value={notesMap[q.id] || ''}
-                                                        onChange={(e) => saveNote(q.id, e.target.value)}
-                                                        placeholder="Tulis catatan rumus, pola logika, atau pengingat..."
-                                                        className={`w-full p-2.5 ${fontClassExplanation} bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-white`}
-                                                        rows={2}
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
+                                        <QuestionReviewCard
+                                            key={q.id}
+                                            q={q}
+                                            originalIndex={originalIndex}
+                                            fIdx={fIdx}
+                                            itemCategory={item.category}
+                                            ans={ans}
+                                            isBest={isBest}
+                                            isUnderstood={isUnderstood}
+                                            isSelfTestRevealed={isSelfTestRevealed}
+                                            isSelfTestMode={isSelfTestMode}
+                                            isTkp={isTkp}
+                                            isActiveInList={isActiveInList}
+                                            fontClassPrompt={fontClassPrompt}
+                                            fontClassOption={fontClassOption}
+                                            fontClassExplanation={fontClassExplanation}
+                                            isSpeaking={speakingQuestionId === q.id}
+                                            isCopied={copiedQuestionId === q.id}
+                                            isNoteOpen={activeNoteEditor === q.id}
+                                            noteText={notesMap[q.id] || ''}
+                                            onSelectCard={handleSelectCard}
+                                            onToggleBest={handleToggleBest}
+                                            onToggleUnderstood={handleToggleUnderstood}
+                                            onToggleNoteEditor={handleToggleNoteEditor}
+                                            onSaveNote={handleSaveNote}
+                                            onSpeak={handleSpeak}
+                                            onCopy={handleCopy}
+                                            onRevealSelfTest={handleRevealSelfTest}
+                                        />
                                     );
                                 })
                             )}
@@ -2192,12 +2319,14 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                 const next = Math.max(0, activeListIndex - 1);
                                 setActiveListIndex(next);
                                 const target = filteredQuestions[next];
-                                if (target) scrollToQuestion(target.originalIndex);
+                                if (target) {
+                                    requestAnimationFrame(() => scrollToQuestion(target.originalIndex));
+                                }
                                 SoundManager.play('click');
                             }}
                             disabled={activeListIndex === 0}
                             className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-slate-600 transition flex items-center gap-1 text-xs font-bold"
-                            title="Soal Sebelumnya (← atau ↑)"
+                            title="Soal Sebelumnya (←)"
                         >
                             <ChevronLeft size={16} />
                             <span className="hidden sm:inline">Prev</span>
@@ -2217,12 +2346,14 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                 const next = Math.min(filteredQuestions.length - 1, activeListIndex + 1);
                                 setActiveListIndex(next);
                                 const target = filteredQuestions[next];
-                                if (target) scrollToQuestion(target.originalIndex);
+                                if (target) {
+                                    requestAnimationFrame(() => scrollToQuestion(target.originalIndex));
+                                }
                                 SoundManager.play('click');
                             }}
                             disabled={activeListIndex >= filteredQuestions.length - 1}
                             className="p-1.5 rounded-xl bg-indigo-600 text-white disabled:opacity-30 hover:bg-indigo-700 transition flex items-center gap-1 text-xs font-bold shadow-xs"
-                            title="Soal Selanjutnya (→ atau ↓)"
+                            title="Soal Selanjutnya (→)"
                         >
                             <span className="hidden sm:inline">Next</span>
                             <ChevronRight size={16} />
@@ -2288,11 +2419,11 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                     <div className="space-y-1.5">
                                         <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
                                             <span className="text-slate-700 dark:text-slate-300">Perbesar Font Teks</span>
-                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">+</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">]</kbd></div>
+                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">W</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">+</kbd></div>
                                         </div>
                                         <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
                                             <span className="text-slate-700 dark:text-slate-300">Perkecil Font Teks</span>
-                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">-</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">[</kbd></div>
+                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">Q</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">-</kbd></div>
                                         </div>
                                         <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
                                             <span className="text-slate-700 dark:text-slate-300">Reset Ukuran Font Normal</span>

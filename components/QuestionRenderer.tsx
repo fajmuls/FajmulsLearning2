@@ -49,8 +49,13 @@ export const SvgRenderer: React.FC<SvgRendererProps> = ({ svgString }) => {
     );
 };
 
+const latexCache = new Map<string, string>();
+
 const ensureLaTeXWrapping = (text: string, isOption: boolean = false): string => {
     if (!text) return text;
+    const cacheKey = (isOption ? '1:' : '0:') + text;
+    const cached = latexCache.get(cacheKey);
+    if (cached !== undefined) return cached;
     
     // 1. Convert common unicode superscripts/subscripts and math operators
     let preparedText = text
@@ -138,10 +143,14 @@ const ensureLaTeXWrapping = (text: string, isOption: boolean = false): string =>
         }
     }
     
+    if (latexCache.size > 2000) {
+        latexCache.clear();
+    }
+    latexCache.set(cacheKey, processed);
     return processed;
 };
 
-export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean; isOption?: boolean }> = ({ text, allowIndent = false, isOption = false }) => {
+export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean; isOption?: boolean }> = React.memo(({ text, allowIndent = false, isOption = false }) => {
     if (!text) return null;
 
     // 1. Text Cleaning & LateX Prep
@@ -339,7 +348,7 @@ export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean; isO
             })}
         </div>
     );
-};
+});
 
 export const formatTopic = (subtest: string | undefined, topic: string | undefined) => {
     if (!subtest && !topic) return null;

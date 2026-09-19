@@ -5,9 +5,19 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "4.5.0";
+export const APP_VERSION = "4.5.1";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "4.5.1",
+    date: new Date().toISOString().split('T')[0],
+    type: "patch",
+    notes: [
+      "Navigasi Keyboard Presisi: Tombol panah atas/bawah (↑/↓) dikhususkan untuk scrolling konten halaman secara mulus dan bebas lag, sedangkan perpindahan antar soal difokuskan pada panah kiri/kanan (←/→).",
+      "Standardisasi Shortcut Ukuran Font (Q/W): Menyelaraskan shortcut keyboard pengatur ukuran font di Riwayat Belajar agar sama persis dengan Session Engine, yaitu tombol 'Q' untuk memperkecil dan 'W' untuk memperbesar font.",
+      "Optimasi Performa Super Responsif: Merombak render daftar soal di Riwayat Belajar menggunakan komponen QuestionReviewCard ter-memoize (React.memo) dengan callback stabil sehingga perpindahan soal menjadi instan dan mulus tanpa delay."
+    ]
+  },
   {
     version: "4.5.0",
     date: new Date().toISOString().split('T')[0],
