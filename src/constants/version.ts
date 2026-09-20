@@ -5,9 +5,20 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "4.5.1";
+export const APP_VERSION = "4.5.2";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "4.5.2",
+    date: new Date().toISOString().split('T')[0],
+    type: "patch",
+    notes: [
+      "Perbaikan Menyeluruh Render LaTeX: Mengatasi bug formula matematika mentah seperti \\frac{1}{3} yang sebelumnya gagal di-render di Riwayat Belajar dan berbagai halaman soal. Regex parser kini memprioritaskan pemindaian formula lengkap dengan kurung kurawal berlapis.",
+      "Pembersihan & Penyeimbangan KaTeX Otomatis: Menambahkan normalisasi kurung kurawal tak seimbang ({ ... }), perbaikan simbol persentase tak ter-escape (%), pembersihan backslash ganda dari JSON, dan penggantian \\degree ke ^{\\circ}.",
+      "Fallback Render Cerdas: Jika terdapat sintaks formula yang tidak valid dari hasil generate AI, sistem secara otomatis merender bentuk matematis bersih yang mudah dibaca (misal: a/b, √(x), ×, ≤, ±) sehingga tidak pernah lagi menampilkan kode LaTeX mentah yang membingungkan.",
+      "Standardisasi Parser Global: Menyatukan komponen SimpleMarkdown di seluruh aplikasi (ReviewView, SessionEngine, BattleArena, dan App) ke satu mesin terpusat yang tangguh dan teruji."
+    ]
+  },
   {
     version: "4.5.1",
     date: new Date().toISOString().split('T')[0],

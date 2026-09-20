@@ -38,6 +38,7 @@ import { BankSoalManager } from "./components/BankSoalManager";
 import { AdminSessionViewer } from "./components/AdminSessionViewer";
 import { AdminDashboard, PATCH_NOTES } from "./components/AdminDashboard";
 import { GenerationProgressBox } from "./components/GenerationProgressBox";
+import { SimpleMarkdown } from "./components/QuestionRenderer";
 import {
   CATEGORIES,
   UTBK_SUBTESTS,
@@ -202,24 +203,6 @@ const UserAvatar: React.FC<{ user: UserProfile | null }> = ({ user }) => {
       {" "}
       {user?.username?.[0]?.toUpperCase() || "T"}{" "}
     </div>
-  );
-};
-
-const SimpleMarkdown: React.FC<{ text: string }> = ({ text }) => {
-  if (!text) return null;
-  let formatted = text
-    .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
-    .replace(/\*(.*?)\*/g, "<i>$1</i>")
-    .replace(/\n- (.*?)/g, "<br/>• $1")
-    .replace(/\n\n/g, "</p><p>")
-    .replace(/\n/g, "<br/>");
-  formatted = `<p>${formatted}</p>`;
-  return (
-    <div
-      dangerouslySetInnerHTML={{ __html: formatted }}
-      className="text-slate-700 dark:text-slate-300 leading-relaxed text-sm font-sans text-justify markdown-content"
-      style={{ textAlign: "justify", textJustify: "inter-word" }}
-    />
   );
 };
 

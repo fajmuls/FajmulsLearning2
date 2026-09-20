@@ -596,7 +596,11 @@ function sanitizeQuestion(q: Question, strictSkdValidation: boolean = false): Qu
       let cleaned = text
           .replace(/\bno\s+no\b/gi, 'no.')
           .replace(/\btext\s+lead\b/gi, 'text')
-          .replace(/\bin\s+line\b/gi, 'inline');
+          .replace(/\bin\s+line\b/gi, 'inline')
+          // Normalize double-escaped LaTeX keywords
+          .replace(/\\\\+(frac|dfrac|tfrac|cfrac|sqrt|pm|times|div|cdot|alpha|beta|gamma|delta|pi|theta|sigma|omega|le|ge|leq|geq|neq|approx|sum|prod|int|text|sin|cos|tan|log|ln|left|right|binom)/g, '\\$1')
+          // Normalize \degree to KaTeX-compatible ^{\circ}
+          .replace(/\\degree\b/g, '^{\\circ}');
           
       return cleanAndWrapSvg(cleaned);
   };

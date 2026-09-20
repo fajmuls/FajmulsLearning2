@@ -51,14 +51,88 @@ export const SvgRenderer: React.FC<SvgRendererProps> = ({ svgString }) => {
 
 const latexCache = new Map<string, string>();
 
+const cleanMathExpression = (expr: string): string => {
+    if (!expr) return '';
+    let clean = expr.trim();
+    // Strip redundant outer delimiters inside the math block
+    clean = clean.replace(/^\\\(|^\$\$|^\$|^\\\[/g, '').replace(/\\\)$|\$\$$|\$$|\\\]$/g, '').trim();
+    
+    // Normalize multiple backslashes resulting from JSON escaping (e.g. \\frac -> \frac)
+    clean = clean.replace(/\\\\+(frac|dfrac|tfrac|cfrac|sqrt|pm|times|div|cdot|cdots|ldots|dots|alpha|beta|gamma|delta|pi|theta|sigma|omega|le|ge|leq|geq|neq|approx|sum|prod|int|text|mathbf|mathrm|mathit|sin|cos|tan|log|ln|left|right|binom|overline|underline|vec|hat|degree)/g, '\\$1');
+    
+    // Fix \degree (not supported in default KaTeX) -> ^{\circ}
+    clean = clean.replace(/\\degree\b/g, '^{\\circ}');
+    
+    // Fix unescaped percentage sign inside LaTeX: e.g. 25% -> 25\%
+    clean = clean.replace(/([^\\]|^)%/g, '$1\\%');
+    
+    // Fix unescaped currency or words: e.g. Rp 50.000 -> \text{Rp } 50.000
+    clean = clean.replace(/\bRp\.?\s*/g, '\\text{Rp }');
+
+    // Balance unclosed braces
+    const openBraces = (clean.match(/\{/g) || []).length;
+    const closeBraces = (clean.match(/\}/g) || []).length;
+    if (openBraces > closeBraces) {
+        clean += '}'.repeat(openBraces - closeBraces);
+    } else if (closeBraces > openBraces) {
+        let diff = closeBraces - openBraces;
+        while (diff > 0 && clean.endsWith('}')) {
+            clean = clean.slice(0, -1);
+            diff--;
+        }
+    }
+    
+    // Fix unmatched \left without \right
+    const leftCount = (clean.match(/\\left\b/g) || []).length;
+    const rightCount = (clean.match(/\\right\b/g) || []).length;
+    if (leftCount > rightCount) {
+        clean += '\\right.'.repeat(leftCount - rightCount);
+    } else if (rightCount > leftCount) {
+        clean = '\\left.'.repeat(rightCount - leftCount) + clean;
+    }
+
+    return clean;
+};
+
+const renderFallbackMath = (expr: string): React.ReactNode => {
+    if (!expr) return null;
+    let fallback = expr
+        // Convert fractions: \frac{a}{b} or \dfrac{a}{b} -> a/b
+        .replace(/\\(?:d|t|c)?frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, '$1/$2')
+        .replace(/\\sqrt\s*(?:\[([^\]]+)\])?\s*\{([^{}]+)\}/g, (_, root, val) => root ? `${root}√(${val})` : `√(${val})`)
+        .replace(/\\times\b/g, '×')
+        .replace(/\\div\b/g, '÷')
+        .replace(/\\pm\b/g, '±')
+        .replace(/\\le\b|\\leq\b/g, '≤')
+        .replace(/\\ge\b|\\geq\b/g, '≥')
+        .replace(/\\neq\b/g, '≠')
+        .replace(/\\approx\b/g, '≈')
+        .replace(/\\cdot\b/g, '·')
+        .replace(/\\degree\b|\^\{\\circ\}/g, '°')
+        .replace(/\\text\s*\{([^{}]+)\}/g, '$1')
+        .replace(/\\([a-zA-Z]+)/g, '$1')
+        .replace(/[{}]/g, '');
+    
+    return <span className="text-inherit font-sans">{fallback}</span>;
+};
+
 const ensureLaTeXWrapping = (text: string, isOption: boolean = false): string => {
     if (!text) return text;
     const cacheKey = (isOption ? '1:' : '0:') + text;
     const cached = latexCache.get(cacheKey);
     if (cached !== undefined) return cached;
     
-    // 1. Convert common unicode superscripts/subscripts and math operators
+    // 1. Normalize escaped backslashes and display math
     let preparedText = text
+        // Normalize multiple backslashes from JSON strings e.g. \\frac -> \frac
+        .replace(/\\\\+(frac|dfrac|tfrac|cfrac|sqrt|pm|times|div|cdot|cdots|ldots|dots|alpha|beta|gamma|delta|pi|theta|sigma|omega|le|ge|leq|geq|neq|approx|sum|prod|int|text|sin|cos|tan|log|ln|left|right|binom|degree)/g, '\\$1')
+        // Normalize display math \[ ... \] to $$ ... $$
+        .replace(/\\\[([\s\S]*?)\\\]/g, (_, inner) => `\n$$\n${inner.trim()}\n$$\n`)
+        // Normalize \degree
+        .replace(/\\degree\b/g, '^{\\circ}');
+
+    // 2. Convert common unicode superscripts/subscripts and math operators
+    preparedText = preparedText
         .replace(/²/g, '^2')
         .replace(/³/g, '^3')
         .replace(/⁴/g, '^4')
@@ -89,26 +163,26 @@ const ensureLaTeXWrapping = (text: string, isOption: boolean = false): string =>
         .replace(/≠/g, '\\neq ')
         .replace(/√/g, '\\sqrt');
 
-    // 2. Convert plain fractions like "1/2" to "\frac{1}{2}", carefully ignoring dates like "12/10/2024"
-    preparedText = preparedText.replace(/(^|[^\d/])(\d+)\/(\d+)(?=[^\d/]|$)/g, '$1\\frac{$2}{$3}');
+    // 3. Convert plain fractions like "1/2" to protected LaTeX "\(\frac{1}{2}\)" (safely avoiding dates like 12/10/2024)
+    preparedText = preparedText.replace(/(^|[^\d/])(\d+)\/(\d+)(?=[^\d/]|$)/g, '$1\\(\\frac{$2}{$3}\\)');
 
-    // 3. Convert ellipsis in number series e.g. "4, 9, 19, 39, ..." -> "\dots"
+    // 4. Convert ellipsis in number series e.g. "4, 9, 19, 39, ..." -> "\dots"
     preparedText = preparedText.replace(/(\d+[\s]*[,;]\s*)+(?:\.{3,}|…)/g, (match) => {
         const clean = match.replace(/\.{3,}|…/g, '\\dots');
         return `\\(${clean}\\)`;
     });
 
-    // 4. Special handling if this is an option and contains pure numbers or algebraic expressions
+    // 5. Special handling if this is an option and contains pure numbers or algebraic expressions
     if (isOption) {
         const trimmed = preparedText.trim();
         const prefixMatch = trimmed.match(/^([A-E]\.\s*)(.*)$/);
         const prefix = prefixMatch ? prefixMatch[1] : '';
         const body = prefixMatch ? prefixMatch[2].trim() : trimmed;
 
-        if (body && !body.startsWith('\\(') && !body.startsWith('$') && !body.startsWith('<svg')) {
+        if (body && !body.startsWith('\\(') && !body.startsWith('$') && !body.startsWith('$$') && !body.startsWith('<svg')) {
             const isPureMathOrNumber = /^[-+]?[\d.,]+%?$/.test(body) ||
                                        /^[a-zA-Z]\s*=\s*[-+]?[\d.,]+%?$/.test(body) ||
-                                       /^\\frac\{\d+\}\{\d+\}$/.test(body) ||
+                                       /^\\(?:d|t|c)?frac\{[^{}]+\}\{[^{}]+\}$/.test(body) ||
                                        (/^[-+]?[\d\w\^\+\-\*\/\=\<\>\(\)\s.,\\]+$/.test(body) && /[\d\+\-\*\/\=\<\>\^\\]/.test(body) && !/[a-zA-Z]{5,}/.test(body));
             if (isPureMathOrNumber) {
                 return `${prefix}\\(${body}\\)`;
@@ -116,28 +190,26 @@ const ensureLaTeXWrapping = (text: string, isOption: boolean = false): string =>
         }
     }
 
-    // Split text by existing math blocks or SVG to avoid double wrapping
-    const parts = preparedText.split(/(\\\([\s\S]*?\\\))|(\$\$[\s\S]*?\$\$)|(\$[\s\S]*?\$)|(<svg[\s\S]*?<\/svg>)/g);
+    // Split text by existing math blocks, code blocks, or SVG to avoid double wrapping
+    const parts = preparedText.split(/(\\\([\s\S]*?\\\))|(\$\$[\s\S]*?\$\$)|(\$(?!\s)[^$\n]+(?<!\s)\$)|(<svg[\s\S]*?<\/svg>)|(```[\s\S]*?```)/g);
     
-    // Regex for:
-    // - LaTeX keywords: \frac, \sqrt, \times, etc.
-    // - Formulas/equations: e.g. "x = 2", "y = -3", "2x^2 - xy + y^2", "4 x 2 + 1 = 9", "2(4) - (-6) + 9"
-    // - Percentages: "25%", "15.5%"
-    // - Number series: "4, 9, 19, 39"
-    const commonLaTeXRegex = /\\(frac|sqrt|pm|times|le|ge|approx|neq|cdot|div|alpha|beta|gamma|delta|theta|pi|sigma|omega|infty|partial|sum|prod|int|oint|text|degree|log|ln|sin|cos|tan|cot|sec|csc|subset|supset|in|cap|cup|perp|parallel|angle)(\{[^{}]*\}|[a-zA-Z0-9\.\,])*|(?:\b[a-zA-Z]\s*[\=\<\>\+\-\*\/\^]\s*[-0-9a-zA-Z\(\)\.\,\^\+\-\*\/\\]+)|(?:[-0-9\(\)]+[\s]*[\+\-\*\/\=\<\>\^]\s*[-0-9a-zA-Z\(\)\.\,\^\+\-\*\/\\]+)|(?:\b\d+(?:[.,]\d+)?\s*%)|(?:(?:\d+[\s]*[,;]\s*){2,}\d+)/g;
+    // Comprehensive regex for wrapping raw LaTeX expressions and mathematical formulas:
+    // Captures fractions (including nested braces), roots, symbols, equations like "x = \frac{1}{3}" or "\frac{1}{3} + \frac{2}{3} = 1"
+    const latexExprRegex = /(?:[a-zA-Z0-9\(\)]+(?:\s*[\^]\s*[-0-9a-zA-Z]+)?\s*[\=\<\>\+\-\*\/]\s*)?\\(?:(?:d|t|c)?frac|sqrt|binom|text|mathbf|mathrm|mathit|overline|underline|vec|hat)\s*(?:\[[^\]]*\])?(?:\s*\{([^{}]*|\{[^{}]*\})*\}){1,2}(?:\s*[\=\<\>\+\-\*\/\^]\s*(?:\\?[a-zA-Z0-9\(\)]+(?:\s*\{([^{}]*|\{[^{}]*\})*\})*|[-0-9.,]+))*|\\(?:pm|times|div|cdot|cdots|ldots|dots|vdots|ddots|approx|neq|le|ge|leq|geq|equiv|sim|cong|to|rightarrow|leftarrow|Rightarrow|Leftarrow|iff|implies|leftrightarrow|forall|exists|in|notin|subset|subseteq|supset|supseteq|cap|cup|setminus|emptyset|circ|degree|angle|perp|parallel|triangle|square|alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|mu|nu|xi|pi|varpi|rho|varrho|sigma|varsigma|tau|upsilon|phi|varphi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|infty|partial|sum|prod|int|oint|log|ln|lg|exp|sin|cos|tan|cot|sec|csc|arcsin|arccos|arctan|sinh|cosh|tanh|coth|quad|qquad)(?:\s*\{([^{}]*|\{[^{}]*\})*\})*|(?:\b[a-zA-Z]\s*[\=\<\>]\s*[-+]?\d+(?:[.,]\d+)?%?)|(?:\b\d+(?:[.,]\d+)?\s*%)|(?:(?:\d+[\s]*[,;]\s*){2,}\d+)/g;
 
     let processed = "";
     for (let i = 0; i < parts.length; i++) {
         const part = parts[i];
         if (!part) continue;
         
-        // If this is already a math block or SVG, keep it as is
-        if (part.startsWith('\\(') || part.startsWith('$') || part.startsWith('$$') || part.startsWith('<svg')) {
+        // If this is already a math block, SVG, or code block, keep it intact
+        if (part.startsWith('\\(') || part.startsWith('$') || part.startsWith('$$') || part.startsWith('<svg') || part.startsWith('```')) {
             processed += part;
         } else {
             // Find and wrap raw LaTeX & mathematical expressions
-            processed += part.replace(commonLaTeXRegex, (match) => {
+            processed += part.replace(latexExprRegex, (match) => {
                 if (match.length < 1) return match;
+                if (match.startsWith('\\(') && match.endsWith('\\)')) return match;
                 return `\\(${match}\\)`;
             });
         }
@@ -203,7 +275,7 @@ export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean; isO
                     const isMathBlock = rawContent.toLowerCase().startsWith('math\n') || 
                                         rawContent.toLowerCase().startsWith('latex\n') ||
                                         rawContent.toLowerCase().startsWith('tex\n') ||
-                                        (/\\(frac|sqrt|pm|times|le|ge|approx|neq|cdot|div|alpha|beta|gamma|delta|theta|pi|sigma|omega|infty|partial|sum|prod|int|oint|text|degree|log|ln|sin|cos|tan|cot|sec|csc|subset|supset|in|cap|cup|perp|parallel|angle)/.test(content) && !content.includes('<svg'));
+                                        (/\\(?:(?:d|t|c)?frac|sqrt|pm|times|le|ge|leq|geq|approx|neq|cdot|div|alpha|beta|gamma|delta|theta|pi|sigma|omega|infty|partial|sum|prod|int|oint|text|degree|log|ln|sin|cos|tan|cot|sec|csc|subset|supset|in|cap|cup|perp|parallel|angle)/.test(content) && !content.includes('<svg'));
                     
                     if (content.toLowerCase().includes('<svg') || content.startsWith('<svg')) {
                         const svgMatches = content.match(/<svg[\s\S]*?<\/svg>/gi);
@@ -243,10 +315,10 @@ export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean; isO
                             );
                         }
                     } else if (isMathBlock) {
-                         const safeMathExpr = content.replace(/([^\\]|^)%/g, '$1\\%');
+                         const safeMathExpr = cleanMathExpression(content);
                          return (
                              <div key={index} className="my-2 sm:my-4 flex justify-center w-full py-1 sm:py-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl overflow-hidden word-break-safe text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
-                                 <BlockMath math={safeMathExpr} renderError={(error) => <span className="text-inherit whitespace-pre-wrap">{content}</span>} />
+                                 <BlockMath math={safeMathExpr} renderError={() => renderFallbackMath(content)} />
                              </div>
                          );
                     }
@@ -257,24 +329,26 @@ export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean; isO
                         </pre>
                     );
                 } else {
-                    const mathParts = part.split(/(\$\$[\s\S]*?\$\$)/g);
+                    const mathParts = part.split(/(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\])/g);
                     
                     return (
                         <div key={index} className="w-full">
                             {mathParts.map((subPart: string, subIndex: number) => {
-                                if (subPart.startsWith('$$') && subPart.endsWith('$$')) {
-                                    const mathExpr = subPart.slice(2, -2).trim();
-                                    const safeMathExpr = mathExpr.replace(/([^\\]|^)%/g, '$1\\%');
+                                const isBlockMath = (subPart.startsWith('$$') && subPart.endsWith('$$')) ||
+                                                    (subPart.startsWith('\\[') && subPart.endsWith('\\]'));
+                                if (isBlockMath) {
+                                    const rawExpr = subPart.startsWith('$$') ? subPart.slice(2, -2) : subPart.slice(2, -2);
+                                    const safeMathExpr = cleanMathExpression(rawExpr);
                                     return (
                                         <div key={subIndex} className="my-2 sm:my-4 flex justify-center w-full py-1 sm:py-2">
                                             <div className="min-w-0 max-w-full flex-shrink-0 overflow-hidden word-break-safe text-slate-700 dark:text-slate-300">
-                                                <BlockMath math={safeMathExpr} renderError={(error) => <span className="text-inherit whitespace-pre-wrap">{mathExpr}</span>} />
+                                                <BlockMath math={safeMathExpr} renderError={() => renderFallbackMath(rawExpr)} />
                                             </div>
                                         </div>
                                     );
                                 } else {
                                     // Support both \( ... \) and $ ... $ for inline math
-                                    const inlineMathParts = subPart.split(/(\\\([\s\S]*?\\\))|(\$[\s\S]*?\$)/g);
+                                    const inlineMathParts = subPart.split(/(\\\([\s\S]*?\\\))|(\$(?!\s)[^$\n]+(?<!\s)\$)/g);
                                     
                                     return (
                                         <div key={subIndex} className="inline-wrap w-full text-justify sm:text-left text-slate-700 dark:text-slate-300">
@@ -284,11 +358,10 @@ export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean; isO
                                                 
                                                 if (isInlineMath) {
                                                     const content = inlinePart.startsWith('\\(') ? inlinePart.slice(2, -2) : inlinePart.slice(1, -1);
-                                                    const inlineExpr = content.trim();
-                                                    const safeInlineExpr = inlineExpr.replace(/([^\\]|^)%/g, '$1\\%');
+                                                    const safeInlineExpr = cleanMathExpression(content);
                                                     return (
                                                         <span key={inlineIndex} className="math-inline mx-0.5 inline-block align-middle max-w-full py-0.5 sm:py-1">
-                                                            <InlineMath math={safeInlineExpr} renderError={(error) => <span className="text-inherit whitespace-pre-wrap">{inlineExpr}</span>} />
+                                                            <InlineMath math={safeInlineExpr} renderError={() => renderFallbackMath(content)} />
                                                         </span>
                                                     );
                                                 } else {

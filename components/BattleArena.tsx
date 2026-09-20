@@ -1,118 +1,18 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Swords, Users, Copy, Zap, CheckCircle, XCircle, Trophy, Loader2, Play } from 'lucide-react';
-import { InlineMath, BlockMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
 import { BattleState, CategoryType, Question, UserProfile } from '../types';
 import * as FirebaseService from '../services/firebase';
 import * as GeminiService from '../services/geminiService';
 import { SoundManager } from '../services/soundService';
+import { SimpleMarkdown } from './QuestionRenderer';
 
 interface BattleArenaProps {
     userProfile: UserProfile;
     onBack: () => void;
     category: CategoryType;
 }
-
-const ensureLaTeXWrapping = (text: string): string => {
-    if (!text) return text;
-    
-    // Check if the text contains LaTeX commands but doesn't have any LaTeX delimiters
-    const hasRawLaTeX = text.includes('\\sqrt') || text.includes('\\frac') || text.includes('\\pm') || text.includes('\\times') || text.includes('\\le') || text.includes('\\ge') || text.includes('\\approx') || text.includes('\\neq') || text.includes('\\cdot');
-    const hasDelimiters = text.includes('\\(') || text.includes('$$');
-    
-    if (hasRawLaTeX && !hasDelimiters) {
-        if (text.trim().startsWith('\\') && text.trim().endsWith('}')) {
-            return `\\(${text.trim()}\\)`;
-        }
-        
-        let processed = text;
-        processed = processed.replace(/\\(sqrt|frac|pm|times|le|ge|approx|neq|cdot)\{?[^{}]*\}?(\{?[^{}]*\})?/g, (match) => {
-            return `\\(${match}\\)`;
-        });
-        return processed;
-    }
-    return text;
-};
-
-const SimpleMarkdown: React.FC<{ text: string }> = ({ text }) => {
-    if (!text) return null;
-    
-    const wrappedText = ensureLaTeXWrapping(text);
-    const codeBlockParts = wrappedText.split(/(```[\s\S]*?```)/g);
-
-    return (
-        <div className="leading-relaxed space-y-2 text-justify" style={{ textJustify: 'inter-word' }}>
-            {codeBlockParts.map((part, index) => {
-                if (part.startsWith('```') && part.endsWith('```')) {
-                    if (part.toLowerCase().includes('<svg')) {
-                        const svgMatch = part.match(/<svg[\s\S]*?<\/svg>/i);
-                        if (svgMatch) {
-                            return (
-                                <div key={index} className="flex justify-center items-center my-4" dangerouslySetInnerHTML={{ __html: svgMatch[0] }} />
-                            );
-                        }
-                    }
-                    const content = part.slice(3, -3).trim().replace(/^xml\n/, '').replace(/^html\n/, '');
-                    return (
-                        <pre key={index} className="font-mono text-xs bg-slate-100 dark:bg-slate-900 p-3 rounded-lg overflow-x-auto whitespace-pre border border-slate-200 dark:border-slate-700">
-                            {content}
-                        </pre>
-                    );
-                } else {
-                    const mathParts = part.split(/(\$\$[\s\S]*?\$\$)/g);
-                    
-                    return (
-                        <div key={index}>
-                            {mathParts.map((subPart, subIndex) => {
-                                if (subPart.startsWith('$$') && subPart.endsWith('$$')) {
-                                    const mathExpr = subPart.slice(2, -2).trim();
-                                    return (
-                                        <div key={subIndex} className="w-full overflow-x-auto scrollbar-thin py-2 px-1 my-2 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl flex justify-center">
-                                            <BlockMath math={mathExpr} />
-                                        </div>
-                                    );
-                                } else {
-                                    const inlineMathParts = subPart.split(/(\\\([\s\S]*?\\\))/g);
-                                    
-                                    return (
-                                        <span key={subIndex}>
-                                            {inlineMathParts.map((inlinePart, inlineIndex) => {
-                                                if (inlinePart.startsWith('\\(') && inlinePart.endsWith('\\)')) {
-                                                    const inlineExpr = inlinePart.slice(2, -2).trim();
-                                                    return <InlineMath key={inlineIndex} math={inlineExpr} />;
-                                                } else {
-                                                    let formatted = inlinePart
-                                                        .replace(/\*\*(.*?)\*\*/g, '<b class="text-slate-900 dark:text-white font-bold">$1</b>')
-                                                        .replace(/\*(.*?)\*/g, '<i>$1</i>')
-                                                        .replace(/\n- (.*?)/g, '<br/><span class="text-indigo-500 mr-2">•</span>$1')
-                                                        .replace(/\n\n/g, '<br/><br/>')
-                                                        .replace(/\n/g, '<br/>');
-
-                                                    formatted = formatted.replace(
-                                                        /([\p{Emoji}])/gu,
-                                                        '<span style="font-size: 1.25em; line-height: 1; vertical-align: middle; display: inline-block; padding: 0 2px;">$1</span>'
-                                                    );
-
-                                                    formatted = formatted.replace(
-                                                        /([\u00B0-\u00B9\u00BC-\u00BE\u00D7\u00F7\u0370-\u03FF\u2000-\u2AFF\u2150-\u215E\u2190-\u21FF\u2200-\u22FF\u2300-\u23FF\u2460-\u24FF\u2500-\u257F\u25A0-\u25FF\u2600-\u26FF\u2700-\u27BF\u27C0-\u27EF\u2900-\u29FF\u2B00-\u2BFF\u{1D400}-\u{1D7FF}\u{1F000}-\u{1F9FF}])/gu,
-                                                        '<span style="font-size: 1.15em; line-height: 1; vertical-align: middle; display: inline-block; padding: 0 1px;">$1</span>'
-                                                    );
-
-                                                    return <span key={inlineIndex} className="markdown-content text-left md:text-justify text-slate-700 dark:text-slate-300" dangerouslySetInnerHTML={{ __html: formatted }} />;
-                                                }
-                                            })}
-                                        </span>
-                                    );
-                                }
-                            })}
-                        </div>
-                    );
-                }
-            })}
-        </div>
-    );
-};
 
 export const BattleArena: React.FC<BattleArenaProps> = ({ userProfile, onBack, category }) => {
     const [view, setView] = useState<'LOBBY' | 'GAME' | 'RESULT'>('LOBBY');
