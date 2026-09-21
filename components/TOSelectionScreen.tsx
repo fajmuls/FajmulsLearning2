@@ -46,6 +46,26 @@ interface TOSelectionProps {
 
 const STORAGE_KEY_BEST_PACKAGES = 'fajmuls_best_packages';
 
+export const isTwkPackage = (p: { id: string; title: string }) => {
+    const idLower = p.id.toLowerCase();
+    const titleUpper = p.title.toUpperCase();
+    return idLower.includes('-twk-') || titleUpper.includes('SPESIAL TWK') || (titleUpper.includes('TWK') && !titleUpper.includes('TIU') && !titleUpper.includes('TKP') && !idLower.includes('combined'));
+};
+
+export const isTiuPackage = (p: { id: string; title: string }) => {
+    const idLower = p.id.toLowerCase();
+    const titleUpper = p.title.toUpperCase();
+    return idLower.includes('-tiu-') || titleUpper.includes('SPESIAL TIU') || (titleUpper.includes('TIU') && !titleUpper.includes('TWK') && !titleUpper.includes('TKP') && !idLower.includes('combined'));
+};
+
+export const isTkpPackage = (p: { id: string; title: string }) => {
+    const idLower = p.id.toLowerCase();
+    const titleUpper = p.title.toUpperCase();
+    return idLower.includes('-tkp-') || titleUpper.includes('SPESIAL TKP') || (titleUpper.includes('TKP') && !titleUpper.includes('TWK') && !titleUpper.includes('TIU') && !idLower.includes('combined'));
+};
+
+export const isSubtestPackage = (p: { id: string; title: string }) => isTwkPackage(p) || isTiuPackage(p) || isTkpPackage(p);
+
 export const TOSelectionScreen: React.FC<TOSelectionProps> = ({ 
     category, skdStream, tpaStream, tkaLevel, availablePackages, history, userProfile,
     onSelectPackage, onAdminViewPackage, onOpenSettings, onGenerateNew, onImportPackage, 
@@ -247,6 +267,9 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
         SoundManager.play('click');
         setSelectedSkdVariant(variant);
         setShowSkdVariantModal(false);
+        if (variant !== 'FULL') {
+            setSkdSubtestFilter(variant);
+        }
 
         if (isUserAdmin(userProfile)) {
             setIsGenerating(true);
@@ -299,6 +322,9 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
     const performGenerate = async () => {
         setIsGenerating(true);
         try {
+            if (category === 'SKD' && selectedSkdVariant !== 'FULL') {
+                setSkdSubtestFilter(selectedSkdVariant);
+            }
             await onGenerateNew("verified_client", {
                 utbkVariant: category === 'UTBK' ? selectedUtbkVariant : undefined,
                 skdVariant: category === 'SKD' ? selectedSkdVariant : undefined
@@ -353,14 +379,17 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                 // SKD Stream & View Mode
                 if (category === 'SKD' && skdStream) {
                     if (p.skdStream !== skdStream) return false;
-                    const isSubtest = p.id.includes('-twk-') || p.id.includes('-tiu-') || p.id.includes('-tkp-');
-                    const isCombined = p.id.includes('combined');
+                    const isTwk = isTwkPackage(p);
+                    const isTiu = isTiuPackage(p);
+                    const isTkp = isTkpPackage(p);
+                    const isSubtest = isTwk || isTiu || isTkp;
+                    const isCombined = p.id.includes('combined') || p.title.toUpperCase().includes('GABUNGAN');
                     
                     if (skdSubtestFilter === 'FULL' && (isSubtest || isCombined)) return false;
                     if (skdSubtestFilter === 'COMBINED' && !isCombined) return false;
-                    if (skdSubtestFilter === 'TWK' && (!p.id.includes('-twk-') || isCombined)) return false;
-                    if (skdSubtestFilter === 'TIU' && (!p.id.includes('-tiu-') || isCombined)) return false;
-                    if (skdSubtestFilter === 'TKP' && (!p.id.includes('-tkp-') || isCombined)) return false;
+                    if (skdSubtestFilter === 'TWK' && (!isTwk || isCombined)) return false;
+                    if (skdSubtestFilter === 'TIU' && (!isTiu || isCombined)) return false;
+                    if (skdSubtestFilter === 'TKP' && (!isTkp || isCombined)) return false;
                     
                     return true;
                 }
@@ -465,9 +494,9 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
 
             const currentSelected = availablePackages.filter(p => selectedIds.has(p.id));
             
-            const isTwk = pkg.id.includes('-twk-');
-            const isTiu = pkg.id.includes('-tiu-');
-            const isTkp = pkg.id.includes('-tkp-');
+            const isTwk = isTwkPackage(pkg);
+            const isTiu = isTiuPackage(pkg);
+            const isTkp = isTkpPackage(pkg);
             const isFull = !isTwk && !isTiu && !isTkp;
 
             if (isFull) {
@@ -475,15 +504,15 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                 return;
             }
 
-            if (isTwk && currentSelected.some(p => p.id.includes('-twk-'))) {
+            if (isTwk && currentSelected.some(p => isTwkPackage(p))) {
                 showToast("Hanya boleh satu paket TWK.", "error");
                 return;
             }
-            if (isTiu && currentSelected.some(p => p.id.includes('-tiu-'))) {
+            if (isTiu && currentSelected.some(p => isTiuPackage(p))) {
                 showToast("Hanya boleh satu paket TIU.", "error");
                 return;
             }
-            if (isTkp && currentSelected.some(p => p.id.includes('-tkp-'))) {
+            if (isTkp && currentSelected.some(p => isTkpPackage(p))) {
                 showToast("Hanya boleh satu paket TKP.", "error");
                 return;
             }
@@ -515,10 +544,10 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
             const idLower = p.id.toLowerCase();
             
             if (idLower.includes('-skd-')) {
-                const isTwkId = idLower.includes('-twk-');
-                const isTiuId = idLower.includes('-tiu-');
-                const isTkpId = idLower.includes('-tkp-');
-                const isFullId = idLower.includes('-full-');
+                const isTwkId = isTwkPackage(p);
+                const isTiuId = isTiuPackage(p);
+                const isTkpId = isTkpPackage(p);
+                const isFullId = !isTwkId && !isTiuId && !isTkpId;
 
                 if (isTwkId && !titleUpper.includes('TWK')) mismatches.add(p.id);
                 else if (isTiuId && !titleUpper.includes('TIU')) mismatches.add(p.id);
@@ -541,12 +570,11 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
             if (pkg.id.includes('combined')) return;
             
             let subType = 'full';
-            const idLower = pkg.id.toLowerCase();
-            if (idLower.includes('-twk-')) subType = 'twk';
-            else if (idLower.includes('-tiu-')) subType = 'tiu';
-            else if (idLower.includes('-tkp-')) subType = 'tkp';
+            if (isTwkPackage(pkg)) subType = 'twk';
+            else if (isTiuPackage(pkg)) subType = 'tiu';
+            else if (isTkpPackage(pkg)) subType = 'tkp';
 
-            const variant = idLower.includes('-only_mc-') ? 'only_mc' : idLower.includes('-mixed-') ? 'mixed' : 'default';
+            const variant = pkg.id.toLowerCase().includes('-only_mc-') ? 'only_mc' : pkg.id.toLowerCase().includes('-mixed-') ? 'mixed' : 'default';
             
             const bucketKey = `${pkg.category}-${pkg.skdStream || ''}-${pkg.tpaStream || ''}-${pkg.tkaLevel || ''}-${subType}-${variant}`;
             if (!buckets.has(bucketKey)) buckets.set(bucketKey, []);
@@ -1342,15 +1370,19 @@ export const TOSelectionScreen: React.FC<TOSelectionProps> = ({
                             const isCombined = pkg.id.includes('combined');
                             const isBest = bestPackageIds.has(pkg.id) || pkg.isBestPackage;
 
-                            const IconCmp = pkg.id.includes('-twk-') ? ShieldCheck : 
-                                            pkg.id.includes('-tiu-') ? Brain : 
-                                            pkg.id.includes('-tkp-') ? Award : 
+                            const isTwk = isTwkPackage(pkg);
+                            const isTiu = isTiuPackage(pkg);
+                            const isTkp = isTkpPackage(pkg);
+
+                            const IconCmp = isTwk ? ShieldCheck : 
+                                            isTiu ? Brain : 
+                                            isTkp ? Award : 
                                             isCombined ? Layers : 
                                             pkg.isAiGenerated ? Zap : Box;
                             
-                            const iconColor = pkg.id.includes('-twk-') ? 'text-rose-600 bg-rose-50 dark:bg-rose-950/40' : 
-                                              pkg.id.includes('-tiu-') ? 'text-blue-600 bg-blue-50 dark:bg-blue-950/40' : 
-                                              pkg.id.includes('-tkp-') ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40' : 
+                            const iconColor = isTwk ? 'text-rose-600 bg-rose-50 dark:bg-rose-950/40' : 
+                                              isTiu ? 'text-blue-600 bg-blue-50 dark:bg-blue-950/40' : 
+                                              isTkp ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40' : 
                                               isCombined ? 'text-purple-600 bg-purple-50 dark:bg-purple-950/40' : 
                                               pkg.isAiGenerated ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40' : 
                                               'text-slate-600 bg-slate-100 dark:bg-slate-800';

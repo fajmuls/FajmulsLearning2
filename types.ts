@@ -390,8 +390,10 @@ export interface TesKoranConfig {
 
 export interface BackgroundGenTask {
     id: string;
+    targetPackageId?: string;
     category: CategoryType;
     skdStream?: SkdStreamType;
+    skdVariant?: 'FULL' | 'TWK' | 'TIU' | 'TKP';
     tpaStream?: TpaStreamType;
     tkaLevel?: TkaLevelType;
     title: string;

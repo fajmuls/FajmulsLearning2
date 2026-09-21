@@ -3930,9 +3930,11 @@ function App() {
     // 1. Setup the active generation task structure
     const initialTask: BackgroundGenTask = {
       id: taskId,
+      targetPackageId: newId,
       title,
       category: selectedCategory,
       skdStream: skdStream || undefined,
+      skdVariant: selectedCategory === "SKD" ? skdVariant : undefined,
       tpaStream: tpaStream || undefined,
       tkaLevel: tkaLevel || undefined,
       progress: 5,
@@ -4106,7 +4108,7 @@ function App() {
     }, 1200);
 
     try {
-      const skdVariant = task.title.includes('Spesial TWK') ? 'TWK' : task.title.includes('Spesial TIU') ? 'TIU' : task.title.includes('Spesial TKP') ? 'TKP' : 'FULL';
+      const skdVariant = task.skdVariant || (task.title.includes('Spesial TWK') ? 'TWK' : task.title.includes('Spesial TIU') ? 'TIU' : task.title.includes('Spesial TKP') ? 'TKP' : 'FULL');
       const skdStream = task.skdStream || 'CPNS';
       
       const res = await Gemini.generateSkdSimulation(skdStream, skdVariant as any, task.savedState, (progressVal, msg) => {
@@ -4129,9 +4131,19 @@ function App() {
       let newQuestions = res.questions || [];
       clearInterval(progressInterval);
 
+      // Determine proper package ID with subtest variant tag
+      let resolvedPackageId = task.targetPackageId;
+      if (!resolvedPackageId || resolvedPackageId.startsWith('task-')) {
+        const streamKey = skdStream.toLowerCase();
+        const variantKey = skdVariant.toLowerCase();
+        const matchNum = task.title.match(/(\d+)$/);
+        const pkgNum = matchNum ? matchNum[1] : '1';
+        resolvedPackageId = `gen-skd-${streamKey}-${variantKey}-${pkgNum}-${Date.now()}`;
+      }
+
       // Save new package
       const newPackage: StaticTestPackage = {
-          id: task.id + '-resumed',
+          id: resolvedPackageId,
           title: task.title,
           category: task.category,
           skdStream: task.skdStream,
@@ -4206,6 +4218,23 @@ function App() {
     setPackagesLoading(true);
     try {
       const pkgs = await FirebaseService.getTestPackages();
+      pkgs.forEach((p) => {
+        if (p.id && p.id.startsWith("task-") && p.category === "SKD") {
+          const titleUpper = p.title.toUpperCase();
+          let subType = "full";
+          if (titleUpper.includes("TWK")) subType = "twk";
+          else if (titleUpper.includes("TIU")) subType = "tiu";
+          else if (titleUpper.includes("TKP")) subType = "tkp";
+          const matchNum = p.title.match(/(\d+)$/);
+          const num = matchNum ? matchNum[1] : "1";
+          const stream = p.skdStream?.toLowerCase() || "cpns";
+          const oldId = p.id;
+          const healedId = `gen-skd-${stream}-${subType}-${num}-${Date.now()}`;
+          p.id = healedId;
+          FirebaseService.saveTestPackage(p).catch(console.error);
+          FirebaseService.deleteTestPackage(oldId).catch(console.error);
+        }
+      });
       const initialMap = new Map();
       [
         ...INITIAL_SKD_PACKAGES,
@@ -4263,9 +4292,10 @@ function App() {
         // Precise bucketing based on properties + variant logic
         let subType = "full";
         const idLower = pkg.id.toLowerCase();
-        if (idLower.includes("-twk-")) subType = "twk";
-        else if (idLower.includes("-tiu-")) subType = "tiu";
-        else if (idLower.includes("-tkp-")) subType = "tkp";
+        const titleUpper = pkg.title.toUpperCase();
+        if (idLower.includes("-twk-") || titleUpper.includes("TWK")) subType = "twk";
+        else if (idLower.includes("-tiu-") || titleUpper.includes("TIU")) subType = "tiu";
+        else if (idLower.includes("-tkp-") || titleUpper.includes("TKP")) subType = "tkp";
 
         const variant = idLower.includes("-only_mc-")
           ? "only_mc"
@@ -4295,9 +4325,10 @@ function App() {
           let newTitle = pkg.title;
 
           if (pkg.category === "SKD") {
-            const isTwk = pkg.id.includes("-twk-");
-            const isTiu = pkg.id.includes("-tiu-");
-            const isTkp = pkg.id.includes("-tkp-");
+            const titleUpper = pkg.title.toUpperCase();
+            const isTwk = pkg.id.includes("-twk-") || titleUpper.includes("TWK");
+            const isTiu = pkg.id.includes("-tiu-") || titleUpper.includes("TIU");
+            const isTkp = pkg.id.includes("-tkp-") || titleUpper.includes("TKP");
             const isSubtest = isTwk || isTiu || isTkp;
 
             const streamPrefix =

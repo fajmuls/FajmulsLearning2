@@ -5,9 +5,19 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "4.5.2";
+export const APP_VERSION = "4.5.3";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "4.5.3",
+    date: new Date().toISOString().split('T')[0],
+    type: "patch",
+    notes: [
+      "Perbaikan Pengelompokan Subtes SKD (Spesial TIU/TWK/TKP): Memperbaiki filter dan identifikasi subtes agar tidak lagi hanya bergantung pada ID string melainkan juga memvalidasi judul paket, mencegah soal subtes (seperti Spesial TIU) tersasar masuk ke halaman Simulasi SKD Full.",
+      "Perbaikan Resiliensi Fitur Lanjutkan (Resume Task): Menjamin paket hasil lanjutan generate AI mempertahankan ID subtes resmi yang valid (contoh: gen-skd-kedinasan-tiu-*) bukan ID task sementara, sehingga paket otomatis masuk ke modul subtes yang tepat.",
+      "Otomatisasi Navigasi & Auto-Heal: Saat membuat paket subtes (TIU/TWK/TKP), tampilan filter subtes otomatis diarahkan ke modul yang relevan. Paket yang sebelumnya tersasar telah dipindahkan dan dinormalisasi ke modul Spesial TIU."
+    ]
+  },
   {
     version: "4.5.2",
     date: new Date().toISOString().split('T')[0],
