@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Timer, Zap, CheckCircle, XCircle, ChevronRight, ChevronLeft, Lightbulb, Pause, Play, Grid, Loader2, ArrowLeft, ArrowRight, Save, CloudUpload, AlertTriangle, Flag, Type, Plus, Minus, Copy, Bookmark, Mic, MicOff, Settings, Keyboard, Lock, Bot, Sparkles, RotateCcw, Shuffle, Eye, EyeOff, Eraser, Volume2, VolumeX, Columns, BookOpen } from 'lucide-react';
+import { Timer, Zap, CheckCircle, XCircle, ChevronRight, ChevronLeft, Lightbulb, Pause, Play, Grid, Loader2, ArrowLeft, ArrowRight, Save, CloudUpload, AlertTriangle, Flag, Type, Plus, Minus, Copy, Bookmark, Mic, MicOff, Settings, Keyboard, Lock, Bot, Sparkles, RotateCcw, Shuffle, Eye, EyeOff, Eraser, Volume2, VolumeX, Columns, BookOpen, Star } from 'lucide-react';
 import { StudyMode, Question, UserAnswer, CategoryType, DrillMaterial, TestHistoryItem, SavedSessionState, AppFontSize, MarkedQuestion } from '../types';
 import { SoundManager } from '../services/soundService';
 import * as Gemini from '../services/geminiService';
@@ -230,6 +230,9 @@ const BreakRoom: React.FC<{
     );
 };
 
+// Storage key for best questions (star ⭐), synchronized with ReviewView
+const STORAGE_KEY_BEST_QUESTIONS = 'fajmuls_best_questions';
+
 // Question Flag Modal
 const QuestionFlagModal: React.FC<{ 
     isOpen: boolean; 
@@ -362,6 +365,7 @@ const ShortcutMenuModal: React.FC<{
         { key: "←", desc: "Soal Sebelumnya" },
         { key: "1-5", desc: "Pilih Jawaban A-E" },
         { key: "R", desc: "Tandai Ragu-ragu" },
+        { key: "B / S", desc: "Tandai Soal Terbaik (⭐)" },
         { key: "Esc", desc: "Jeda / Tutup Menu" },
         { key: "Spasi", desc: "Lompat Subtes Berikutnya" },
         { key: "Enter", desc: "Selesaikan Tes" },
@@ -727,6 +731,16 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
     const [isSplitReadingView, setIsSplitReadingView] = useState(false);
     const lastCommandTimeRef = useRef(0);
 
+    // Soal Terbaik (Star ⭐) State - synced with localStorage
+    const [bestQuestionsSet, setBestQuestionsSet] = useState<Set<string>>(() => {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY_BEST_QUESTIONS);
+            return saved ? new Set(JSON.parse(saved)) : new Set();
+        } catch {
+            return new Set();
+        }
+    });
+
     const { isListening, transcript, startListening, stopListening, resetTranscript, isSupported, error: speechError } = useSpeechRecognition();
 
     useEffect(() => {
@@ -902,6 +916,32 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
     }, [activeQuestions.length]);
 
     const currentQ = activeQuestions[currentIndex];
+    const isCurrentBest = currentQ ? bestQuestionsSet.has(currentQ.id) : false;
+
+    const toggleBestQuestion = useCallback((targetQuestionId?: string) => {
+        const targetId = targetQuestionId || activeQuestions[currentIndex]?.id;
+        if (!targetId) return;
+
+        SoundManager.play('click');
+        setBestQuestionsSet(prev => {
+            const next = new Set(prev);
+            const isAdding = !next.has(targetId);
+            if (isAdding) {
+                next.add(targetId);
+                SoundManager.play('success');
+                showToast("Ditandai sebagai Soal Terbaik ⭐", "success");
+            } else {
+                next.delete(targetId);
+                showToast("Tanda Soal Terbaik dihapus", "info");
+            }
+            try {
+                localStorage.setItem(STORAGE_KEY_BEST_QUESTIONS, JSON.stringify(Array.from(next)));
+            } catch (e) {
+                console.error(e);
+            }
+            return next;
+        });
+    }, [activeQuestions, currentIndex, showToast]);
 
     const hasLongReading = useMemo(() => {
         if (!currentQ) return false;
@@ -1053,6 +1093,11 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
         else if (lower.includes('ragu') || lower.includes('tandai') || lower.includes('flag')) {
             toggleDoubtful();
             showToast("Status ragu-ragu diubah", 'info');
+            commandExecuted = true;
+        }
+
+        else if (lower.includes('soal terbaik') || lower.includes('bintang') || lower.includes('star')) {
+            toggleBestQuestion();
             commandExecuted = true;
         }
 
@@ -1470,6 +1515,8 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
             // If any modal is open, ignore other shortcuts
             if (showFinishModal || showExitModal || showAdminModal || showFlagModal || isBreak || isPaused || showVoiceConfig || showShortcutModal) return;
             
+            const currentQ = activeQuestions[currentIndex];
+
             if (e.key === 'ArrowRight' || e.key === 'n' || e.key === 'N') {
                 e.preventDefault();
                 if (currentIndex < activeQuestions.length - 1) {
@@ -1482,6 +1529,9 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                     SoundManager.play('click');
                     safeSetCurrentIndex(prev => prev - 1);
                 }
+            } else if (e.key === 'b' || e.key === 'B') {
+                e.preventDefault();
+                toggleBestQuestion();
             } else if (e.key === 'm' || e.key === 'M' || e.key === 'r' || e.key === 'R') {
                 e.preventDefault();
                 toggleDoubtful();
@@ -1492,7 +1542,13 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                 showToast(muted ? "Audio dimatikan (Muted)" : "Audio diaktifkan", "info");
             } else if (e.key === 's' || e.key === 'S') {
                 e.preventDefault();
-                setIsSplitReadingView(prev => !prev);
+                const hasVisualGraphic = currentQ?.diagramSvg || currentQ?.diagramImage;
+                const hasLongReading = (currentQ?.content?.length || 0) > 280;
+                if (hasVisualGraphic || hasLongReading) {
+                    setIsSplitReadingView(prev => !prev);
+                } else {
+                    toggleBestQuestion();
+                }
             } else if (e.key === ' ') {
                 e.preventDefault();
                 // Jump to next subtest
@@ -1522,11 +1578,10 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                 changeFontSize('up');
             }
 
-            const currentQ = activeQuestions[currentIndex];
             if (currentQ && currentQ.options && currentQ.options.length > 0) {
                 const keyMap: Record<string, number> = {
                     'a': 0, 'A': 0, '1': 0,
-                    'b': 1, 'B': 1, '2': 1,
+                    '2': 1,
                     'c': 2, 'C': 2, '3': 2,
                     'd': 3, 'D': 3, '4': 3,
                     'e': 4, 'E': 4, '5': 4
@@ -1770,6 +1825,11 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                         return ( 
                             <button key={q.id} onClick={() => { setCurrentIndex(trueIndex); setIsMobileGridOpen(false); }} className={`relative aspect-square rounded-md sm:rounded-lg border flex items-center justify-center font-bold text-xs sm:text-sm transition-all ${bgClass}`}>
                                 {trueIndex + 1}
+                                {bestQuestionsSet.has(q.id) && (
+                                    <div className="absolute -top-1 -left-1 w-3.5 h-3.5 bg-amber-400 border border-white dark:border-slate-800 rounded-full flex items-center justify-center shadow-sm" title="Ditandai Soal Terbaik (⭐)">
+                                        <Star size={7} className="fill-amber-950 text-amber-950" />
+                                    </div>
+                                )}
                                 {ans?.isDoubtful && (
                                     <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-400 border border-white dark:border-slate-800 rounded-full flex items-center justify-center shadow-sm" title="Ditandai Ragu-ragu">
                                         <Flag size={7} className="text-amber-950" />
@@ -2500,6 +2560,24 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                 <kbd className="hidden md:inline-flex text-[9px] font-mono text-slate-400">V</kbd>
                             </button>
 
+                            {/* Tombol Soal Terbaik (Bintang) */}
+                            {currentQ && (
+                                <button 
+                                    onClick={() => toggleBestQuestion()} 
+                                    className={`flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold text-[10px] sm:text-xs md:text-sm border transition shrink-0 ${
+                                        isCurrentBest 
+                                            ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700 shadow-xs' 
+                                            : 'bg-slate-50 dark:bg-slate-750 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                                    }`} 
+                                    title="Tandai Soal Terbaik (Shortcut: B atau S)"
+                                >
+                                    <Star size={13} className={isCurrentBest ? "fill-amber-500 text-amber-500" : "text-slate-400"} />
+                                    <span className="hidden sm:inline">{isCurrentBest ? 'Terbaik' : 'Tandai Terbaik'}</span>
+                                    <span className="sm:hidden">⭐</span>
+                                    <kbd className="hidden md:inline-flex text-[9px] font-mono font-bold bg-amber-200/50 dark:bg-amber-900/50 px-1 py-0.2 rounded text-amber-800 dark:text-amber-300 ml-0.5">B</kbd>
+                                </button>
+                            )}
+
                             {/* Tombol Ragu-ragu */}
                             <button 
                                 onClick={toggleDoubtful} 
@@ -2718,6 +2796,21 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                 <div className="p-3 sm:p-3.5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 shrink-0 space-y-2.5">
                     {/* Action Icon Buttons */}
                     <div className="flex flex-wrap items-center justify-center gap-1.5">
+                        {/* Tandai Soal Terbaik (Bintang) */}
+                        {currentQ && (
+                            <button 
+                                onClick={() => toggleBestQuestion()} 
+                                className={`flex items-center justify-center w-7 h-7 border rounded flex-shrink-0 transition shadow-sm group ${
+                                    isCurrentBest 
+                                        ? 'bg-amber-100 dark:bg-amber-950/50 border-amber-400 dark:border-amber-600 text-amber-500 shadow-xs' 
+                                        : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-400 hover:border-amber-400 hover:text-amber-500'
+                                }`} 
+                                title={isCurrentBest ? "Hapus Tanda Soal Terbaik (Shortcut: B atau S)" : "Tandai Soal Terbaik (Shortcut: B atau S)"}
+                            >
+                                <Star size={14} className={isCurrentBest ? "fill-amber-400 text-amber-500" : "group-hover:text-amber-500 transition-colors"} />
+                            </button>
+                        )}
+
                         {/* Tandai */}
                         <button onClick={() => setShowFlagModal(true)} className="flex items-center justify-center w-7 h-7 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded flex-shrink-0 hover:border-amber-400 hover:text-amber-500 transition shadow-sm group" title="Tandai Soal">
                             <Flag size={14} className="text-slate-400 group-hover:text-amber-500 transition-colors" />

@@ -1,7 +1,7 @@
 {
   "name": "fajmuls-learning",
   "private": true,
-  "version": "4.5.3",
+  "version": "4.5.4",
   "homepage": "https://fajmuls.github.io/FajmulsLearning2",
   "type": "module",
   "scripts": {

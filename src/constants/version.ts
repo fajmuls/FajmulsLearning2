@@ -5,9 +5,21 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "4.5.3";
+export const APP_VERSION = "4.5.4";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "4.5.4",
+    date: new Date().toISOString().split('T')[0],
+    type: "patch",
+    notes: [
+      "Penandaan Soal Terbaik (Bintang ⭐) saat Mengerjakan Soal: Sekarang Anda dapat menandai soal terbaik/favorit langsung di tengah sesi ujian (SessionEngine), tanpa harus menunggu masuk ke Riwayat Belajar.",
+      "Tombol Bintang di Navigasi Box & Floating Bar: Tombol bintang terintegrasi rapi di navigasi box bersama tombol aksi lainnya (Tandai, Clue, Eliminasi, Hapus, TTS) serta di control bar bawah dekat tombol Ragu-ragu.",
+      "Indikator Visual Bintang pada Grid Nomor Soal: Setiap nomor soal yang ditandai sebagai Soal Terbaik menampilkan badge bintang (⭐) kecil di sudut kiri atas kotak nomor navigasi.",
+      "Shortcut Keyboard Identik (B / S): Shortcut keyboard disamakan persis dengan Riwayat Belajar (tombol B atau S) untuk menandai atau melepas tanda Soal Terbaik secara instan, lengkap dengan perintah suara ('soal terbaik' / 'bintang').",
+      "Sinkronisasi Otomatis & Persisten: Soal yang ditandai langsung tersimpan ke penyimpanan lokal dan otomatis muncul sebagai Soal Terbaik saat membuka halaman Riwayat Belajar & Pembahasan."
+    ]
+  },
   {
     version: "4.5.3",
     date: new Date().toISOString().split('T')[0],

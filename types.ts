@@ -132,6 +132,8 @@ export interface Question {
   explanation: string;
   shortcut?: string;
   hint?: string;
+  diagramSvg?: string;
+  diagramImage?: string;
   metadata: QuestionMetadata;
 }
 
