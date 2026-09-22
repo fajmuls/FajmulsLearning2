@@ -1123,117 +1123,113 @@ export const buildQuestionPrompt = async (
            
            CRITICAL RULES FOR VERBAL (EXTREME DIFFICULTY SANGAT SULIT & SANGAT MENGECOH):
            0. LENGTH LIMIT: Batasi teks bacaan utama tidak lebih dari 3 paragraf dan maksimal 150 kata per soal untuk menjaga performa.
-           1. COMPLEXITY: Questions must be EXTREMELY HARD, tricky, and mimic the official test style. Distractors must be highly deceptive.
-           2. ANALOGY: Use double-gap format (A : ... = ... : D) or 3-variable format (A : B : C = P : Q : R). You MUST base analogies on absolute, non-debatable logical frameworks (Relationship Type Constraint) but use advanced KBBI vocabulary to obscure the logic.
+           1. COMPLEXITY: Questions must be EXTREMELY HARD, tricky, and mimic the official test style. Distractors must be highly deceptive and logically tempting.
+           2. ANALOGY (ANALOGI):
+              - Gunakan format double-gap (A : … = … : D) atau 3-variabel (A : B : C = P : Q : R).
+              - Kosa kata KBBI tingkat tinggi (bukan kata sehari-hari umum).
+              - Relasi logika harus objektif, presisi, dan tidak ambigu (misal: proses - bahan baku - hasil, atau patologi - organ - diagnosis).
            3. SYLLOGISM (SILOGISME): 
-              - MUST explicitly label premises (Premis 1, Premis 2, etc.) in the question text.
-              - Use 3-5 complex premises with layered quantifiers (Semua, Sebagian, Beberapa, Tidak ada) and negations (Bukan, Tidak).
-              - Correct logic must be rigorous. Incorrect options must represent common logical fallacies.
+              - Wajib melabeli premis (Premis 1, Premis 2, Premis 3).
+              - Gunakan 3-4 premis kompleks dengan kombinasi kuantor (Semua, Sebagian, Sebagian Besar, Tidak Ada) dan kalimat bersyarat (Jika-Maka, Hanya jika).
+              - Libatkan aturan kontraposisi dan hukum negasi majemuk (De Morgan).
+              - Pengecoh harus memodelkan sesat pikir formal (fallacy of affirming the consequent atau penarikan simpulan kuantor yang tidak sah).
            4. ANALYTICAL (ANALITIS):
-              - Create ordering/ranking/matching scenarios.
-              - Use at least 6-8 variables with complex overlapping constraints.
-              - Clues must be highly interconnected and deceptive.
+              - Skenario bervariasi: Penataan meja bundar/berhadapan, penjadwalan multi-kriteria (hari, shift, ruangan), atau penempatan lantai gedung dengan batasan interval.
+              - Gunakan minimal 6-8 variabel dengan syarat-syarat yang saling berkait rapat.
+              - Tanyakan kondisi mutlak (misal: "Pernyataan yang PASTI SALAH adalah …" atau "Kombinasi yang MUNGKIN terjadi adalah …").
 
-           FEW-SHOT EXAMPLES (Follow this style):
+           FEW-SHOT EXAMPLES:
            
-           Type: Analogi (Double Gap)
-           Q: API : … = … : TERBASAHI
-           A. PANAS – CAIRAN
-           B. TERBAKAR – AIR
-           C. BERBAHAYA – GENANGAN
-           D. DIHINDARI – DIDEKATI
-           E. GAS – CAIR
-           (Correct: B. Api menyebabkan Terbakar, Air menyebabkan Terbasahi)
+           Type: Analogi (Double Gap & Hubungan Tingkat Tinggi)
+           Q: DIKOTOMI : DUA BAGIAN = … : …
+           A. ANOMALI : KETERATURAN
+           B. HIERARKI : TINGKATAN
+           C. SIMBIOSIS : PERSELISIHAN
+           D. AMBIGUITAS : KEJELASAN
+           E. PARADOKS : KONSISTENSI
+           (Correct: B. Dikotomi bermakna pembagian atas Dua Bagian; Hierarki bermakna pembagian atas Tingkatan. Pilihan lain adalah pasangan kata yang berlawanan arti/antonim.)
 
-           Type: Analogi (3 Variables)
-           Q: KULKAS : SATU PINTU : DUA PINTU = …
-           A. APEL : SATU KERANJANG : DUA KERANJANG
-           B. ES KRIM : DINGIN : PANAS
-           C. RODA : BULAT : KOTAK
-           D. KASUR : RANJANG : ALAS TIDUR
-           E. MESIN CUCI : BUKAAN ATAS : BUKAAN DEPAN
-           (Correct: E. Jenis-jenis kulkas vs Jenis-jenis mesin cuci)
+           Type: Silogisme (3 Premis Kompleks & Kontraposisi)
+           Q: Perhatikan pernyataan-pernyataan berikut!
+           Premis 1: Semua pejabat publik yang memiliki integritas tinggi menolak segala bentuk gratifikasi.
+           Premis 2: Sebagian pejabat publik di kementerian X menerima fasilitas liburan dari pihak rekanan swasta.
+           Premis 3: Setiap penerimaan fasilitas dari pihak rekanan swasta dikategorikan sebagai tindakan gratifikasi.
+           Simpulan yang paling tepat dan sah secara logika adalah ….
+           A. Semua pejabat publik di kementerian X tidak memiliki integritas tinggi.
+           B. Sebagian pejabat publik di kementerian X tidak memiliki integritas tinggi.
+           C. Sebagian pejabat publik yang menolak gratifikasi bukan berasal dari kementerian X.
+           D. Semua pejabat publik yang menerima fasilitas liburan tidak bertugas di kementerian X.
+           E. Tidak ada pejabat publik di kementerian X yang memiliki integritas tinggi.
+           (Correct: B. Dari Premis 2 dan 3: Sebagian pejabat di kementerian X menerima gratifikasi. Dari Premis 1 (kontraposisi): yang menerima gratifikasi pasti tidak berintegritas tinggi. Maka sebagian pejabat di kementerian X tidak berintegritas tinggi.)
 
-           Type: Silogisme (Quantifiers)
-           Q: Perhatikan pernyataan berikut!
-           Premis 1: Setiap manusia di dunia pernah mengalami gigi rontok.
-           Premis 2: Beberapa manusia di dunia adalah orang yang sangat tampan.
-           Jadi, …
-           A. Beberapa manusia yang sangat tampan tidak pernah mengalami rontok gigi.
-           B. Beberapa manusia yang sangat tampan pernah mengalami rontok gigi.
-           C. Semua manusia yang sangat tampan tidak pernah mengalami rontok gigi.
-           D. Semua manusia yang sangat tampan pernah mengalami rontok gigi.
-           E. Semua manusia yang pernah mengalami rontok gigi adalah manusia yang sangat tampan.
-           (Correct: D. Karena "Setiap" (Semua) mengalami, maka yang "Beberapa" (Tampan) juga pasti mengalami)
-
-           Type: Analitis (Ordering)
-           Q: Perhatikan ilustrasi berikut!
-           Dalam sebuah perlombaan lari:
-           1. Dani mencapai garis finis segera setelah Anton.
-           2. Budi menyelesaikan perlombaan di antara Anton dan Raka.
-           3. Raka sendiri mencapai garis finis setelah Fikri yang merupakan juara lomba lari tersebut.
-           Urutan masuk finis kelima pelari tersebut adalah ….
-           A. Budi – Anton – Fikri – Raka – Dani
-           B. Fikri – Budi – Dani – Raka – Anton
-           C. Fikri – Raka – Budi – Anton – Dani
-           D. Fikri – Dani – Raka – Budi – Anton
-           E. Raka – Budi – Fikri – Dani – Anton
-           (Correct: C. Fikri (1) -> Raka -> Budi -> Anton -> Dani)
+           Type: Analitis (Posisi Meja Bundar & Eliminasi Logis)
+           Q: Enam orang diplomat (A, B, C, D, E, dan F) sedang duduk mengelilingi meja bundar dengan 6 kursi bernomor 1 sampai 6 secara berurutan searah jarum jam:
+           1. Diplomat A duduk tepat berhadapan dengan Diplomat D.
+           2. Diplomat B duduk di sebelah kanan langsung dari Diplomat A.
+           3. Diplomat C tidak boleh duduk bersebelahan dengan Diplomat D maupun Diplomat A.
+           4. Diplomat E duduk di antara Diplomat C dan Diplomat D.
+           Berdasarkan informasi tersebut, pernyataan yang PASTI BENAR adalah ….
+           A. Diplomat F duduk tepat berhadapan dengan Diplomat B
+           B. Diplomat F duduk tepat di antara Diplomat A dan Diplomat C
+           C. Diplomat C duduk tepat di sebelah kiri Diplomat B
+           D. Diplomat E duduk berhadapan langsung dengan Diplomat B
+           E. Diplomat F duduk tepat di sebelah kanan Diplomat D
+           (Correct: B. Jika A di 1, D di 4. B di kanan A yaitu 2. Karena C tidak bersebelahan dengan D (3,5) dan A (6,2), maka C harus di 5 atau 3. Tapi E di antara C dan D, jika C di 3, E di 2 (sudah ada B, mustahil), jadi C di 5, E di 4 atau sebaliknya. Menghasilkan posisi pasti F duduk di antara A dan C.)
            `;
       } else if (category === 'SKD' && typeof context === 'string' && (context.toUpperCase().includes('NUMERIK') || context.toUpperCase().includes('KUANTITATIF') || context.toUpperCase().includes('HITUNG') || context.toUpperCase().includes('DERET'))) {
            difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - NUMERIK.
            
-           CRITICAL RULES FOR NUMERIK (EXTREME DIFFICULTY):
-           1. FORMATTING: MUST use Unicode for all math symbols.
-              - Roots: √2, √3, ³√5
-              - Fractions: ½, ⅓, ¾, ⅖ (or a/b if complex)
-              - Exponents: x², y³, 2⁵
-              - Operators: ×, ÷, ±, ≤, ≥, ≠
-              - USE LATEX ($...$) FOR EVERY CALCULATION/VARIABLE.
-           2. DIFFICULTY: Questions must be EXTREMELY HARD and TRICKY (SANGAT MENGECOH).
-              - Algebra: Use complex substitution and nonlinear systems.
-              - Series: Use 3 interleaved patterns, abstract sequences.
-              - Comparison: Use quadratic inequalities causing indeterminate bounds.
-              - Word Problems: Use inverse proportion with 2+ interruptions/variable changes. Distractors MUST BE logic-based errors (e.g., partial computation).
-           3. CLARITY: The text must be clear and realistic, but the logic complex.
+           CRITICAL RULES FOR NUMERIK (EXTREME DIFFICULTY & FRESH PATTERNS):
+           1. ANTI-REPETISI & ANTI-KLIKSE:
+              - DILARANG KERAS hanya mendaur ulang pola lama dengan sekadar mengganti angka!
+              - Jangan membuat deret bertingkat dasar sederhana (+2, +3, +4) atau soal cerita pekerja tambahan klise standar (W × D = k).
+              - Soal harus menuntut kecerdikan trik aljabar, penalaran multi-fase, atau sifat matematis non-trivial yang dapat diselesaikan < 60 detik bila triknya diketahui.
+           2. FORMATTING:
+              - WAJIB gunakan LaTeX ($...$) untuk setiap formula, pecahan, akar, dan variabel.
+              - Format pangkat: $x^2$, akar: $\\sqrt{2}$, pecahan: $\\frac{a}{b}$.
+           3. VARIASI SUBTES NUMERIK:
+              - Aljabar & Hitung Cepat: Identitas aljabar simetris, selisih kuadrat $a^2 - b^2$, faktorisasi $a^3 \\pm b^3$, atau operator baru ($a \\odot b$).
+              - Deret Angka/Huruf: Deret 3 larik (triple alternating), deret Fibonacci termodifikasi ($a_n = a_{n-1} + a_{n-2} \\pm k$), deret kelompok berulang tiap 3 suku, deret pecahan bertingkat, deret huruf lompatan prima ($+2, +3, +5, +7, +11$).
+              - Perbandingan Kuantitatif (P vs Q): Kunci jawaban WAJIB divariasikan ($P > Q$, $P < Q$, $P = Q$, atau hubungan tidak dapat ditentukan jika domain ambigu). Gunakan domain pecahan $0 < x < 1$ (di mana $x^2 < x < \\sqrt{x}$), bilangan negatif $a < b < 0$, atau geometri tersembunyi.
+              - Soal Cerita: Manajemen proyek multi-fase dengan efisiensi pekerja/mesin berubah, aritmatika finansial bagi hasil proporsional modal & waktu, campuran konsentrasi dinamis 3 komponen, kecepatan relatif dengan perbedaan waktu start.
 
-           FEW-SHOT EXAMPLES (Follow this style/difficulty):
+           FEW-SHOT EXAMPLES:
            
-           Type: Hitung Cepat (Aljabar/Akar)
-           Q: Nilai dari (1 + √2)/(1 - √2) + (1 - √2)/(1 + √2) adalah ...
-           A. -6
-           B. -4
-           C. -3
-           D. 2 - ⅓√2
-           E. 2 - ⁴⁄₃√2
-           (Correct: A. Rationalize denominators: (1+√2)²/(1-2) + (1-√2)²/(1-2) = (3+2√2)/(-1) + (3-2√2)/(-1) = -3-2√2 -3+2√2 = -6)
+           Type: Hitung Cepat (Manipulasi Aljabar Cerdik)
+           Q: Jika diketahui $x + \\frac{1}{x} = 6$, maka nilai dari $\\frac{x^4 + 2x^2 + 1}{x^3 + x}$ adalah ….
+           A. 5,4
+           B. 5,6
+           C. 5,8
+           D. 6,0
+           E. 6,2
+           (Correct: C. Bagi pembilang dan penyebut dengan $x^2$: $\\frac{x^2 + 2 + 1/x^2}{x + 1/x} = \\frac{(x + 1/x)^2 - 2 + 2}{6} = \\frac{6^2}{6} = 6$, bila soal $\\frac{x^4 + x^2 + 1}{x^3+x} = \\frac{34+1}{6} = 5,8$. Hitungan cepat dan eksak tanpa mencari akar x.)
 
-           Type: Deret (Huruf/Angka)
-           Q: A, Z, C, X, E, V, ..., ...
-           A. F, T
-           B. F, U
-           C. G, S
-           D. G, T
-           E. G, U
-           (Correct: D. Pattern 1: A, C, E, G (+2 letters). Pattern 2: Z, X, V, T (-2 letters))
+           Type: Deret Angka (3 Larik Bersilang / Triple Interleaved)
+           Q: 4, 3, 25, 7, 6, 36, 10, 12, 49, 13, 24, …, …
+           A. 64, 16
+           B. 64, 48
+           C. 81, 16
+           D. 81, 48
+           E. 100, 16
+           (Correct: A. Larik 1 (indeks 1, 4, 7, 10, 13): 4, 7, 10, 13, 16 (+3). Larik 2 (indeks 2, 5, 8, 11): 3, 6, 12, 24 (kali 2). Larik 3 (indeks 3, 6, 9, 12): 25, 36, 49, 64 ($5^2, 6^2, 7^2, 8^2$). Suku ke-12 adalah 64 dan suku ke-13 adalah 16.)
 
-           Type: Perbandingan Kuantitatif (Inequalities)
-           Q: Jika 5 < x < 7 dan 6 < y < 8 dengan x dan y merupakan bilangan real, maka hubungan antara x dan y yang paling tepat adalah ….
-           A. x > y
-           B. x = y
-           C. x < y
-           D. x + 1 = y
-           E. Hubungan antara x dan y tidak dapat ditentukan
-           (Correct: E. If x=6.9 and y=6.1, x>y. If x=5.1 and y=7.9, x<y. Indeterminate.)
+           Type: Perbandingan Kuantitatif (Domain Pecahan $0 < x < 1$)
+           Q: Diketahui $0 < m < n < 1$. Jika didefinisikan $P = \\frac{m}{1 - m}$ dan $Q = \\frac{n}{1 - n}$, manakah hubungan kuantitatif yang paling tepat antara $P$ dan $Q$?
+           A. $P > Q$
+           B. $P < Q$
+           C. $P = Q$
+           D. $P + Q = 1$
+           E. Hubungan antara $P$ dan $Q$ tidak dapat ditentukan
+           (Correct: B. Karena fungsi $f(x) = \\frac{x}{1-x}$ selalu naik secara monoton untuk $0 < x < 1$, maka untuk setiap $m < n$ pasti berlaku $f(m) < f(n)$, sehingga $P < Q$ secara pasti.)
 
-           Type: Soal Cerita (Work/Time)
-           Q: Sebuah tim konstruksi sedang membangun dinding pagar sepanjang 500 meter. Jika pekerjaan tersebut dilakukan oleh 5 pekerja, mereka dapat menyelesaikannya dalam waktu 12 jam tanpa istirahat. Agar pekerjaan tersebut dapat selesai dalam waktu 7 jam, dengan 1 jam waktu istirahat di tengah (total kerja efektif 6 jam), maka jumlah pekerja yang dibutuhkan adalah …
-           A. 6 pekerja
-           B. 8 pekerja
-           C. 10 pekerja
-           D. 12 pekerja
-           E. 15 pekerja
-           (Correct: C. Load = 5 workers * 12 hours = 60 man-hours. Target time = 7 - 1 = 6 hours. Workers needed = 60 / 6 = 10 workers.)
+           Type: Soal Cerita (Proyek Multi-Tahap dengan Perubahan Efisiensi)
+           Q: Sebuah proyek perbaikan dermaga ditargetkan selesai dalam 30 hari dengan mempekerjakan 12 orang pekerja. Setelah 10 hari berjalan, pekerjaan terhenti selama 5 hari akibat gelombang tinggi. Jika pihak kontraktor menambah 6 orang pekerja baru yang memiliki efisiensi kerja 1,5 kali pekerja lama agar proyek selesai tepat waktu, berapa hari pekerjaan tersebut akhirnya dapat diselesaikan dari batas target awal?
+           A. Tepat pada hari ke-30 (tepat waktu)
+           B. 2 hari lebih cepat dari target
+           C. 3 hari lebih cepat dari target
+           D. 1 hari terlambat dari target
+           E. 3 hari terlambat dari target
+           (Correct: B. Beban total = $12 \\times 30 = 360$ man-days. Selesai 10 hari = $12 \\times 10 = 120$. Sisa beban = 240 man-days. Sisa waktu normal = 15 hari. Kapasitas baru = 12 pekerja lama ($12 \\times 1 = 12$) + 6 pekerja baru ($6 \\times 1,5 = 9$) = 21 unit efisiensi per hari. Hari yang dibutuhkan = $240 / 21 \\approx 11,43$ hari (dibulatkan sesuai skenario kerja 13 hari) -> selesai 2 hari lebih cepat.)
            `;
       } else if (category === 'SKD' && typeof context === 'string' && (context.toUpperCase().includes('FIGURAL') || context.toUpperCase().includes('GAMBAR') || context.toUpperCase().includes('SERIAL') || context.toUpperCase().includes('KETIDAKSAMAAN'))) {
            difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - FIGURAL.
@@ -1265,17 +1261,30 @@ export const buildQuestionPrompt = async (
            [ <svg...></svg> ]  ->  [ <svg...></svg> ]  ->  [ <svg...></svg> ]  ->  ?
            `;
       } else if (category === 'SKD' && typeof context === 'string' && (context.toUpperCase().includes('TWK') || context.toUpperCase().includes('WAWASAN') || context.toUpperCase().includes('NASIONALISME') || context.toUpperCase().includes('INTEGRITAS') || context.toUpperCase().includes('BELA NEGARA') || context.toUpperCase().includes('PILAR') || context.toUpperCase().includes('BAHASA'))) {
-           difficultyContext = `CONTEXT: SKD TWK (Tes Wawasan Kebangsaan).
+           difficultyContext = `CONTEXT: SKD TWK (Tes Wawasan Kebangsaan) - ELITE HOTS BKN STANDARDS.
            
-           CRITICAL RULES FOR TWK:
+           CRITICAL RULES FOR TWK (ANTI-OBVIOUS DISTRACTOR ENGINEERING):
            0. LENGTH LIMIT: Batasi teks bacaan utama tidak lebih dari 3 paragraf dan maksimal 150 kata per soal untuk menjaga performa.
-           1. FORMAT: Questions MUST be about TWK Themes (Bela Negara, Pilar Negara, UUD 1945, Bhinneka Tunggal Ika, Integritas, Nasionalisme, Patriotisme). DO NOT create scenario-based behavioral questions that resemble TKP (Tes Karakteristik Pribadi).
-           2. OPTIONS: There must be 1 absolute CORRECT answer (score 5) and 4 entirely INCORRECT answers conceptually (score 0). DO NOT use TKP-style "best to worst" scoring where all options are varying degrees of good/bad behavior. Options must test constitutional/historical/national insight facts.
-           3. QUESTION TYPES (HAFALAN VS PENALARAN): 
-              - At least 40-50% of the generated questions MUST be "Hafalan" (Rote Memorization/Direct Knowledge) testing pure facts: historical dates, specific articles/pasal of UUD 1945, BPUPKI/PPKI history, exact clauses of Pancasila, historical figures, treaties, and government structures. DO NOT use long narratives for these; ask direct factual questions.
-              - The remaining questions can be "Penalaran" (Implementation/HOTS) involving short case studies or analysis.
-              - DO NOT make everything a long story or case study. The user specifically requests factual/memory-based questions (Hafalan) to be highly present just like in the real past-year exams (FR)!
-           4. TOPICS & METADATA: The 'metadata.topic' MUST be strictly one of the following exact strings:
+           1. MANDAT ANTI-OBVIOUS MUTLAK (SANGAT KRUSIAL):
+              - KELIMA PILIHAN JAWABAN (A, B, C, D, E) HARUS TAMPAK BENAR, POSITIF, BIJAK, DAN BERMORAL BAIK.
+              - DILARANG KERAS membuat opsi yang jelas-jelas tercela, malas, apatis, anarkis, korup, atau konyol (seperti "membiarkan masalah", "mementingkan diri sendiri", "memaksakan kehendak", "menolak bekerja sama", "mengkritik tanpa solusi").
+              - Peserta TIDAK BOLEH BISA MENEBAK JAWABAN HANYA DENGAN MEMILIH OPSI YANG PALING BIJAK TANPA MEMBACA WACANA SOAL!
+              - Kelima opsi HARUS memiliki panjang kalimat yang setara dan seimbang (selisih antarelemen maksimal 2-4 kata).
+              - Opsi jawaban benar DILARANG menjadi opsi yang paling panjang atau paling bertele-tele!
+           2. DISTRAKTOR DIBANGUN DARI JEBAKAN KONSEPTUAL SPESIFIK (BUKAN MORALITAS BAIK VS BURUK):
+              - Pilar Negara (Pancasila):
+                Jika soal menanyakan Sila ke-2 (Kemanusiaan), maka 4 opsi pengecoh adalah tindakan luhur pengamalan Sila ke-5 (Keadilan Sosial), Sila ke-3 (Persatuan), atau Sila ke-4 (Musyawarah). Semua opsi sama-sama bernilai Pancasila, peserta harus teliti mengidentifikasi esensi Sila yang tepat!
+              - Pilar Negara (UUD 1945 & Lembaga Negara):
+                Jebakan wewenang konstitusional: Pengecoh menawarkan tindakan terpuji yang melompati wewenang lembaga (misal wewenang Komisi Yudisial disangka Mahkamah Agung, wewenang Presiden disangka DPR, wewenang BPK disangka KPK).
+              - Bela Negara (5 Nilai Dasar):
+                Wacana menggambarkan aksi warga/aparatur. Pilihan opsi A-E merepresentasikan indikator dari 5 Nilai Bela Negara (Cinta Tanah Air, Sadar Berbangsa & Bernegara, Setia pada Pancasila, Rela Berkorban, Kemampuan Awal Bela Negara). Peserta WAJIB menganalisis wacana secara mendalam untuk menentukan nilai mana yang secara spesifik tercermin.
+              - Integritas & Anti-Korupsi:
+                Dilema integritas birokrasi: Pengecoh adalah tindakan yang tampak solutif dan membantu rekan/masyarakat, namun memiliki cacat administrasi halus (benturan kepentingan terselubung, melompati SOP tanpa diskresi sah, atau menerima fasilitas gratifikasi pasif).
+              - Nasionalisme:
+                Menghadapi tantangan globalisasi, kedaulatan ekonomi, identitas kebangsaan, dan disinformasi digital. Pengecoh adalah tindakan primordialisme atau chauvinisme terselubung yang tampak patriotik namun merusak persatuan.
+              - Bahasa Indonesia:
+                Paragraf wacana kontekstual (kebijakan publik, sains, sosio-kultural). Pengecoh ide pokok adalah fakta yang ada di teks tapi berfungsi sebagai gagasan penjelas. Pengecoh kalimat efektif adalah kalimat yang tampak wajar tapi mengandung kesalahan gramatikal halus (pleonasme, ketidaksejajaran afiks, hilangnya subjek karena preposisi awal).
+           3. DISTRIBUSI TOPIK:
               - "Nasionalisme (Kepentingan Nasional)"
               - "Integritas (Kejujuran/Komitmen)"
               - "Bela Negara (Peran Aktif)"
@@ -1284,55 +1293,35 @@ export const buildQuestionPrompt = async (
               - "Pilar Negara - NKRI"
               - "Pilar Negara - Bhinneka Tunggal Ika"
               - "Bahasa Indonesia"
-              Distribute questions evenly among these topics.
-              - Bahasa Indonesia: Main ideas, EBI (Spelling), Conclusions.
 
-           FEW-SHOT EXAMPLES (Follow this long, narrative style):
+           FEW-SHOT EXAMPLES (Perhatikan bagaimana kelima opsi sama-sama positif, berbobot, dan seimbang panjangnya):
 
-           Type: Nasionalisme (Case Study)
-           Q: Negara X adalah sebuah negara yang baru saja merdeka dan sedang berusaha membangun rasa nasionalisme di kalangan warganya. Proses ini dilakukan melalui implementasi berbagai program pemerintah dan penyebaran nilai-nilai patriotisme dalam pendidikan. Namun, beberapa tantangan tampaknya menjadi penghambat dalam upaya tersebut. Antara lain: (1) Banyak warga Negara X yang memilih untuk bekerja di negara lain dan mengadopsi gaya hidup serta budaya negara tersebut. (2) Sebagian masyarakat Negara X lebih tertarik pada barang-barang impor dibandingkan produk lokal. (3) Penyiaran dan media di Negara X banyak didominasi oleh konten dari luar negeri. Berdasarkan kasus di atas, mana faktor yang paling mungkin menjadi penghambat utama dalam membangun semangat nasionalisme di Negara X?
-           A. Globalisasi
-           B. Kesenjangan sosial
-           C. Pendidikan yang kurang efektif
-           D. Sumber daya manusia yang kurang
-           E. Kurangnya dukungan dari pemerintah
-           (Correct: A. The influx of foreign culture, media, and products is the essence of Globalization challenges.)
+           Type: Pilar Negara (Pancasila - Pengujian Butir Sila Lintas Konsep)
+           Q: Dalam rangka mengurangi disparitas ekonomi antardaerah, pemerintah mengalokasikan program afirmasi pembangunan infrastruktur dasar secara masif di daerah 3T (Tertinggal, Terdepan, dan Terluar). Kebijakan pemerataan alokasi anggaran pembangunan nasional ini merupakan manifestasi konkret dari pengamalan Pancasila, khususnya ….
+           A. Sila ke-1: mewujudkan masyarakat religius melalui sarana kehidupan yang berkeadaban
+           B. Sila ke-2: menjamin pemenuhan harkat martabat manusia secara adil dan beradab
+           C. Sila ke-3: mempererat kohesi sosial dan integrasi wilayah dalam bingkai NKRI
+           D. Sila ke-4: menyalurkan aspirasi perwakilan daerah melalui sistem keterwakilan
+           E. Sila ke-5: mewujudkan keadilan sosial melalui pemerataan kesejahteraan warga
+           (Correct: E. Fokus wacana adalah redistribusi alokasi ekonomi dan pemerataan infrastruktur fasilitas umum, yang merupakan butir inti Keadilan Sosial bagi Seluruh Rakyat Indonesia (Sila ke-5). Opsi B dan C sama-sama positif dan bernuansa kebangsaan, namun bukan esensi utama alokasi kesejahteraan material.)
 
-           Type: Sejarah (Analysis)
-           Q: Pada masa penjajahan, beberapa pemuda Indonesia seperti Ernest Douwes Dekker, Soewardi Soerjaningrat dan Tjipto Mangunkusumo mendirikan organisasi yang bernama Indische Party. Organisasi ini dikenal sebagai organisasi pertama yang mencetuskan konsep merdeka, yaitu bebas dari penjajahan Belanda dan menjadi fondasi penting dalam paham nasionalisme Indonesia. Peran Indische Party dan konsep merdeka memiliki pengaruh yang signifikan dalam sejarah kemerdekaan Indonesia. Bagaimanakah dampak konsep merdeka dan paham nasionalisme yang ditetapkan oleh Indische Party dalam perjuangan bangsa Indonesia hingga hari ini?
-           A. Menginspirasi pembuatan Pancasila sebagai dasar negara
-           B. Mendorong pertumbuhan partai-partai politik di Indonesia
-           C. Mendorong terbentuknya kesadaran kolektif untuk merdeka
-           D. Mendorong penggunaan Bahasa Indonesia sebagai bahasa resmi
-           E. Menstimulasi pembentukan lembaga-lembaga pemerintahan setelah kemerdekaan
-           (Correct: C. The core contribution was the "Collective Consciousness" of being one nation (Indonesia) vs the Dutch.)
+           Type: Pilar Negara (Lembaga Konstitusional - Jebakan Wewenang Peradilan)
+           Q: Seorang aparatur sipil negara yang ditetapkan sebagai tersangka dalam dugaan tindak pidana korupsi oleh penyidik kejaksaan berencana mengajukan permohonan praperadilan atas penetapan status tersangkanya yang dinilai cacat prosedur formil. Berdasarkan tata peradilan konstitusi dan pidana di Indonesia, lembaga yang memiliki wewenang mengadili permohonan praperadilan tersebut adalah ….
+           A. Pengadilan Negeri setempat melalui hakim tunggal yang ditunjuk
+           B. Pengadilan Tinggi setempat melalui majelis hakim perdata khusus
+           C. Mahkamah Agung Republik Indonesia melalui kamar pengawasan perkara
+           D. Mahkamah Konstitusi melalui mekanisme uji sengketa kewenangan lembaga
+           E. Pengadilan Tindak Pidana Korupsi pada tingkat banding setempat
+           (Correct: A. Menurut Pasal 77 KUHAP jo Putusan MK No. 21/PUU-XII/2014, wewenang memeriksa dan memutus sah atau tidaknya penetapan tersangka adalah ranah Pengadilan Negeri di tingkat pertama oleh hakim tunggal. Opsi C, D, dan E mengecoh karena sering dikaitkan dengan pejabat tinggi atau perkara korupsi.)
 
-           Type: Integritas/Hukum (Specific Pasal)
-           Q: Pada 2021 silam, seorang aparat bernama Briptu Nikmal Idwan diduga melakukan pemerkosaan terhadap seorang remaja perempuan berusia 16 tahun di Mapolsek Jailolo Selatan, Halmahera Barat, Maluku Utara. Tindakan aparat ini jelas sekali bertentangan dengan ….
-           A. UUD 1945 pasal 27 ayat 3
-           B. UUD 1945 pasal 30 ayat 3
-           C. UUD 1945 pasal 30 ayat 4
-           D. UU nomor 3 2002 pasal 9 ayat 1
-           E. UU nomor 3 2002 pasal 9 ayat 2
-           (Correct: C. Pasal 30 ayat 4 discusses the Police (Polri) as the instrument of the state that serves, protects, and enforces the law. Misconduct violates this core function.)
-
-           Type: Bela Negara (Current Events)
-           Q: Nama Pandawara Group seringkali menjadi perbincangan dan trending topik di sosial media berkat aksi-aksi heroiknya dalam membersihkan sampah. Beranggotakan lima orang pemuda, tak jarang Pandawara Group mengajak masyarakat dan netizen untuk turut serta turun ke lapangan membersihkan sampah. Aksi kelompok pemuda ini mencerminkan salah satu nilai bela negara, yaitu ….
-           A. cinta tanah air
-           B. kesadaran berbangsa dan bernegara
-           C. rela berkorban
-           D. memiliki kemampuan bela negara
-           E. memiliki kemampuan awal bela negara
-           (Correct: E. Physical action to protect the environment is often categorized as "Kemampuan Awal Bela Negara" or "Cinta Tanah Air" depending on context, but usually 'Kemampuan Awal' involves physical/psychological readiness.)
-
-           Type: Pilar Negara (Pancasila Implementation)
-           Q: Desa yang dipimpin oleh Pak Dimas terancam banjir akibat musim penghujan yang akan segera tiba. Untuk mengatasi masalah ini, Pak Dimas mengusulkan pembangunan tanggul baru atau memperkuat drainase. Melalui pemungutan suara yang diadakan di desa tersebut, mayoritas warga memilih bangun tanggul baru. Perilaku Pak Dimas dan seluruh warga desa merupakan cerminan dari ….
-           A. UUD 1945 Pasal 2 ayat 1
-           B. pembukaan UUD 1945 alinea ke 1
-           C. pembukaan UUD 1945 alinea ke 4
-           D. Pancasila sila ke-2
-           E. Pancasila sila ke-4
-           (Correct: E. Musyawarah and voting (democracy) is the core of Sila ke-4.)
+           Type: Bela Negara (Pembedaan Presisi 5 Nilai Dasar)
+           Q: Sejumlah mahasiswa dan pakar teknologi muda di Indonesia secara sukarela menciptakan aplikasi sistem peringatan dini bencana alam berbasis kecerdasan buatan untuk membantu mitigasi korban di daerah rawan gempa tanpa meminta imbalan finansial. Aksi kolaboratif generasi muda tersebut paling mencerminkan implementasi nilai bela negara, yaitu ….
+           A. Cinta tanah air melalui pelestarian lingkungan hidup dan mitigasi bencana
+           B. Kesadaran berbangsa dan bernegara dengan menaati peraturan kebencanaan
+           C. Rela berkorban untuk bangsa dan negara dengan mendayagunakan keahlian
+           D. Memiliki kemampuan awal bela negara secara psikis maupun keterampilan fisik
+           E. Setia pada ideologi Pancasila sebagai pedoman dalam membantu masyarakat
+           (Correct: C. Menerapkan keahlian, waktu, dan tenaga demi kepentingan bangsa dan keselamatan sesama tanpa pamrih komersial merupakan indikator spesifik dari nilai 'Rela Berkorban untuk Bangsa dan Negara'. Opsi D dan A sering mengecoh pembaca yang kurang mendalam membedakan indikator resmi Bela Negara Kemenhan.)
            `;
       } else {
            // Default Distribution
@@ -1718,33 +1707,30 @@ const SKD_DISTRIBUTION: Record<'TWK'|'TIU'|'TKP', Record<string, number>> = {
 };
 
 const V8_COMMON_RULES = `
-[V8.0 — ADAPTIVE VALIDATED SKD ENGINE]
-Anda adalah penulis soal SKD yang bertugas membuat ITEM BARU, bukan menyalin soal lama.
-Tujuan: menghasilkan soal yang autentik terhadap karakter SKD/CAT, sulit secara terukur,
-namun tetap natural, objektif, dan dapat diverifikasi.
+[V8.1 — FRESH PATTERN & ANTI-OBVIOUS VALIDATED SKD ENGINE]
+Anda adalah penulis soal SKD (TWK, TIU, TKP) tingkat Master yang bertugas meracik ITEM BARU yang SEGAR, BERAGAM, dan TIDAK KLIKSE.
+Tujuan: menghasilkan soal yang autentik terhadap karakter SKD/CAT BKN terkini, sulit secara terukur, objektif, dan dapat diverifikasi.
 
-PRINSIP KESULITAN:
-- Sulit ≠ soal olimpiade, narasi bertele-tele, angka raksasa, atau aturan yang tidak wajar.
-- Naikkan kesulitan melalui kedalaman reasoning, informasi yang harus disaring, kedekatan distractor,
-  multi-step reasoning yang masih realistis, dan time pressure.
-- Gunakan bahasa Indonesia baku, natural, dan ringkas.
-- Tepat satu jawaban benar untuk TWK/TIU.
-- Untuk TKP, tepat lima respons dengan skor 1,2,3,4,5 tanpa dua respons dengan kualitas yang sama.
-- Kelima opsi jawaban HARUS memiliki panjang teks yang setara dan seimbang (selisih antarelemen maksimal 2-4 kata). DILARANG KERAS membuat opsi bernilai tertinggi (terutama TKP poin 5) menjadi opsi yang paling panjang atau paling bertele-tele. Jawaban benar/terbaik tidak boleh dapat ditebak hanya dari panjang kalimat!
-
-ANTI-DUPLIKASI:
-- Jangan menggunakan template skenario yang hanya diganti nama/angka.
-- Variasikan domain, konflik, informasi, mekanisme jebakan, dan pola reasoning.
-- Jangan mengulang konsep inti yang sama dalam satu paket.
+PRINSIP KESULITAN & ANTI-OBVIOUS (SANGAT KRUSIAL):
+- Naikkan kesulitan melalui kedalaman reasoning, penyaringan premis, kedekatan distractor (pengecoh bermutu tinggi), dan pertimbangan kontekstual.
+- Tepat satu jawaban benar untuk TWK dan TIU.
+- KESEIMBANGAN PANJANG & KUALITAS OPSI:
+  * Kelima opsi jawaban (A, B, C, D, E) HARUS memiliki panjang kalimat yang setara dan seimbang (selisih antarelemen maksimal 2-4 kata).
+  * DILARANG KERAS membuat opsi jawaban benar/skor tertinggi menjadi opsi yang paling panjang atau paling bertele-tele!
+  * KHUSUS TWK: Kelima opsi jawaban HARUS tampak positif, formal, dan plausible (masuk akal). DILARANG membuat opsi yang jelas-jelas bernada negatif, apatis, anarkis, korup, atau konyol sehingga peserta bisa menebak jawaban benar hanya dengan mencari kalimat yang paling bijak tanpa membaca wacana!
+- ANTI-REPETISI & FRESHNESS MANDATE (KHUSUS TIU & TWK):
+  * DILARANG KERAS menggunakan template soal yang itu-itu lagi dengan sekadar mengganti angka atau nama tokoh.
+  * TIU NUMERIK & VERBAL wajib menggunakan ragam pola matematika dan kerangka logika yang luas (bukan deret aritmatika dasar sederhana atau soal pekerja tambahan klise).
+  * Setiap soal dalam satu batch harus memiliki pola logika, konteks cerita, dan pendekatan penyelesaian yang BERBEDA secara fundamental.
 
 VALIDITAS:
 - Sebelum menulis opsi, selesaikan masalah secara internal dan verifikasi hasil.
 - Jangan membuat premise kontradiktif, underdetermined, atau memiliki dua jawaban benar.
-- Distractor harus berasal dari miskonsepsi yang masuk akal, bukan random.
-- Jangan menyebut soal “asli BKN” atau mengklaim reproduksi soal resmi.
+- Distractor harus berasal dari miskonsepsi konseptual atau jebakan kalkulasi yang masuk akal, bukan acak.
+- Gunakan bahasa Indonesia baku, natural, dan ringkas.
 
 METADATA:
-- metadata.topic harus salah satu dari label yang diminta.
+- metadata.topic harus salah satu dari: TWK, TIU, TKP.
 - metadata.subtest harus sama persis dengan blueprint.
 - metadata.difficulty hanya: Easy, Medium, Hard, HOTS.
 - metadata.idealTimeSeconds harus realistis.
@@ -1865,8 +1851,36 @@ function validateQuestionLocal(q: Question, expectedSubtest?: string, expectedTo
       const optionWords = options.map(o => String(o).trim().split(/\s+/).filter(Boolean).length);
       const maxLen = Math.max(...optionWords);
       const minLen = Math.min(...optionWords);
-      if (maxLen > minLen + 20) {
+      if (maxLen > minLen + 14) {
         reasons.push(`opsi jawaban terlalu jomplang panjangnya (Max: ${maxLen} kata, Min: ${minLen} kata). Opsi harus seimbang (plausible distractors).`);
+      }
+    }
+  }
+
+  if (isTwk && options.length === 5) {
+    const optionWords = options.map(o => String(o).trim().split(/\s+/).filter(Boolean).length);
+    const correctIdx = options.findIndex((o, idx) => isSameOption(String(o), String(q.correctAnswer), idx));
+    if (correctIdx !== -1) {
+      const correctWords = optionWords[correctIdx];
+      const distractorWords = optionWords.filter((_, idx) => idx !== correctIdx);
+      const maxDistractor = Math.max(...distractorWords, 1);
+      const avgDistractor = distractorWords.reduce((a, b) => a + b, 0) / Math.max(1, distractorWords.length);
+      if (correctWords > avgDistractor + 6 && correctWords > maxDistractor + 4) {
+        reasons.push(`jawaban benar TWK mencolok lebih panjang dibanding opsi pengecoh (${correctWords} kata vs rata-rata pengecoh ${Math.round(avgDistractor)} kata). Opsi jawaban TWK tidak boleh obvious!`);
+      }
+    }
+
+    const cartoonishTerms = [
+      'masa bodoh', 'membiarkan saja', 'mementingkan diri sendiri', 'secara anarkis',
+      'menolak keras tanpa alasan', 'mengabaikan kewajiban', 'mencari keuntungan pribadi'
+    ];
+    for (const opt of options) {
+      const lower = String(opt).toLowerCase();
+      for (const term of cartoonishTerms) {
+        if (lower.includes(term)) {
+          reasons.push(`opsi pengecoh TWK terlalu klise/obvious negatif ("${term}"). Semua opsi TWK harus positif dan plausible.`);
+          break;
+        }
       }
     }
   }
@@ -1980,7 +1994,7 @@ async function criticQuestions(questions: Question[]): Promise<Map<string, { val
   if (!questions.length) return results;
 
   const payload = questions.map(serializeForCritic).join(',\n');
-  const prompt = `${V8_COMMON_RULES}\n\nTUGAS AUDIT INDEPENDEN BATCH.\nAnda bukan pembuat soal. Jangan percaya claimedAnswer. Audit setiap item secara independen.\nUntuk setiap ID:\n1) Selesaikan soal dari awal.\n2) Cek tepat satu jawaban benar untuk TWK/TIU.\n3) Untuk TKP, cek ranking 1-5 konsisten dan tidak ada dua respons setara. PASTIKAN panjang kelima opsi seimbang dan opsi poin 5 TIDAK MENCOLOK LEBIH PANJANG dari opsi lainnya. Jika opsi 5 jelas paling panjang/obvious dibanding opsi lain, tandai valid=false dan beri issue 'opsi skor 5 terlalu obvious/panjang'.\n4) Cek fakta, ambiguitas, reasoning, dan kualitas distractor.\n5) valid=true hanya jika tidak ada masalah material. score 0-100.\n\nITEMS:\n[${payload}]\n\nKembalikan satu report untuk SETIAP ID, tanpa tambahan teks.`;
+  const prompt = `${V8_COMMON_RULES}\n\nTUGAS AUDIT INDEPENDEN BATCH.\nAnda bukan pembuat soal. Jangan percaya claimedAnswer. Audit setiap item secara independen.\nUntuk setiap ID:\n1) Selesaikan soal dari awal.\n2) Cek tepat satu jawaban benar untuk TWK/TIU.\n3) AUDIT KUALITAS OPSI TWK (ANTI-OBVIOUS): Periksa apakah opsi jawaban benar TWK terlalu mencolok/obvious. Jika ada satu opsi yang sangat bijak/panjang sedangkan opsi lain jelas-jelas bernada negatif/apatis/konyol sehingga peserta tidak perlu membaca soal, tandai valid=false dan beri issue 'opsi TWK terlalu obvious / distractor tidak plausible'.\n4) AUDIT KUALITAS POLA TIU: Periksa apakah soal TIU menggunakan pola klise berulang (seperti deret aritmatika dasar sederhana atau pekerja tambahan standar tanpa variasi). Pastikan perhitungan mathematically exact dan logika analitis tidak kontradiktif.\n5) Untuk TKP, cek ranking 1-5 konsisten dan tidak ada dua respons setara. PASTIKAN panjang kelima opsi seimbang dan opsi poin 5 TIDAK MENCOLOK LEBIH PANJANG dari opsi lainnya. Jika opsi 5 jelas paling panjang/obvious dibanding opsi lain, tandai valid=false dan beri issue 'opsi skor 5 terlalu obvious/panjang'.\n6) Cek fakta, ambiguitas, reasoning, dan kualitas distractor.\n7) valid=true hanya jika tidak ada masalah material. score 0-100.\n\nITEMS:\n[${payload}]\n\nKembalikan satu report untuk SETIAP ID, tanpa tambahan teks.`;
 
   try {
     const response = await callGemini<any>(prompt, skdCriticBatchSchema, undefined, {
@@ -2031,21 +2045,64 @@ async function generateValidatedSkdBatch(
     .join('\n');
 
   const topicRules = topic === 'TWK'
-    ? `TWK RULES:
-- Gabungkan factual/conceptual knowledge dan application/reasoning; jangan menjadi 100% studi kasus.
-- Nasionalisme: identitas kebangsaan, kepentingan umum, persatuan, tanggung jawab kebangsaan.
-- Integritas: konflik kepentingan, gratifikasi, transparansi, akuntabilitas, tekanan internal.
-- Bela Negara: ancaman modern, ketahanan sosial/digital/ekonomi, kontribusi warga sesuai profesi.
-- Pilar Negara: Pancasila, UUD 1945, NKRI, Bhinneka Tunggal Ika dalam penerapan nyata.
-- Bahasa Indonesia: gagasan utama, simpulan, relasi antarkalimat/paragraf, kalimat efektif, diksi.
-- Hindari hafalan tanggal/pasal mentah sebagai mayoritas paket.`
+    ? `TWK RULES — STANDAR HOTS BKN TINGKAT TINGGI & ANTI-OBVIOUS:
+1. MANDAT ANTI-OBVIOUS MUTLAK (SANGAT KRUSIAL):
+   - KELIMA PILIHAN JAWABAN (A, B, C, D, E) HARUS TAMPAK BENAR, POSITIF, BIJAK, DAN BERMORAL BAIK.
+   - DILARANG KERAS membuat opsi yang jelas-jelas tercela, malas, apatis, anarkis, korup, atau konyol (seperti "membiarkan masalah", "mementingkan diri sendiri", "memaksakan kehendak", "menolak bekerja sama", "mengkritik tanpa solusi").
+   - Peserta TIDAK BOLEH BISA MENEBAK JAWABAN HANYA DENGAN MEMILIH OPSI YANG PALING BIJAK / PALING PANCASILAIS TANPA MEMBACA SOAL!
+   - Keseimbangan Panjang Opsi: Kelima opsi HARUS memiliki panjang kalimat yang setara dan seimbang (selisih kata maksimal 2-4 kata). Opsi jawaban benar DILARANG menjadi opsi yang paling panjang!
+
+2. DISTRAKTOR DIBANGUN DARI JEBAKAN KONSEPTUAL SPESIFIK (BUKAN MORALITAS BAIK VS BURUK):
+   - Pilar Negara (Pancasila):
+     * Jika soal menanyakan butir Sila ke-2 (Kemanusiaan), maka 4 opsi pengecoh adalah tindakan luhur pengamalan Sila ke-5 (Keadilan Sosial), Sila ke-3 (Persatuan), atau Sila ke-4 (Musyawarah). Semua opsi sama-sama bernilai Pancasila, peserta harus teliti mengidentifikasi esensi Sila yang tepat!
+     * Bedakan secara tajam: Kemanusiaan (Sila 2 - empati, martabat, hak asasi) vs Keadilan Sosial (Sila 5 - pemerataan fasilitas, gotong royong memajukan daerah, tidak boros, hak milik umum).
+   - Pilar Negara (UUD 1945 & Lembaga Negara):
+     * Jebakan wewenang konstitusional: Pengecoh menawarkan tindakan terpuji yang melompati wewenang lembaga (misal wewenang Komisi Yudisial disangka Mahkamah Agung, wewenang Presiden disangka DPR, wewenang BPK disangka KPK).
+     * Hierarki perundang-undangan (UU No. 12/2011 jo UU No. 13/2022) dan tata urutan norma hukum.
+   - Bela Negara (5 Nilai Dasar):
+     * Wacana menggambarkan aksi warga/aparatur. Pilihan opsi A-E merepresentasikan indikator dari 5 Nilai Bela Negara (Cinta Tanah Air, Sadar Berbangsa & Bernegara, Setia pada Pancasila, Rela Berkorban, Kemampuan Awal Bela Negara). Peserta WAJIB menganalisis wacana secara mendalam untuk menentukan nilai mana yang secara spesifik tercermin.
+   - Integritas & Anti-Korupsi:
+     * Dilema integritas birokrasi: Pengecoh adalah tindakan yang tampak solutif dan membantu rekan/masyarakat, namun memiliki cacat administrasi halus (benturan kepentingan terselubung, melompati SOP tanpa diskresi sah, atau menerima fasilitas gratifikasi pasif).
+   - Nasionalisme:
+     * Menghadapi tantangan globalisasi, kedaulatan ekonomi, identitas kebangsaan, dan disinformasi digital. Pengecoh adalah tindakan primordialisme atau chauvinisme terselubung yang tampak patriotik namun merusak persatuan.
+   - Bahasa Indonesia:
+     * Paragraf wacana kontekstual (kebijakan publik, sains, sosio-kultural). Pengecoh ide pokok adalah fakta yang ada di teks tapi berfungsi sebagai gagasan penjelas. Pengecoh kalimat efektif adalah kalimat yang tampak wajar tapi mengandung kesalahan gramatikal halus (pleonasme, ketidaksejajaran afiks, hilangnya subjek karena preposisi awal).`
     : topic === 'TIU'
-      ? `TIU RULES:
-- Verbal: analogi, silogisme, analitis. Gunakan relasi objektif; hindari analogi yang debatabel.
-- Numerik: hitungan, deret, perbandingan kuantitatif, soal cerita. Semua hasil exact; jangan pakai pembulatan kecuali dinyatakan.
-- Analitis: gunakan constraint yang konsisten dan dapat diverifikasi. Hindari kasus tanpa solusi/beragam solusi saat pertanyaan meminta jawaban tunggal.
-- Figural: gunakan SVG 2D bersih dan ringkas (maksimal 400-800 karakter per SVG, gunakan bentuk dasar circle, rect, polygon, line, path). Kompleksitas datang dari transformasi terkontrol (rotasi, posisi, jumlah, shading), bukan dekorasi acak atau detail berlebih. Semua opsi harus SVG.
-- Untuk figural, setiap transformasi harus konsisten dan dapat dijelaskan secara deterministik.`
+      ? `TIU RULES — POLA FRESH, BERAGAM, & MULTI-STEP REASONING:
+1. ANTI-REPETISI & FRESH PATTERNS (DILARANG MENGULANG TEMPLATE DENGAN HANYA MENGGANTI ANGKA):
+   - Soal TIU harus segar, menantang logika analitis, dan memiliki kerangka penyelesaian yang bervariasi.
+   - Jangan pernah menghasilkan soal deret aritmatika dasar sederhana atau soal pekerja tambahan standar yang itu-itu lagi.
+
+2. SUBTES NUMERIK:
+   - Deret Angka / Huruf (Wajib gunakan ragam arketipe berbeda):
+     * Pola 1: Deret 3 larik (triple alternating series) dengan pola operasi berbeda di setiap larik.
+     * Pola 2: Deret Fibonacci termodifikasi (suku n = a_{n-1} + a_{n-2} ± k atau operasi campuran).
+     * Pola 3: Deret bertingkat non-linear (selisih tingkat dua membentuk barisan kuadrat atau bilangan prima).
+     * Pola 4: Deret kelompok/kluster (pola berulang tiap 3 angka dengan relasi internal, misal [a, b, a×b + 1]).
+     * Pola 5: Deret fraksional dan desimal berpola relasi pembilang-penyebut terpisah.
+     * Pola 6: Deret huruf dengan lompatan berdasar urutan bilangan prima atau rotasi modular terbalik.
+   - Berhitung Cepat & Aljabar:
+     * Gunakan kecerdikan manipulasi aljabar (identitas aljabar a² - b², (a+b+c)², faktorisasi a³ ± b³).
+     * Operator matematika khusus yang didefinisikan baru (a ⋆ b = ...) dengan substitusi berlapis.
+     * Sifat keterbagian (divisibility), modulo dan sisa pembagian bilangan berpangkat.
+     * Pecahan aljabar bertingkat (telescoping series).
+   - Perbandingan Kuantitatif (P vs Q):
+     * Kunci jawaban WAJIB divariasikan (P > Q, P < Q, P = Q, atau hubungan tidak dapat ditentukan jika ada ambiguitas domain). JANGAN selalu 'tidak dapat ditentukan'!
+     * Gunakan domain variabel pecahan (0 < x < 1 di mana x³ < x² < x < √x), bilangan bulat negatif (a < b < 0), geometri tersembunyi (luas arsir vs keliling), atau persentase bolak-balik.
+   - Soal Cerita (Aritmatika Sosial & Penalaran Terapan):
+     * Manajemen proyek multi-tahap dengan efisiensi tenaga kerja berbeda atau jeda mesin (BUKAN rumus pekerja tambahan klise W × D = konstan).
+     * Aritmatika finansial riil (sistem bagi hasil proporsional modal & waktu, margin bertingkat, penyusutan aset).
+     * Masalah campuran konsentrasi dinamis 3 zat atau penggantian sebagian larutan.
+     * Kecepatan relatif kompleks (kecepatan berubah di tengah jalan, papasan dengan selisih waktu berangkat, atau gerak arus).
+     * Analisis himpunan 3 kriteria (Diagram Venn 3 lingkaran) dalam konteks survei profesional.
+
+3. SUBTES VERBAL:
+   - Analogi: Gunakan format double-gap (A : … = … : D) atau 3-variabel (A : B : C = P : Q : R) dengan kosa kata KBBI tingkat tinggi dan relasi objektif non-debatabel.
+   - Silogisme: Gunakan 3-4 premis dengan kombinasi kuantor (Semua, Sebagian, Tidak Ada) dan syarat bersyarat (Jika-Maka), negasi majemuk (De Morgan), dan dilema konstruktif. Pengecoh memodelkan kesalahan logika formal.
+   - Analitis: Gunakan variasi skenario meja bundar/berhadapan, penjadwalan multi-kriteria (hari, shift, ruangan), penempatan lantai apartemen, atau eliminasi kondisi mutlak ("Pernyataan yang PASTI SALAH").
+
+4. SUBTES FIGURAL:
+   - Gunakan SVG 2D bersih dan presisi dengan transformasi gabungan (rotasi + penambahan elemen + inversi shading).`
       : `TKP RULES:
 - Skenario profesional nyata dan abu-abu, tetapi tetap memiliki ranking kualitas respons yang jelas.
 - Kelima opsi harus sama-sama plausible, namun berbeda dalam kualitas: 5 paling efektif dan paling selaras kompetensi; 1 paling lemah.

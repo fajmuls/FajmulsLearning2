@@ -5,9 +5,21 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "4.5.4";
+export const APP_VERSION = "4.5.5";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "4.5.5",
+    date: new Date().toISOString().split('T')[0],
+    type: "patch",
+    notes: [
+      "Engine Soal SKD V8.1 (TIU & TWK Fresh Patterns): Merombak menyeluruh generator AI untuk meniadakan template soal berulang yang sekadar mengganti angka atau nama tokoh.",
+      "Mekanisme Anti-Obvious Pilihan Ganda TWK: Kelima pilihan jawaban (A, B, C, D, E) kini diwajibkan bernada positif, terhormat, dan plausible. Pengecoh dibangun dari jebakan konseptual riil (butir Sila lain, wewenang lembaga lain, atau 5 nilai Bela Negara), menghapus opsi klise negatif sehingga peserta wajib menganalisis wacana.",
+      "Keseimbangan Panjang Opsi TWK: Menerapkan batasan ketat selisih panjang kalimat antaropsi (maksimal 2-4 kata) dan melarang jawaban benar menjadi opsi yang paling panjang atau paling bertele-tele.",
+      "Variasi Pola Multi-Step TIU: Menyuntikkan ragam arketipe segar untuk Numerik (deret 3 larik bersilang, aljabar simetris, domain perbandingan kuantitatif dinamis P < Q / P > Q, proyek multi-tahap) dan Verbal (analogi kosa kata KBBI tinggi, silogisme 3-4 premis dengan kontraposisi, analitis posisi spasial/meja bundar).",
+      "Validasi & AI Critic Otomatis: Validator deterministik dan AI Critic kini memfilter secara tegas opsi TWK yang terlalu mencolok (obvious) dan deret angka TIU yang terlalu sederhana."
+    ]
+  },
   {
     version: "4.5.4",
     date: new Date().toISOString().split('T')[0],
