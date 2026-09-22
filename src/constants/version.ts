@@ -5,9 +5,21 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "4.5.5";
+export const APP_VERSION = "4.5.6";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "4.5.6",
+    date: new Date().toISOString().split('T')[0],
+    type: "patch",
+    notes: [
+      "Standardisasi Pintasan Keyboard Satu Tombol: Seluruh pintasan diselaraskan menjadi satu tombol saja dan konsisten antara Sesi Ujian (SessionEngine) dan Riwayat Belajar (ReviewView).",
+      "Penyeragaman Bintang (B) & Zoom Font (Q/W): Menyatukan tombol Soal Terbaik menjadi satu tombol 'B' (meniadakan bentrok S) dan zoom font menjadi satu tombol murni 'Q' (perkecil) dan 'W' (perbesar) tanpa tanda plus/minus.",
+      "Reposisi Tombol Bintang ke Navigasi Box: Tombol bintang (Tandai Soal Terbaik) kini diletakkan rapi dan elegan tepat di sebelah kanan tulisan 'Navigasi' di dalam box navigasi.",
+      "Pembersihan Bar Bawah Pengerjaan Soal: Menghilangkan kontrol font dan label pintasan keyboard di bawah soal agar tampilan pengerjaan jauh lebih bersih, fokus, dan bebas distraksi.",
+      "Perluasan Area Box Soal (Laptop-Friendly): Memperlebar kontainer soal menjadi max-w-5xl/6xl dengan tinggi scroll fleksibel sehingga memanfaatkan ruang kosong di laptop secara optimal tanpa mengorbankan kenyamanan mobile."
+    ]
+  },
   {
     version: "4.5.5",
     date: new Date().toISOString().split('T')[0],

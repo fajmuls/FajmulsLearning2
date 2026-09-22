@@ -363,15 +363,16 @@ const ShortcutMenuModal: React.FC<{
     const shortcuts = [
         { key: "→", desc: "Soal Berikutnya" },
         { key: "←", desc: "Soal Sebelumnya" },
-        { key: "1-5", desc: "Pilih Jawaban A-E" },
+        { key: "1 - 5", desc: "Pilih Jawaban A - E" },
         { key: "R", desc: "Tandai Ragu-ragu" },
-        { key: "B / S", desc: "Tandai Soal Terbaik (⭐)" },
+        { key: "B", desc: "Tandai Soal Terbaik (⭐)" },
+        { key: "S", desc: "Split Screen Wacana / Figural" },
+        { key: "W", desc: "Perbesar Font (Zoom In)" },
+        { key: "Q", desc: "Perkecil Font (Zoom Out)" },
+        { key: "V", desc: "Matikan / Hidupkan Suara" },
         { key: "Esc", desc: "Jeda / Tutup Menu" },
         { key: "Spasi", desc: "Lompat Subtes Berikutnya" },
-        { key: "Enter", desc: "Selesaikan Tes" },
-        { key: "W", desc: "Perbesar Tulisan" },
-        { key: "Q", desc: "Perkecil Tulisan" },
-        { key: "↑ / ↓", desc: "Scroll Halaman" }
+        { key: "Enter", desc: "Selesaikan Tes" }
     ];
 
     return (
@@ -1517,13 +1518,13 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
             
             const currentQ = activeQuestions[currentIndex];
 
-            if (e.key === 'ArrowRight' || e.key === 'n' || e.key === 'N') {
+            if (e.key === 'ArrowRight') {
                 e.preventDefault();
                 if (currentIndex < activeQuestions.length - 1) {
                     SoundManager.play('click');
                     safeSetCurrentIndex(prev => prev + 1);
                 }
-            } else if (e.key === 'ArrowLeft' || e.key === 'p' || e.key === 'P') {
+            } else if (e.key === 'ArrowLeft') {
                 e.preventDefault();
                 if (currentIndex > 0) {
                     SoundManager.play('click');
@@ -1532,7 +1533,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
             } else if (e.key === 'b' || e.key === 'B') {
                 e.preventDefault();
                 toggleBestQuestion();
-            } else if (e.key === 'm' || e.key === 'M' || e.key === 'r' || e.key === 'R') {
+            } else if (e.key === 'r' || e.key === 'R') {
                 e.preventDefault();
                 toggleDoubtful();
             } else if (e.key === 'v' || e.key === 'V') {
@@ -1546,8 +1547,6 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                 const hasLongReading = (currentQ?.content?.length || 0) > 280;
                 if (hasVisualGraphic || hasLongReading) {
                     setIsSplitReadingView(prev => !prev);
-                } else {
-                    toggleBestQuestion();
                 }
             } else if (e.key === ' ') {
                 e.preventDefault();
@@ -2148,7 +2147,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-1.5 sm:p-4 md:p-6 lg:p-8">
-                    <div className="max-w-3xl mx-auto pb-16 sm:pb-24">
+                    <div className="max-w-5xl xl:max-w-6xl w-full mx-auto pb-12 sm:pb-20">
                         {focusTimerType === 'DEEP_WORK' && window.innerWidth < 768 && (
                             <div className="mb-4 p-3 bg-indigo-50/50 dark:bg-indigo-950/10 border border-indigo-100/55 dark:border-indigo-900/30 rounded-2xl text-center animate-fade-in">
                                 <span className="text-[10px] uppercase font-bold tracking-widest text-indigo-500 gap-1.5 flex items-center justify-center">
@@ -2263,7 +2262,7 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                                                 <span className="text-[10px] text-slate-400 font-normal">Scroll mandiri</span>
                                                             </div>
                                                         )}
-                                                        <div className={`text-slate-800 dark:text-slate-100 fs-${fontSize} leading-relaxed word-break-safe ${isSplitActive ? 'max-h-[380px] lg:max-h-[560px]' : 'max-h-[300px] sm:max-h-[400px] mb-4 sm:mb-6'} overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600`}>
+                                                        <div className={`text-slate-800 dark:text-slate-100 fs-${fontSize} leading-relaxed word-break-safe ${isSplitActive ? 'max-h-[420px] lg:max-h-[620px]' : 'max-h-[400px] sm:max-h-[500px] md:max-h-[620px] lg:max-h-[720px] mb-4 sm:mb-6'} overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600`}>
                                                             {(currentQ.content && currentQ.content.includes(':::MATRIX:::')) || (currentQ.metadata && currentQ.metadata.matrix && currentQ.metadata.matrix.length > 0) ? (
                                                                 <MatrixQuestionRenderer 
                                                                     content={currentQ.content} 
@@ -2488,117 +2487,57 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                 </div>
 
                 <div className="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-2 sm:p-3 z-10 shadow-lg">
-                    <div className="max-w-5xl mx-auto flex justify-between items-center gap-1.5 sm:gap-2">
+                    <div className="max-w-5xl xl:max-w-6xl w-full mx-auto flex justify-between items-center gap-2 sm:gap-4">
                         {/* Tombol Sebelumnya */}
                         <button 
                             onClick={() => safeSetCurrentIndex(prev => Math.max(0, prev - 1))} 
                             disabled={currentIndex === 0} 
-                            className="flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-750 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 text-[11px] sm:text-xs md:text-sm shrink-0 transition shadow-xs" 
-                            title="Soal Sebelumnya (Tombol P atau Panah Kiri)"
+                            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-750 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 text-xs sm:text-sm shrink-0 transition shadow-xs active:scale-95" 
+                            title="Soal Sebelumnya"
                         >
-                            <ArrowLeft size={13} className="sm:w-4 sm:h-4"/> 
+                            <ArrowLeft size={15}/> 
                             <span className="hidden sm:inline">Sebelumnya</span>
                             <span className="sm:hidden">Prev</span>
-                            <kbd className="hidden md:inline-flex text-[9px] font-mono font-bold bg-white dark:bg-slate-700 px-1 py-0.5 rounded text-slate-500 border border-slate-200 dark:border-slate-600 ml-0.5">P</kbd>
                         </button>
                         
                         {/* Area Kontrol Tengah */}
-                        <div className="flex items-center justify-center gap-1 sm:gap-2 flex-wrap">
+                        <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
                             {/* Split Screen Wacana Bacaan */}
                             {hasLongReading && (
                                 <button
                                     onClick={() => setIsSplitReadingView(prev => !prev)}
-                                    className={`flex items-center gap-1 px-2 py-1 sm:py-1.5 rounded-lg border text-[10px] sm:text-xs font-bold transition shrink-0 ${
+                                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border text-xs font-bold transition shrink-0 ${
                                         isSplitReadingView
                                             ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                                             : 'bg-slate-50 dark:bg-slate-750 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                                     }`}
-                                    title="Split Screen Wacana Bacaan (Tombol S)"
+                                    title="Split Screen Wacana Bacaan (S)"
                                 >
-                                    <Columns size={12} className="sm:w-3.5 sm:h-3.5" />
-                                    <span className="hidden lg:inline">{isSplitReadingView ? 'Tutup Split' : 'Split Wacana'}</span>
-                                    <kbd className={`hidden md:inline-flex text-[9px] font-mono font-bold px-1 py-0.2 rounded ${isSplitReadingView ? 'bg-indigo-700 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>S</kbd>
-                                </button>
-                            )}
-
-                            {/* Font Scale Controls */}
-                            <div className="hidden sm:flex items-center gap-0.5 bg-slate-100 dark:bg-slate-750 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0">
-                                <button
-                                    onClick={() => changeFontSize('down')}
-                                    disabled={fontSize === 'xs'}
-                                    className="flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 rounded transition disabled:opacity-30"
-                                    title="Perkecil Font (Q)"
-                                >
-                                    <span>A-</span>
-                                    <kbd className="hidden lg:inline text-[8px] font-mono text-slate-400">Q</kbd>
-                                </button>
-                                <span className="text-[10px] font-mono font-bold text-slate-500 px-1 uppercase">
-                                    {fontSize}
-                                </span>
-                                <button
-                                    onClick={() => changeFontSize('up')}
-                                    disabled={fontSize === 'xl'}
-                                    className="flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 rounded transition disabled:opacity-30"
-                                    title="Perbesar Font (W)"
-                                >
-                                    <span>A+</span>
-                                    <kbd className="hidden lg:inline text-[8px] font-mono text-slate-400">W</kbd>
-                                </button>
-                            </div>
-
-                            {/* Audio Mute Toggle */}
-                            <button
-                                onClick={() => {
-                                    const muted = SoundManager.toggleSound();
-                                    setIsAudioMuted(muted);
-                                    showToast(muted ? "Audio dimatikan (Muted)" : "Audio diaktifkan", "info");
-                                }}
-                                className="flex items-center gap-1 p-1.5 sm:px-2 sm:py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-750 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition shrink-0"
-                                title={isAudioMuted ? "Aktifkan Audio (V)" : "Matikan Audio (V)"}
-                            >
-                                {isAudioMuted ? <VolumeX size={13} className="text-rose-500" /> : <Volume2 size={13} className="text-slate-600 dark:text-slate-300" />}
-                                <kbd className="hidden md:inline-flex text-[9px] font-mono text-slate-400">V</kbd>
-                            </button>
-
-                            {/* Tombol Soal Terbaik (Bintang) */}
-                            {currentQ && (
-                                <button 
-                                    onClick={() => toggleBestQuestion()} 
-                                    className={`flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold text-[10px] sm:text-xs md:text-sm border transition shrink-0 ${
-                                        isCurrentBest 
-                                            ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700 shadow-xs' 
-                                            : 'bg-slate-50 dark:bg-slate-750 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
-                                    }`} 
-                                    title="Tandai Soal Terbaik (Shortcut: B atau S)"
-                                >
-                                    <Star size={13} className={isCurrentBest ? "fill-amber-500 text-amber-500" : "text-slate-400"} />
-                                    <span className="hidden sm:inline">{isCurrentBest ? 'Terbaik' : 'Tandai Terbaik'}</span>
-                                    <span className="sm:hidden">⭐</span>
-                                    <kbd className="hidden md:inline-flex text-[9px] font-mono font-bold bg-amber-200/50 dark:bg-amber-900/50 px-1 py-0.2 rounded text-amber-800 dark:text-amber-300 ml-0.5">B</kbd>
+                                    <Columns size={14} />
+                                    <span className="hidden sm:inline">{isSplitReadingView ? 'Tutup Split' : 'Split Wacana'}</span>
                                 </button>
                             )}
 
                             {/* Tombol Ragu-ragu */}
                             <button 
                                 onClick={toggleDoubtful} 
-                                className={`flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold text-[10px] sm:text-xs md:text-sm border transition shrink-0 ${
+                                className={`flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-bold text-xs sm:text-sm border transition shrink-0 ${
                                     currentAns?.isDoubtful 
                                         ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700 shadow-xs' 
                                         : 'bg-slate-50 dark:bg-slate-750 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
                                 }`} 
-                                title="Tandai Ragu-ragu (Tombol R atau M)"
+                                title="Tandai Ragu-ragu"
                             >
-                                <input type="checkbox" checked={currentAns?.isDoubtful || false} readOnly className="w-3 h-3 sm:w-3.5 sm:h-3.5 accent-amber-500 cursor-pointer shrink-0"/>
+                                <input type="checkbox" checked={currentAns?.isDoubtful || false} readOnly className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-amber-500 cursor-pointer shrink-0"/>
                                 <span className="hidden sm:inline">Ragu-ragu</span>
                                 <span className="sm:hidden">Ragu</span>
-                                <kbd className="hidden md:inline-flex text-[9px] font-mono font-bold bg-amber-200/50 dark:bg-amber-900/50 px-1 py-0.2 rounded text-amber-800 dark:text-amber-300 ml-0.5">R</kbd>
                             </button>
 
                             {/* Bank Soal (Admin Only) */}
                             {isAdminAuthenticated && currentQ && (
                                 <button 
                                     onClick={handleSaveToBank}
-                                    className={`flex items-center gap-1 px-2 py-1 rounded-lg font-bold text-[10px] sm:text-xs shrink-0 transition border ${
+                                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-bold text-xs shrink-0 transition border ${
                                         bankSoalIds.has(currentQ.id)
                                             ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
                                             : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800'
@@ -2606,17 +2545,17 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                     title="Simpan ke Bank Soal (Admin)"
                                 >
                                     {bankSoalIds.has(currentQ.id) ? (
-                                        <CheckCircle size={12} className="shrink-0"/>
+                                        <CheckCircle size={13} className="shrink-0"/>
                                     ) : (
-                                        <Bookmark size={12} className="shrink-0"/>
+                                        <Bookmark size={13} className="shrink-0"/>
                                     )}
                                     <span className="hidden lg:inline">Bank</span>
                                 </button>
                             )}
 
                             {initialState && (
-                                <div className="hidden xl:flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded">
-                                    <Save size={10}/> Saved
+                                <div className="hidden xl:flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded-md">
+                                    <Save size={11}/> Saved
                                 </div>
                             )}
                         </div>
@@ -2631,15 +2570,14 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
                                     handleRequestFinish();
                                 }
                             }} 
-                            className="flex items-center gap-1 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl font-black bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm text-[11px] sm:text-xs md:text-sm shrink-0 transition active:scale-95"
-                            title="Soal Berikutnya (Tombol N atau Panah Kanan)"
+                            className="flex items-center gap-1.5 px-3.5 sm:px-5 py-2 rounded-xl font-black bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm text-xs sm:text-sm shrink-0 transition active:scale-95" 
+                            title="Soal Berikutnya"
                         >
                             <span className="hidden sm:inline">
                                 {currentIndex === activeQuestions.length - 1 ? (isUtbkSimulation && utbkSubtestIndex < UTBK_EXAM_CONFIG.length - 1 ? 'Lanjut Subtes' : 'Selesai Tes') : 'Berikutnya'}
                             </span> 
                             <span className="sm:hidden font-bold">{currentIndex === activeQuestions.length - 1 ? 'Selesai' : 'Next'}</span>
-                            <kbd className="hidden md:inline-flex text-[9px] font-mono font-bold text-indigo-200 bg-indigo-700/80 px-1 py-0.5 rounded ml-0.5">N</kbd>
-                            <ChevronRight size={13} className="sm:w-4 sm:h-4"/>
+                            <ChevronRight size={15}/>
                         </button>
                     </div>
                 </div>
@@ -2647,8 +2585,31 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
 
             <div className={`fixed inset-y-0 right-0 w-72 sm:w-80 bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 transform transition-transform duration-300 z-[100] md:z-40 flex flex-col order-2 ${isMobileGridOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0 md:relative md:w-80`}>
                 <div className="p-3 sm:p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800 shrink-0"> 
-                    <h3 className="font-black text-sm text-slate-800 dark:text-white">Navigasi</h3>
-                    <button onClick={() => setIsMobileGridOpen(false)} className="md:hidden p-1 bg-slate-200 dark:bg-slate-700 rounded-md text-slate-600 dark:text-slate-300"><XCircle size={16}/></button> 
+                    <div className="flex items-center gap-2">
+                        <h3 className="font-black text-sm text-slate-800 dark:text-white">Navigasi</h3>
+                        <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded">
+                            {currentIndex + 1}/{activeQuestions.length}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        {/* Tombol Soal Terbaik (Bintang) tepat di sebelah kanan Navigasi di dalam box */}
+                        {currentQ && (
+                            <button 
+                                onClick={() => toggleBestQuestion()} 
+                                className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg font-bold text-[11px] sm:text-xs border transition shadow-xs ${
+                                    isCurrentBest 
+                                        ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-600' 
+                                        : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-amber-400 hover:text-amber-500'
+                                }`} 
+                                title={isCurrentBest ? "Hapus Tanda Soal Terbaik (Shortcut: B)" : "Tandai Soal Terbaik (Shortcut: B)"}
+                            >
+                                <Star size={13} className={isCurrentBest ? "fill-amber-500 text-amber-500" : "text-slate-400"} />
+                                <span>{isCurrentBest ? 'Terbaik' : 'Bintang'}</span>
+                                <kbd className="hidden lg:inline-flex text-[9px] font-mono font-bold bg-amber-200/50 dark:bg-amber-900/50 px-1 rounded text-amber-800 dark:text-amber-300 ml-0.5">B</kbd>
+                            </button>
+                        )}
+                        <button onClick={() => setIsMobileGridOpen(false)} className="md:hidden p-1 bg-slate-200 dark:bg-slate-700 rounded-md text-slate-600 dark:text-slate-300"><XCircle size={16}/></button> 
+                    </div>
                 </div>
                 
                 {/* TIMER MENU SELECTION */}
@@ -2794,22 +2755,59 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
 
                 {/* ACTION BUTTONS & CONTROLS DI BAGIAN PALING BAWAH */}
                 <div className="p-3 sm:p-3.5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 shrink-0 space-y-2.5">
+                    {/* Font Scale & Shortcut in Navigasi Box */}
+                    <div className="flex items-center justify-between gap-2 bg-white dark:bg-slate-750 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Font:</span>
+                            <span className="text-[10px] font-mono font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-1.5 py-0.5 rounded border border-indigo-200/50 dark:border-indigo-800/50">
+                                {fontSize.toUpperCase()}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => changeFontSize('down')}
+                                disabled={fontSize === 'xs'}
+                                className="flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 transition disabled:opacity-30"
+                                title="Perkecil Font (Shortcut: Q)"
+                            >
+                                <span>A-</span>
+                                <kbd className="text-[8px] font-mono text-slate-400 ml-0.5">Q</kbd>
+                            </button>
+                            <button
+                                onClick={() => changeFontSize('up')}
+                                disabled={fontSize === 'xl'}
+                                className="flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 transition disabled:opacity-30"
+                                title="Perbesar Font (Shortcut: W)"
+                            >
+                                <span>A+</span>
+                                <kbd className="text-[8px] font-mono text-slate-400 ml-0.5">W</kbd>
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Action Icon Buttons */}
                     <div className="flex flex-wrap items-center justify-center gap-1.5">
-                        {/* Tandai Soal Terbaik (Bintang) */}
-                        {currentQ && (
-                            <button 
-                                onClick={() => toggleBestQuestion()} 
-                                className={`flex items-center justify-center w-7 h-7 border rounded flex-shrink-0 transition shadow-sm group ${
-                                    isCurrentBest 
-                                        ? 'bg-amber-100 dark:bg-amber-950/50 border-amber-400 dark:border-amber-600 text-amber-500 shadow-xs' 
-                                        : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-400 hover:border-amber-400 hover:text-amber-500'
-                                }`} 
-                                title={isCurrentBest ? "Hapus Tanda Soal Terbaik (Shortcut: B atau S)" : "Tandai Soal Terbaik (Shortcut: B atau S)"}
-                            >
-                                <Star size={14} className={isCurrentBest ? "fill-amber-400 text-amber-500" : "group-hover:text-amber-500 transition-colors"} />
-                            </button>
-                        )}
+                        {/* Audio Mute Toggle */}
+                        <button
+                            onClick={() => {
+                                const muted = SoundManager.toggleSound();
+                                setIsAudioMuted(muted);
+                                showToast(muted ? "Audio dimatikan (Muted)" : "Audio diaktifkan", "info");
+                            }}
+                            className="flex items-center justify-center w-7 h-7 bg-white dark:bg-slate-750 border border-slate-200 dark:border-slate-700 rounded flex-shrink-0 hover:bg-slate-100 dark:hover:bg-slate-700 transition shadow-xs group"
+                            title={isAudioMuted ? "Aktifkan Audio (V)" : "Matikan Audio (V)"}
+                        >
+                            {isAudioMuted ? <VolumeX size={14} className="text-rose-500" /> : <Volume2 size={14} className="text-slate-500 group-hover:text-slate-700 dark:text-slate-400" />}
+                        </button>
+
+                        {/* Pintasan Keyboard Info */}
+                        <button 
+                            onClick={() => setShowShortcutModal(true)} 
+                            className="flex items-center justify-center w-7 h-7 bg-white dark:bg-slate-750 border border-slate-200 dark:border-slate-700 rounded flex-shrink-0 hover:border-indigo-400 hover:text-indigo-500 transition shadow-xs group" 
+                            title="Pintasan Keyboard (Shortcuts)"
+                        >
+                            <Keyboard size={14} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                        </button>
 
                         {/* Tandai */}
                         <button onClick={() => setShowFlagModal(true)} className="flex items-center justify-center w-7 h-7 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded flex-shrink-0 hover:border-amber-400 hover:text-amber-500 transition shadow-sm group" title="Tandai Soal">

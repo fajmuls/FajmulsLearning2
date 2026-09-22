@@ -855,12 +855,12 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
             }
 
             // Font size shortcuts (matching Session Engine: Q = down, W = up)
-            if (e.key === 'w' || e.key === 'W' || e.key === '+' || e.key === '=' || e.key === ']') {
+            if (e.key === 'w' || e.key === 'W') {
                 e.preventDefault();
                 changeFontSize('up');
                 return;
             }
-            if (e.key === 'q' || e.key === 'Q' || e.key === '-' || e.key === '_' || e.key === '[') {
+            if (e.key === 'q' || e.key === 'Q') {
                 e.preventDefault();
                 changeFontSize('down');
                 return;
@@ -871,16 +871,16 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                 return;
             }
 
-            // View Mode Toggle (V or L)
-            if (e.key === 'v' || e.key === 'V' || e.key === 'l' || e.key === 'L') {
+            // View Mode Toggle (V)
+            if (e.key === 'v' || e.key === 'V') {
                 e.preventDefault();
                 SoundManager.play('click');
                 setStudyMode(prev => prev === 'LIST' ? 'FOCUS' : 'LIST');
                 return;
             }
 
-            // Self-Test Toggle (T or M)
-            if (e.key === 't' || e.key === 'T' || e.key === 'm' || e.key === 'M') {
+            // Self-Test Toggle (T)
+            if (e.key === 't' || e.key === 'T') {
                 e.preventDefault();
                 SoundManager.play('click');
                 setIsSelfTestMode(prev => {
@@ -901,15 +901,15 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
 
             // Actions on current question
             if (currentActiveQuestion) {
-                // Toggle Understood (P or U)
-                if (e.key === 'p' || e.key === 'P' || e.key === 'u' || e.key === 'U') {
+                // Toggle Understood (U)
+                if (e.key === 'u' || e.key === 'U') {
                     e.preventDefault();
                     toggleUnderstood(currentActiveQuestion.id);
                     return;
                 }
 
-                // Toggle Best Question (B or S)
-                if (e.key === 'b' || e.key === 'B' || e.key === 's' || e.key === 'S') {
+                // Toggle Best Question (B) - uniform single-key B matching Session Engine
+                if (e.key === 'b' || e.key === 'B') {
                     e.preventDefault();
                     toggleBestQuestion(currentActiveQuestion.id);
                     return;
@@ -930,8 +930,8 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                     return;
                 }
 
-                // Toggle Note Editor (N or E)
-                if (e.key === 'n' || e.key === 'N' || e.key === 'e' || e.key === 'E') {
+                // Toggle Note Editor (N)
+                if (e.key === 'n' || e.key === 'N') {
                     e.preventDefault();
                     setActiveNoteEditor(prev => prev === currentActiveQuestion.id ? null : currentActiveQuestion.id);
                     return;
@@ -2367,7 +2367,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                 onClick={() => changeFontSize('down')}
                                 disabled={fontSize === 'xs'}
                                 className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 transition"
-                                title="Perkecil Font (-)"
+                                title="Perkecil Font (Shortcut: Q)"
                             >
                                 <Minus size={13} />
                             </button>
@@ -2378,7 +2378,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                 onClick={() => changeFontSize('up')}
                                 disabled={fontSize === 'xl'}
                                 className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 transition"
-                                title="Perbesar Font (+)"
+                                title="Perbesar Font (Shortcut: W)"
                             >
                                 <Plus size={13} />
                             </button>
@@ -2399,7 +2399,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                     </div>
                                     <div>
                                         <h3 className="text-base font-black text-slate-900 dark:text-white">Daftar Shortcut Keyboard</h3>
-                                        <p className="text-xs text-slate-400">Trik navigasi cepat & efisien saat mengulas soal</p>
+                                        <p className="text-xs text-slate-400">Pintasan satu tombol seragam & konsisten</p>
                                     </div>
                                 </div>
                                 <button
@@ -2419,23 +2419,23 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                     <div className="space-y-1.5">
                                         <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
                                             <span className="text-slate-700 dark:text-slate-300">Perbesar Font Teks</span>
-                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">W</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">+</kbd></div>
+                                            <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">W</kbd>
                                         </div>
                                         <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
                                             <span className="text-slate-700 dark:text-slate-300">Perkecil Font Teks</span>
-                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">Q</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">-</kbd></div>
+                                            <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">Q</kbd>
                                         </div>
                                         <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
                                             <span className="text-slate-700 dark:text-slate-300">Reset Ukuran Font Normal</span>
                                             <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">0</kbd>
                                         </div>
                                         <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
-                                            <span className="text-slate-700 dark:text-slate-300">Ganti Mode (Daftar / Flashcard)</span>
-                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">V</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">L</kbd></div>
+                                            <span className="text-slate-700 dark:text-slate-300">Ganti Mode (Daftar / Focus)</span>
+                                            <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">V</kbd>
                                         </div>
                                         <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
                                             <span className="text-slate-700 dark:text-slate-300">Mode Uji Mandiri (Tutup/Buka Kunci)</span>
-                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">T</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">M</kbd></div>
+                                            <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">T</kbd>
                                         </div>
                                     </div>
                                 </div>
@@ -2446,16 +2446,16 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                     </div>
                                     <div className="space-y-1.5">
                                         <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
-                                            <span className="text-slate-700 dark:text-slate-300">Tandai Sudah Paham (✅)</span>
-                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">P</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">U</kbd></div>
+                                            <span className="text-slate-700 dark:text-slate-300">Tandai Soal Terbaik (⭐)</span>
+                                            <kbd className="px-2 py-1 bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 rounded font-mono font-bold shadow-xs">B</kbd>
                                         </div>
                                         <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
-                                            <span className="text-slate-700 dark:text-slate-300">Tandai Soal Terbaik (⭐)</span>
-                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">B</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">S</kbd></div>
+                                            <span className="text-slate-700 dark:text-slate-300">Tandai Sudah Paham (✅)</span>
+                                            <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">U</kbd>
                                         </div>
                                         <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
                                             <span className="text-slate-700 dark:text-slate-300">Catatan Belajar Pribadi</span>
-                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">N</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">E</kbd></div>
+                                            <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">N</kbd>
                                         </div>
                                         <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
                                             <span className="text-slate-700 dark:text-slate-300">Salin Teks Soal & Pembahasan</span>
@@ -2475,11 +2475,14 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                     <div className="space-y-1.5">
                                         <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
                                             <span className="text-slate-700 dark:text-slate-300">Soal Sebelumnya / Selanjutnya</span>
-                                            <div className="flex gap-1"><kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">←</kbd> <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">→</kbd></div>
+                                            <div className="flex gap-1">
+                                                <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">K / ←</kbd> 
+                                                <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">J / →</kbd>
+                                            </div>
                                         </div>
                                         <div className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50">
                                             <span className="text-slate-700 dark:text-slate-300">Pilih Filter Soal (1 - 6)</span>
-                                            <div className="flex gap-1"><kbd className="px-1.5 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">1</kbd>..<kbd className="px-1.5 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">6</kbd></div>
+                                            <kbd className="px-2 py-1 bg-white dark:bg-slate-800 border rounded font-mono font-bold shadow-xs">1 - 6</kbd>
                                         </div>
                                     </div>
                                 </div>
