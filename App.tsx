@@ -3937,7 +3937,8 @@ function App() {
       skdVariant: selectedCategory === "SKD" ? skdVariant : undefined,
       tpaStream: tpaStream || undefined,
       tkaLevel: tkaLevel || undefined,
-      progress: 5,
+      progress: 0,
+      message: selectedCategory === "SKD" ? `Menyiapkan generator batch ${skdVariant}...` : 'Meracik soal berkualitas tinggi...',
       status: "generating",
       createdAt: new Date().toISOString(),
     };
@@ -3945,16 +3946,19 @@ function App() {
     setActiveGenTask(initialTask);
     showToast(`AI mulai meracik "${title}" di latar belakang.`, "info");
 
-    // Simulate progress updates during async execution
-    let currentProgress = 5;
-    const progressInterval = setInterval(() => {
-      currentProgress += Math.floor(Math.random() * 8) + 3;
-      if (currentProgress > 95) currentProgress = 95; // Wait for active API completion
-      setActiveGenTask((prev) => {
-        if (!prev || prev.id !== taskId) return prev;
-        return { ...prev, progress: currentProgress };
-      });
-    }, 1200);
+    // Only simulate progress updates for non-SKD categories (SKD has true real-time batch progress callbacks)
+    let progressInterval: any = null;
+    if (selectedCategory !== "SKD") {
+      let currentProgress = 5;
+      progressInterval = setInterval(() => {
+        currentProgress += Math.floor(Math.random() * 8) + 3;
+        if (currentProgress > 95) currentProgress = 95; // Wait for active API completion
+        setActiveGenTask((prev) => {
+          if (!prev || prev.id !== taskId) return prev;
+          return { ...prev, progress: currentProgress };
+        });
+      }, 1200);
+    }
 
     // 2. Perform the actual API invocation asynchronously (non-blocking)
     (async () => {
@@ -3975,7 +3979,7 @@ function App() {
             }
           );
           if (!res.completed) {
-            clearInterval(progressInterval);
+            if (progressInterval) clearInterval(progressInterval);
             setActiveGenTask((prev) => {
               if (!prev || prev.id !== taskId) return prev;
               return { ...prev, status: "paused", savedState: res.state, errorMsg: res.errorMsg };
@@ -4033,7 +4037,7 @@ function App() {
           );
         }
 
-        clearInterval(progressInterval);
+        if (progressInterval) clearInterval(progressInterval);
 
         // Define package structure
         const newPackage: StaticTestPackage = {
@@ -4073,7 +4077,7 @@ function App() {
           });
         }
       } catch (err) {
-        clearInterval(progressInterval);
+        if (progressInterval) clearInterval(progressInterval);
         console.error("Error in background generation task:", err);
         setActiveGenTask((prev) => {
           if (!prev || prev.id !== taskId) return prev;
@@ -4095,17 +4099,6 @@ function App() {
     
     setActiveGenTask(prev => prev ? { ...prev, status: 'generating', errorMsg: undefined } : prev);
     showToast(`Melanjutkan pembuatan "${task.title}"...`, "info");
-    
-    // Simulate progress
-    let currentProgress = task.progress;
-    const progressInterval = setInterval(() => {
-      currentProgress += Math.floor(Math.random() * 8) + 3;
-      if (currentProgress > 95) currentProgress = 95;
-      setActiveGenTask((prev) => {
-        if (!prev || prev.id !== task.id) return prev;
-        return { ...prev, progress: currentProgress };
-      });
-    }, 1200);
 
     try {
       const skdVariant = task.skdVariant || (task.title.includes('Spesial TWK') ? 'TWK' : task.title.includes('Spesial TIU') ? 'TIU' : task.title.includes('Spesial TKP') ? 'TKP' : 'FULL');
@@ -4119,7 +4112,6 @@ function App() {
       });
       
       if (!res.completed) {
-        clearInterval(progressInterval);
         setActiveGenTask((prev) => {
           if (!prev || prev.id !== task.id) return prev;
           return { ...prev, status: "paused", savedState: res.state, errorMsg: res.errorMsg };
@@ -4129,7 +4121,6 @@ function App() {
       }
 
       let newQuestions = res.questions || [];
-      clearInterval(progressInterval);
 
       // Determine proper package ID with subtest variant tag
       let resolvedPackageId = task.targetPackageId;
@@ -4165,7 +4156,6 @@ function App() {
       });
       showToast(`AI Selesai! Paket "${task.title}" siap dikerjakan.`, "success");
     } catch (err) {
-        clearInterval(progressInterval);
         console.error("Error resuming background generation task:", err);
         setActiveGenTask((prev) => {
           if (!prev || prev.id !== task.id) return prev;

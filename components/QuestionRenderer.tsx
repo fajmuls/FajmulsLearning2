@@ -222,6 +222,138 @@ const ensureLaTeXWrapping = (text: string, isOption: boolean = false): string =>
     return processed;
 };
 
+// --- Markdown Table Parser & Authentic Table Renderer ---
+export interface ParsedMarkdownTable {
+    headers: string[];
+    rows: string[][];
+    alignments: ('left' | 'center' | 'right')[];
+}
+
+export const parseMarkdownTable = (block: string): ParsedMarkdownTable | null => {
+    const rawLines = block.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (rawLines.length < 2) return null;
+    if (!rawLines[0].startsWith('|') || !rawLines[1].startsWith('|')) return null;
+
+    const extractCells = (row: string) => {
+        return row
+            .replace(/^\|/, '')
+            .replace(/\|$/, '')
+            .split('|')
+            .map(c => c.trim());
+    };
+
+    const headers = extractCells(rawLines[0]);
+    const separatorCells = extractCells(rawLines[1]);
+    if (headers.length === 0 || separatorCells.length !== headers.length) return null;
+
+    const isSeparatorRow = separatorCells.every(c => /^:?-+:?$/.test(c));
+    if (!isSeparatorRow) return null;
+
+    const alignments: ('left' | 'center' | 'right')[] = separatorCells.map(c => {
+        if (c.startsWith(':') && c.endsWith(':')) return 'center';
+        if (c.endsWith(':')) return 'right';
+        return 'left';
+    });
+
+    const rows: string[][] = [];
+    for (let i = 2; i < rawLines.length; i++) {
+        if (!rawLines[i].startsWith('|')) break;
+        const cells = extractCells(rawLines[i]);
+        while (cells.length < headers.length) cells.push('');
+        rows.push(cells.slice(0, headers.length));
+    }
+
+    return { headers, rows, alignments };
+};
+
+export const splitByTables = (text: string): { isTable: boolean; content: string; table?: ParsedMarkdownTable }[] => {
+    const lines = text.split(/\r?\n/);
+    const segments: { isTable: boolean; content: string; table?: ParsedMarkdownTable }[] = [];
+    let currentNonTable: string[] = [];
+    let i = 0;
+
+    while (i < lines.length) {
+        const trimmed = lines[i].trim();
+        if (trimmed.startsWith('|') && trimmed.endsWith('|') && i + 1 < lines.length) {
+            const nextTrimmed = lines[i + 1].trim();
+            if (nextTrimmed.startsWith('|') && nextTrimmed.includes('-') && /^\|(?:\s*:?-+:?\s*\|)+$/.test(nextTrimmed)) {
+                if (currentNonTable.length > 0) {
+                    segments.push({ isTable: false, content: currentNonTable.join('\n') });
+                    currentNonTable = [];
+                }
+                const tableLines: string[] = [];
+                while (i < lines.length && lines[i].trim().startsWith('|')) {
+                    tableLines.push(lines[i].trim());
+                    i++;
+                }
+                const parsed = parseMarkdownTable(tableLines.join('\n'));
+                if (parsed) {
+                    segments.push({ isTable: true, content: tableLines.join('\n'), table: parsed });
+                } else {
+                    segments.push({ isTable: false, content: tableLines.join('\n') });
+                }
+                continue;
+            }
+        }
+        currentNonTable.push(lines[i]);
+        i++;
+    }
+
+    if (currentNonTable.length > 0) {
+        segments.push({ isTable: false, content: currentNonTable.join('\n') });
+    }
+
+    return segments;
+};
+
+export const AuthenticTableRenderer: React.FC<{
+    table: ParsedMarkdownTable;
+}> = React.memo(({ table }) => {
+    return (
+        <div className="my-3 sm:my-4 w-full overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-750 shadow-xs bg-white dark:bg-slate-850">
+            <table className="w-full text-left text-xs sm:text-sm border-collapse">
+                <thead>
+                    <tr className="bg-slate-100/90 dark:bg-slate-750 border-b border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200">
+                        {table.headers.map((h, i) => {
+                            const align = table.alignments[i] || 'center';
+                            const alignClass = align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left';
+                            return (
+                                <th
+                                    key={i}
+                                    className={`py-2 px-3 sm:py-2.5 sm:px-4 font-bold border-r last:border-r-0 border-slate-200 dark:border-slate-700 ${alignClass}`}
+                                >
+                                    <SimpleMarkdown text={h} isOption={true} />
+                                </th>
+                            );
+                        })}
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-150 dark:divide-slate-750 text-slate-700 dark:text-slate-300">
+                    {table.rows.map((row, rIdx) => (
+                        <tr
+                            key={rIdx}
+                            className="even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 transition-colors"
+                        >
+                            {row.map((cell, cIdx) => {
+                                const align = table.alignments[cIdx] || 'center';
+                                const alignClass = align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left';
+                                return (
+                                    <td
+                                        key={cIdx}
+                                        className={`py-2 px-3 sm:py-2.5 sm:px-4 border-r last:border-r-0 border-slate-200 dark:border-slate-700 ${alignClass}`}
+                                    >
+                                        <SimpleMarkdown text={cell} isOption={true} />
+                                    </td>
+                                );
+                            })}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+});
+
 export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean; isOption?: boolean }> = React.memo(({ text, allowIndent = false, isOption = false }) => {
     if (!text) return null;
 
@@ -329,91 +461,102 @@ export const SimpleMarkdown: React.FC<{ text: string; allowIndent?: boolean; isO
                         </pre>
                     );
                 } else {
-                    const mathParts = part.split(/(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\])/g);
-                    
+                    const tableSegments = splitByTables(part);
+
                     return (
-                        <div key={index} className="w-full">
-                            {mathParts.map((subPart: string, subIndex: number) => {
-                                const isBlockMath = (subPart.startsWith('$$') && subPart.endsWith('$$')) ||
-                                                    (subPart.startsWith('\\[') && subPart.endsWith('\\]'));
-                                if (isBlockMath) {
-                                    const rawExpr = subPart.startsWith('$$') ? subPart.slice(2, -2) : subPart.slice(2, -2);
-                                    const safeMathExpr = cleanMathExpression(rawExpr);
-                                    return (
-                                        <div key={subIndex} className="my-2 sm:my-4 flex justify-center w-full py-1 sm:py-2">
-                                            <div className="min-w-0 max-w-full flex-shrink-0 overflow-hidden word-break-safe text-slate-700 dark:text-slate-300">
-                                                <BlockMath math={safeMathExpr} renderError={() => renderFallbackMath(rawExpr)} />
-                                            </div>
-                                        </div>
-                                    );
-                                } else {
-                                    // Support both \( ... \) and $ ... $ for inline math
-                                    const inlineMathParts = subPart.split(/(\\\([\s\S]*?\\\))|(\$(?!\s)[^$\n]+(?<!\s)\$)/g);
-                                    
-                                    return (
-                                        <div key={subIndex} className="inline-wrap w-full text-justify sm:text-left text-slate-700 dark:text-slate-300">
-                                            {inlineMathParts.filter(Boolean).map((inlinePart: string, inlineIndex: number) => {
-                                                const isInlineMath = (inlinePart.startsWith('\\(') && inlinePart.endsWith('\\)')) || 
-                                                                  (inlinePart.startsWith('$') && inlinePart.endsWith('$'));
+                        <div key={index} className="w-full space-y-2">
+                            {tableSegments.map((seg, sIdx) => {
+                                if (seg.isTable && seg.table) {
+                                    return <AuthenticTableRenderer key={sIdx} table={seg.table} />;
+                                }
+
+                                const mathParts = seg.content.split(/(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\])/g);
+                                return (
+                                    <div key={sIdx} className="w-full">
+                                        {mathParts.map((subPart: string, subIndex: number) => {
+                                            const isBlockMath = (subPart.startsWith('$$') && subPart.endsWith('$$')) ||
+                                                                (subPart.startsWith('\\[') && subPart.endsWith('\\]'));
+                                            if (isBlockMath) {
+                                                const rawExpr = subPart.startsWith('$$') ? subPart.slice(2, -2) : subPart.slice(2, -2);
+                                                const safeMathExpr = cleanMathExpression(rawExpr);
+                                                return (
+                                                    <div key={subIndex} className="my-2 sm:my-4 flex justify-center w-full py-1 sm:py-2">
+                                                        <div className="min-w-0 max-w-full flex-shrink-0 overflow-hidden word-break-safe text-slate-700 dark:text-slate-300">
+                                                            <BlockMath math={safeMathExpr} renderError={() => renderFallbackMath(rawExpr)} />
+                                                        </div>
+                                                    </div>
+                                                );
+                                            } else {
+                                                // Support both \( ... \) and $ ... $ for inline math
+                                                const inlineMathParts = subPart.split(/(\\\([\s\S]*?\\\))|(\$(?!\s)[^$\n]+(?<!\s)\$)/g);
                                                 
-                                                if (isInlineMath) {
-                                                    const content = inlinePart.startsWith('\\(') ? inlinePart.slice(2, -2) : inlinePart.slice(1, -1);
-                                                    const safeInlineExpr = cleanMathExpression(content);
-                                                    return (
-                                                        <span key={inlineIndex} className="math-inline mx-0.5 inline-block align-middle max-w-full py-0.5 sm:py-1">
-                                                            <InlineMath math={safeInlineExpr} renderError={() => renderFallbackMath(content)} />
-                                                        </span>
-                                                    );
-                                                } else {
-                                                    const svgParts = inlinePart.split(/(<svg[\s\S]*?<\/svg>)/i);
-
-                                                    return (
-                                                        <span key={inlineIndex} className="inline">
-                                                            {svgParts.map((svgPart: string, svgIndex: number) => {
-                                                                const trimmedSvg = svgPart.trim();
-                                                                if (trimmedSvg.match(/^<svg[\s\S]*?<\/svg>$/i)) {
-                                                                    return (
-                                                                        <div key={svgIndex} className="inline-block align-middle">
-                                                                            <ErrorBoundary compact fallbackMessage="Pola visual tidak dapat dimuat">
-                                                                                <InteractiveFigural svgString={trimmedSvg} isOption={isOption} isInline={true} />
-                                                                            </ErrorBoundary>
-                                                                        </div>
-                                                                    );
-                                                                }
-
-                                                                // Render standard text
-                                                                let formatted = svgPart
-                                                                    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-                                                                    .replace(/\*(.*?)\*/g, '<i>$1</i>')
-                                                                    // Safer list replacement that doesn't put as much HTML
-                                                                    .replace(/\n- (.*?)/g, '<br/>• $1')
-                                                                    // Markers
-                                                                    .replace(/\n(Diketahui:|Ditanya:|Jawab:|Solusi:)/g, '<br/><b>$1</b>')
-                                                                    .replace(/\\n/g, '<br/>')
-                                                                    .replace(/\n\n/g, '<br/><br/>')
-                                                                    .replace(/\n/g, '<br/>');
-
-                                                                // Rupiah
-                                                                formatted = formatted.replace(
-                                                                    /(Rp\.?\s*\d[\d.,]*)/gi,
-                                                                    '<b class="whitespace-nowrap">$1</b>'
+                                                return (
+                                                    <div key={subIndex} className="inline-wrap w-full text-justify sm:text-left text-slate-700 dark:text-slate-300">
+                                                        {inlineMathParts.filter(Boolean).map((inlinePart: string, inlineIndex: number) => {
+                                                            const isInlineMath = (inlinePart.startsWith('\\(') && inlinePart.endsWith('\\)')) || 
+                                                                              (inlinePart.startsWith('$') && inlinePart.endsWith('$'));
+                                                            
+                                                            if (isInlineMath) {
+                                                                const content = inlinePart.startsWith('\\(') ? inlinePart.slice(2, -2) : inlinePart.slice(1, -1);
+                                                                const safeInlineExpr = cleanMathExpression(content);
+                                                                return (
+                                                                    <span key={inlineIndex} className="math-inline mx-0.5 inline-block align-middle max-w-full py-0.5 sm:py-1">
+                                                                        <InlineMath math={safeInlineExpr} renderError={() => renderFallbackMath(content)} />
+                                                                    </span>
                                                                 );
+                                                            } else {
+                                                                const svgParts = inlinePart.split(/(<svg[\s\S]*?<\/svg>)/i);
 
                                                                 return (
-                                                                    <span 
-                                                                        key={svgIndex} 
-                                                                        className="markdown-content inline" 
-                                                                        dangerouslySetInnerHTML={{ __html: formatted }} 
-                                                                    />
+                                                                    <span key={inlineIndex} className="inline">
+                                                                        {svgParts.map((svgPart: string, svgIndex: number) => {
+                                                                            const trimmedSvg = svgPart.trim();
+                                                                            if (trimmedSvg.match(/^<svg[\s\S]*?<\/svg>$/i)) {
+                                                                                return (
+                                                                                    <div key={svgIndex} className="inline-block align-middle">
+                                                                                        <ErrorBoundary compact fallbackMessage="Pola visual tidak dapat dimuat">
+                                                                                            <InteractiveFigural svgString={trimmedSvg} isOption={isOption} isInline={true} />
+                                                                                        </ErrorBoundary>
+                                                                                    </div>
+                                                                                );
+                                                                            }
+
+                                                                            // Render standard text
+                                                                            let formatted = svgPart
+                                                                                .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                                                                                .replace(/\*(.*?)\*/g, '<i>$1</i>')
+                                                                                // Safer list replacement that doesn't put as much HTML
+                                                                                .replace(/\n- (.*?)/g, '<br/>• $1')
+                                                                                // Markers
+                                                                                .replace(/\n(Diketahui:|Ditanya:|Jawab:|Solusi:)/g, '<br/><b>$1</b>')
+                                                                                .replace(/\\n/g, '<br/>')
+                                                                                .replace(/\n\n/g, '<br/><br/>')
+                                                                                .replace(/\n/g, '<br/>');
+
+                                                                            // Rupiah
+                                                                            formatted = formatted.replace(
+                                                                                /(Rp\.?\s*\d[\d.,]*)/gi,
+                                                                                '<b class="whitespace-nowrap">$1</b>'
+                                                                            );
+
+                                                                            return (
+                                                                                <span 
+                                                                                    key={svgIndex} 
+                                                                                    className="markdown-content inline" 
+                                                                                    dangerouslySetInnerHTML={{ __html: formatted }} 
+                                                                                />
+                                                                            );
+                                                                        })}
+                                                                    </span>
                                                                 );
-                                                            })}
-                                                        </span>
-                                                    );
-                                                }
-                                            })}
-                                        </div>
-                                    );
-                                }
+                                                            }
+                                                        })}
+                                                    </div>
+                                                );
+                                            }
+                                        })}
+                                    </div>
+                                );
                             })}
                         </div>
                     );
@@ -427,50 +570,47 @@ export const formatTopic = (subtest: string | undefined, topic: string | undefin
     if (!subtest && !topic) return null;
     
     let raw = topic || subtest || '';
-    if (topic && topic.includes(' - ')) {
-        const parts = topic.split(' - ');
-        raw = parts.slice(1).join(' - ').trim();
-    } else if (topic && !['TWK', 'TIU', 'TKP'].includes(topic)) {
-        raw = topic;
-    } else if (subtest && subtest.includes(' - ')) {
+    if (subtest && subtest.includes(' - ')) {
         const parts = subtest.split(' - ');
+        raw = parts.slice(1).join(' - ').trim();
+    } else if (topic && topic.includes(' - ')) {
+        const parts = topic.split(' - ');
         raw = parts.slice(1).join(' - ').trim();
     } else if (subtest && !['TWK', 'TIU', 'TKP'].includes(subtest)) {
         raw = subtest;
-    } else {
-        return null; // Return null if there's no actual subtopic
+    } else if (topic && !['TWK', 'TIU', 'TKP'].includes(topic)) {
+        raw = topic;
     }
     
     const lowerRaw = raw.toLowerCase();
+    const lowerSub = (subtest || '').toLowerCase();
+    const lowerTop = (topic || '').toLowerCase();
+    const combined = `${lowerSub} ${lowerTop} ${lowerRaw}`;
     
-    // TWK
-    if (lowerRaw.includes('nasionalisme')) return 'Nasionalisme';
-    if (lowerRaw.includes('integritas')) return 'Integritas';
-    if (lowerRaw.includes('bela negara')) return 'Bela negara';
-    if (lowerRaw.includes('pilar negara') || lowerRaw.includes('pancasila') || lowerRaw.includes('uud') || lowerRaw.includes('nkri') || lowerRaw.includes('bhinneka')) return 'Pilar negara';
-    if (lowerRaw.includes('bahasa')) return 'Bahasa Indonesia';
-    
-    // TIU
-    if (lowerRaw.includes('analogi kata')) return 'Analogi kata';
-    if (lowerRaw.includes('analogi kalimat')) return 'Analogi kalimat';
-    if (lowerRaw.includes('hitungan') || lowerRaw.includes('berhitung')) return 'Hitungan';
-    if (lowerRaw.includes('perbandingan')) return 'Perbandingan kuantitatif';
-    if (lowerRaw.includes('cerita')) return 'Soal cerita';
-    if (lowerRaw.includes('deret')) return 'Deret angka';
-    if (lowerRaw.includes('silogisme')) return 'Silogisme';
-    if (lowerRaw.includes('analitis') || lowerRaw.includes('analisis')) return 'Analisis';
-    if (lowerRaw.includes('analogi gambar')) return 'Analogi gambar';
-    if (lowerRaw.includes('serial')) return 'Serial gambar';
-    if (lowerRaw.includes('9 kotak') || lowerRaw.includes('sembilan kotak') || lowerRaw.includes('matriks')) return 'Pola sembilan kotak gambar';
-    if (lowerRaw.includes('ketidaksamaan') || lowerRaw.includes('beda')) return 'Ketidaksamaan gambar';
-    
-    // TKP
-    if (lowerRaw.includes('pelayanan')) return 'Pelayanan Publik';
-    if (lowerRaw.includes('jejaring')) return 'Jejaring Kerja';
-    if (lowerRaw.includes('sosial budaya')) return 'Sosial Budaya';
-    if (lowerRaw.includes('tik') || lowerRaw.includes('teknologi') || lowerRaw === 'tik') return 'TIK';
-    if (lowerRaw.includes('profesionalisme')) return 'Profesionalisme';
-    if (lowerRaw.includes('radikalisme')) return 'Anti Radikalisme';
+    // 1. TWK (Tema Resmi: Nasionalisme, Integritas, Bela Negara, Pilar Negara, Bahasa Indonesia)
+    if (combined.includes('nasionalisme')) return 'Nasionalisme';
+    if (combined.includes('integritas')) return 'Integritas';
+    if (combined.includes('bela negara') || combined.includes('bela')) return 'Bela Negara';
+    if (combined.includes('pilar') || combined.includes('pancasila') || combined.includes('uud') || combined.includes('nkri') || combined.includes('bhinneka')) return 'Pilar Negara';
+    if (combined.includes('bahasa')) return 'Bahasa Indonesia';
+
+    // 2. TIU (Tema Resmi: Verbal, Numerik, Figural)
+    if (combined.includes('figural') || combined.includes('gambar') || combined.includes('9 kotak') || combined.includes('matriks')) return 'Figural';
+    if (combined.includes('numerik') || combined.includes('hitung') || combined.includes('deret') || combined.includes('perbandingan') || combined.includes('aritmatika') || combined.includes('kuantitatif') || combined.includes('tabel') || combined.includes('soal cerita') || combined.includes('data sufficiency')) return 'Numerik';
+    if (combined.includes('verbal') || combined.includes('analogi') || combined.includes('kalimat') || combined.includes('silogisme') || combined.includes('posisi') || combined.includes('analitis') || combined.includes('kata')) return 'Verbal';
+
+    // 3. TKP (Tema Resmi: Pelayanan Publik, Jejaring Kerja (Networking), Sosial Budaya, TIK, Profesionalisme, Anti-Radikalisme)
+    if (combined.includes('pelayanan')) return 'Pelayanan Publik';
+    if (combined.includes('jejaring') || combined.includes('networking')) return 'Jejaring Kerja (Networking)';
+    if (combined.includes('sosial budaya') || combined.includes('sosbud')) return 'Sosial Budaya';
+    if (combined.includes('tik') || combined.includes('teknologi') || combined.includes('digital')) return 'TIK';
+    if (combined.includes('profesionalisme') || combined.includes('profesional')) return 'Profesionalisme';
+    if (combined.includes('radikalisme')) return 'Anti-Radikalisme';
+
+    // Generic subtest fallback
+    if (lowerSub.includes('twk')) return 'Pilar Negara';
+    if (lowerSub.includes('tiu')) return 'Numerik';
+    if (lowerSub.includes('tkp')) return 'Profesionalisme';
     
     // Hide redundant generic topics
     if (['twk', 'tiu', 'tkp', 'skd', 'general', 'umum', 'lainnya'].includes(lowerRaw.replace(/[^a-z]/g, ''))) {

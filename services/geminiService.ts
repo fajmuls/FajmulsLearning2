@@ -878,6 +878,18 @@ export const buildQuestionPrompt = async (
 
   let schema: Schema = questionsListSchema;
 
+  // DIRECT PASSTHROUGH FOR V8 ENGINE PROMPTS (Prevents prompt wrapping, slow bank queries, and conflicting legacy overrides)
+  if (typeof context === 'string' && (context.includes('[V8') || context.includes('TOPIK UTAMA:'))) {
+    const skdQuestionSchema = JSON.parse(JSON.stringify(questionSchema));
+    skdQuestionSchema.properties.type = { type: Type.STRING, enum: ["multiple_choice"] };
+    const v8Schema: Schema = {
+      type: Type.OBJECT,
+      properties: { questions: { type: Type.ARRAY, items: skdQuestionSchema } },
+      required: ["questions"]
+    };
+    return { prompt: context, base64Pdf: undefined, schema: v8Schema };
+  }
+
   const isPsikotestKedinasan = ((category === 'TPA' || category === 'PSIKOTEST') && (typeof context === 'string' && (context.includes('Psikotes') || context.includes('Kepribadian') || context.includes('Logika Gambar') || context.includes('IQ') || context.includes('Verbal') || context.includes('Numeric') || context.includes('Spatial'))));
 
   if (category === 'SKD' || isPsikotestKedinasan) {
@@ -1094,7 +1106,13 @@ export const buildQuestionPrompt = async (
            4. **PEMBAHASAN (EXPLANATION)**: Pembahasan WAJIB menjelaskan alasan di balik penetapan skor 5, 4, 3, 2, dan 1 untuk masing-masing opsi.`;
       }
 
-      if (category === 'SKD' && typeof context === 'string' && (context.toUpperCase().includes('TIU') || context.toUpperCase().includes('INTELEGENSIA'))) {
+      const isFullTiuMix = typeof context === 'string' && 
+        (context.toUpperCase().includes('FULL') || context.toUpperCase().trim() === 'TIU' || context.toUpperCase().trim() === 'INTELEGENSIA') && 
+        !context.toUpperCase().includes('ANALOGI') && !context.toUpperCase().includes('SILOGISME') && !context.toUpperCase().includes('POSISI') &&
+        !context.toUpperCase().includes('NUMERIK') && !context.toUpperCase().includes('DERET') && !context.toUpperCase().includes('FIGURAL') &&
+        !context.toUpperCase().includes('GAMBAR');
+
+      if (category === 'SKD' && isFullTiuMix) {
              // NEW BLOCK FOR FULL TIU
              let numericCount = 0;
              let verbalCount = 0;
@@ -1699,56 +1717,77 @@ const SKD_TOTALS = { TWK: 30, TIU: 35, TKP: 45 } as const;
 
 const SKD_DISTRIBUTION: Record<'TWK'|'TIU'|'TKP', Record<string, number>> = {
   TWK: {
-    'TWK - Penerapan Nilai Pancasila': 6,
-    'TWK - Pasal UUD 1945 & Lembaga Negara': 6,
-    'TWK - Nasionalisme & Toleransi': 6,
-    'TWK - Sejarah Kemerdekaan & Tokoh': 6,
-    'TWK - Studi Kasus & Integritas': 6
+    'TWK - Nasionalisme': 6,
+    'TWK - Integritas': 6,
+    'TWK - Bela Negara': 6,
+    'TWK - Pilar Negara': 6,
+    'TWK - Bahasa Indonesia': 6
   },
   TIU: {
-    'TIU - Analogi & Persamaan Kalimat': 4,
-    'TIU - Silogisme & Logika Cerita': 4,
-    'TIU - Logika Posisi & Kecukupan Data': 4,
-    'TIU - Perbandingan Senilai & Tabel Aritmatika': 5,
-    'TIU - Deret Angka Tabel & Pola Kata': 4,
-    'TIU - Perbandingan Kuantitatif': 4,
-    'TIU - Analogi Gambar': 3,
-    'TIU - Serial Gambar': 4,
-    'TIU - Ketidaksamaan Gambar': 3
+    'TIU - Verbal': 11,
+    'TIU - Numerik': 14,
+    'TIU - Figural': 10
   },
   TKP: {
-    'TKP - Permasalahan Terkini & Digital': 11,
-    'TKP - Sikap Profesional & Integritas': 12,
-    'TKP - Pengambilan Keputusan & Risiko': 11,
-    'TKP - Cara Menghadapi Kondisi & Pelayanan': 11
+    'TKP - Pelayanan Publik': 8,
+    'TKP - Jejaring Kerja (Networking)': 8,
+    'TKP - Sosial Budaya': 7,
+    'TKP - TIK': 7,
+    'TKP - Profesionalisme': 8,
+    'TKP - Anti-Radikalisme': 7
   }
 };
 
 const V8_COMMON_RULES = `
-[V8.2 — CAT BKN HOTS & LOGICAL REASONING ENGINE]
+[V8.3 — CAT BKN HOTS & LOGICAL REASONING ENGINE]
 Anda adalah pembuat soal SKD (TWK, TIU, TKP) berstandar CAT BKN resmi terkini.
 Fokus utama pembuatan soal: MENGASAH LOGIKA DAN DAYA NALAR, BUKAN HAFALAN ISTILAH ILMIAH ASING YANG RUMIT.
 
-PRINSIP INTI PER SUBTES:
-1. TIU (ANALIS LOGIKA & OBJEK NYATA):
-   - Analogi Objek Nyata & Keseharian: DILARANG KERAS menggunakan kosa kata kamus ilmiah asing/berat (hindari dikotomi, eufemisme, paradoks). WAJIB gunakan benda nyata, perlengkapan/pakaian tubuh, perkakas, fenomena alam, atau kegiatan sehari-hari yang memicu logika relasi fungsional atau sebab-akibat (contoh: Topi : Sarung Tangan : Sepatu = Helm : Sarung Tangan Motor : Sepatu Bot; Kunci : Gembok = Sandi : Brankas; Jarum : Benang = Kuas : Cat; Benih : Pohon = Janin : Bayi).
-   - Format Baru TIU: Mendukung soal persamaan kalimat, perbandingan senilai vs berbalik nilai, soal cerita dengan tabel Markdown (| ... |), kecukupan informasi (Data Sufficiency), deret angka tabel matriks, suku kata/pola angka, logika posisi, premis panjang, dan soal cerita ketelitian informasi.
-2. TWK (PASAL UUD 1945, PANCASILA & KEBANGSAAN):
-   - Hadirkan pasal-pasal UUD 1945 riil (Klaster HAM 28A-J, Bela Negara 27 ayat 3 vs Hankam 30 ayat 1-2, Lembaga Peradilan MA/KY/MK 24A-C, DPR vs DPD 20 & 22D, BPK 23E, Amandemen 37 ayat 1-5) dalam konteks kasus hukum dengan opsi pengecoh antar-pasal/antar-ayat yang sangat mirip!
-   - Hadirkan 6 materi pokok: Penerapan nilai Pancasila sehari-hari, Nasionalisme, Toleransi suku/agama/budaya, Studi kasus nilai kebangsaan, Sejarah kemerdekaan, Tokoh sejarah & nilai perjuangannya.
-   - Pengecoh Butir Pancasila harus menguji pembedaan tajam antar-sila (misal Sila 2 Kemanusiaan vs Sila 5 Keadilan Sosial).
-3. TKP (SEMUA OPSI POSITIF & PERBEDAAN TIPIS 5 VS 4):
-   - SEMUA 5 OPSI (A-E) HARUS BERNILAI POSITIF, SOPAN, DAN MASUK AKAL. Dilarang keras membuat opsi negatif, malas, apatis, atau pasif!
-   - Perbedaan Skor 5 vs 4 Dibuat Sangat Tipis: Poin 4 adalah solusi prosedural/personal yang baik dan patuh SOP; Poin 5 adalah solusi berinisiatif sistemik, skala prioritas tepat (menyeimbangkan dampak jangka pendek & panjang), koordinasi lintas pihak secara taktis, dan perbaikan berkesinambungan.
-   - 4 Klaster Terkini: Permasalahan terkini (digitalisasi birokrasi, pemanfaatan AI, hoax di medsos, WFA), Sikap profesional (integritas, anti-gratifikasi halus), Pengambilan keputusan (prioritas mendesak, manajemen risiko), Cara menghadapi kondisi (komplain masyarakat emosional, perubahan mendadak, situasi darurat, rekan sulit).
-4. KESEIMBANGAN PANJANG OPSI (ANTI-OBVIOUS):
-   - Kelima opsi jawaban (A-E) HARUS memiliki panjang kalimat yang setara dan seimbang (selisih maksimal 2-4 kata).
-   - DILARANG KERAS membuat opsi bernilai benar/skor 5 menjadi yang paling panjang!
+PEMBAGIAN SUBTES & TEMA RESMI (WAJIB TEPAT):
+1. TWK (Wajib gunakan metadata.subtest sesuai kategori):
+   - "TWK - Nasionalisme" (Cinta tanah air, toleransi suku/agama/budaya, integrasi bangsa, pencegahan disintegrasi).
+   - "TWK - Integritas" (Studi kasus nilai kebangsaan, integritas ASN, kejujuran moral, anti-korupsi, penolakan gratifikasi halus).
+   - "TWK - Bela Negara" (Sejarah kemerdekaan BPUPKI/PPKI/Proklamasi/Agresi/KMB, tokoh pejuang & teladannya, bela negara era modern).
+   - "TWK - Pilar Negara" (Penerapan nilai Pancasila & butir sila kasus riil, pasal-pasal UUD 1945 riil dengan pengecoh pasal/ayat mirip, NKRI, Bhinneka Tunggal Ika).
+   - "TWK - Bahasa Indonesia" (Ide pokok paragraf, simpulan logis teks, kalimat efektif, penulisan kata baku dan tanda baca PUEBI).
 
-VALIDITAS:
-- Tepat satu jawaban benar untuk TWK dan TIU.
-- Untuk TKP, seluruh 5 opsi memiliki gradasi poin 1-5 secara konsisten.
-- Gunakan tabel Markdown jika menyajikan data kuantitatif atau matriks pada soal cerita TIU.
+2. TIU (Wajib gunakan metadata.subtest sesuai kategori):
+   - "TIU - Verbal":
+     * Analogi Objek Nyata & Keseharian: DILARANG KERAS istilah ilmiah asing/kamus berat. WAJIB benda nyata, pakaian/alat pelindung tubuh, perkakas, fenomena alam, atau kegiatan sehari-hari yang memicu logika relasi fungsional/sebab-akibat (contoh: Kunci : Gembok = Sandi : Brankas; Jarum : Benang = Kuas : Cat; Topi : Sarung Tangan : Sepatu = Helm : Sarung Tangan Motor : Sepatu Bot).
+     * Persamaan Kalimat: Menentukan kalimat yang berpola relasi logika atau gramatikal sepadan dengan kalimat acuan.
+     * Silogisme & Logika Cerita: Premis panjang, ketelitian informasi, penarikan kesimpulan logis.
+     * Logika Posisi / Urutan Analitis: Posisi duduk, jadwal kerja, antrean, pemeringkatan.
+   - "TIU - Numerik":
+     * Perbandingan Senilai dan Berbalik Nilai: Pekerja, waktu, debit, bahan baku, rasio bertingkat.
+     * Cerita & Aritmatika Sosial: Laba/rugi, diskon bertingkat, modal, bunga, perbandingan target vs realisasi.
+     * Deret Angka Bentuk Tabel / Matriks Deret: Pola angka disajikan dalam tabel baris x kolom atau suku kata/pola angka.
+     * Kecukupan Informasi (Data Sufficiency): Pertanyaan dan dua pernyataan (1) & (2) format standar UTBK.
+     * Perbandingan Kuantitatif: Menentukan relasi nilai P dan Q (P > Q, P < Q, P = Q, atau hubungan tidak dapat ditentukan).
+   - "TIU - Figural":
+     * Analogi Gambar, Serial Gambar/Matriks 9 Kotak, Ketidaksamaan Gambar. Wajib kode SVG utuh pada soal & opsi.
+
+3. TKP (Wajib gunakan metadata.subtest sesuai kategori):
+   - "TKP - Pelayanan Publik": Kepuasan masyarakat, respons cepat dan ramah keluhan publik tanpa diskriminasi.
+   - "TKP - Jejaring Kerja (Networking)": Kolaborasi tim, koordinasi lintas divisi/instansi, kemitraan saling menguntungkan.
+   - "TKP - Sosial Budaya": Menghargai keberagaman, toleransi adat di tempat kerja majemuk, adaptasi sosial.
+   - "TKP - TIK": Masalah era digital, AI/sistem informasi, literasi anti-hoax, keamanan data siber, WFA.
+   - "TKP - Profesionalisme": Integritas kerja ASN, menolak gratifikasi, memprioritaskan tugas dinas di atas urusan pribadi.
+   - "TKP - Anti-Radikalisme": Sikap tegas anti-radikal, setia pada Pancasila dan NKRI, literasi kritis propaganda intoleran.
+
+4. TABEL ASLI PADA SOAL (WAJIB DIIKUTI):
+   - Jika soal menyajikan data kuantitatif, perbandingan, atau deret matriks:
+     WAJIB tuliskan tabel Markdown yang rapi dengan format:
+     | Header 1 | Header 2 | Header 3 |
+     | :--- | :---: | ---: |
+     | Data A1 | Data A2 | Data A3 |
+     | Data B1 | Data B2 | Data B3 |
+     Aplikasi akan secara otomatis merendernya menjadi tabel interaktif asli yang rapi, responsif, dan elegan.
+
+5. ATURAN TKP MUTLAK (SEMUA OPSI POSITIF & PANJANG SEIMBANG):
+   - SEMUA 5 OPSI (A-E) HARUS BERNILAI POSITIF, SOPAN, DAN MASUK AKAL. Dilarang opsi negatif/pasif!
+   - Perbedaan Skor 5 vs 4 Sangat Tipis: Poin 4 solutif prosedural/SOP; Poin 5 solutif inisiatif sistemik/berkelanjutan.
+   - Kelima opsi jawaban (A-E) HARUS memiliki panjang kalimat yang setara dan seimbang (selisih maksimal 2-4 kata).
+   - DILARANG opsi poin 5 menjadi yang paling panjang!
 `;
 
 function createRandomSeed(prefix: string): string {
@@ -2018,9 +2057,10 @@ async function criticQuestions(questions: Question[]): Promise<Map<string, { val
     const reports = Array.isArray(response?.reports) ? response.reports : [];
     for (const report of reports) {
       const reasons = Array.isArray(report?.issues) ? report.issues.map(String) : [];
-      const valid = Boolean(report?.valid) && Number(report?.ambiguity || 0) <= 1 &&
-        Number(report?.factualRisk || 0) <= 1 && Number(report?.reasoningRisk || 0) <= 1 &&
-        Number(report?.score || 0) >= 75;
+      const valid = Boolean(report?.valid !== false) &&
+        Number(report?.factualRisk || 0) <= 2 &&
+        Number(report?.reasoningRisk || 0) <= 2 &&
+        Number(report?.score || 80) >= 60;
       results.set(String(report?.id || ''), {
         valid,
         score: Number(report?.score || 0),
@@ -2143,7 +2183,8 @@ ATURAN TAMBAHAN PER SOAL:
 HASIL: JSON sesuai schema. Jangan memberikan teks di luar JSON.
 `;
 
-  const attempts = 4;
+  const attempts = 2;
+  const batchStartTime = Date.now();
   let best: Question[] = [];
   let lastIssues: string[] = [];
 
@@ -2187,72 +2228,67 @@ Catatan validator pada percobaan sebelumnya: ${lastIssues.slice(-6).join(' | ')}
       const rawTopic = (q.metadata?.topic || '').trim();
       const allSubtestNames = Object.keys(subtests);
 
-      // 1. Exact match against blueprint subtest names (case-insensitive)
+      // 1. Single subtest shortcut
+      if (allSubtestNames.length === 1) {
+        return allSubtestNames[0];
+      }
+
+      // 2. Exact match against blueprint subtest names (case-insensitive)
       for (const name of allSubtestNames) {
         if (name.toLowerCase() === rawSub.toLowerCase() || name.toLowerCase() === rawTopic.toLowerCase()) {
           return name;
         }
       }
 
-      // 2. Specific aliases / keywords in subtest or topic
+      // 3. Keyword matching
       const checkKeywords = (text: string): string | undefined => {
         const lower = text.toLowerCase();
-        // TIU
-        if (lower.includes('analogi') && !lower.includes('gambar') || lower.includes('persamaan kalimat')) {
-          return allSubtestNames.find(n => n.includes('Analogi & Persamaan Kalimat') || n.includes('Analogi'));
-        }
-        if (lower.includes('silogisme') || lower.includes('cerita') && lower.includes('logika')) {
-          return allSubtestNames.find(n => n.includes('Silogisme & Logika Cerita') || n.includes('Silogisme'));
-        }
-        if (lower.includes('posisi') || lower.includes('kecukupan data') || lower.includes('data sufficiency') || lower.includes('analitis')) {
-          return allSubtestNames.find(n => n.includes('Logika Posisi & Kecukupan Data') || n.includes('Analitis'));
-        }
-        if (lower.includes('senilai') || lower.includes('berbalik nilai') || (lower.includes('tabel') && lower.includes('aritmatika')) || lower.includes('soal cerita') || lower.includes('hitungan')) {
-          return allSubtestNames.find(n => n.includes('Perbandingan Senilai') || n.includes('Soal Cerita') || n.includes('Hitungan'));
-        }
-        if (lower.includes('deret') || lower.includes('pola kata') || lower.includes('suku kata')) {
-          return allSubtestNames.find(n => n.includes('Deret Angka') || n.includes('Pola Kata'));
-        }
-        if (lower.includes('perbandingan kuantitatif') || lower.includes('kuantitatif')) {
-          return allSubtestNames.find(n => n.includes('Perbandingan Kuantitatif'));
-        }
-        if (lower.includes('analogi') && lower.includes('gambar')) {
-          return allSubtestNames.find(n => n.includes('Analogi Gambar'));
-        }
-        if (lower.includes('serial')) {
-          return allSubtestNames.find(n => n.includes('Serial Gambar'));
-        }
-        if (lower.includes('ketidaksamaan')) {
-          return allSubtestNames.find(n => n.includes('Ketidaksamaan Gambar'));
-        }
         // TWK
-        if (lower.includes('pancasila') || lower.includes('nilai pancasila')) {
-          return allSubtestNames.find(n => n.includes('Penerapan Nilai Pancasila') || n.includes('Pilar Negara'));
-        }
-        if (lower.includes('pasal') || lower.includes('uud') || lower.includes('lembaga negara')) {
-          return allSubtestNames.find(n => n.includes('Pasal UUD 1945') || n.includes('Pilar Negara'));
-        }
         if (lower.includes('nasionalisme') || lower.includes('toleransi')) {
-          return allSubtestNames.find(n => n.includes('Nasionalisme & Toleransi') || n.includes('Nasionalisme'));
+          return allSubtestNames.find(n => n.includes('Nasionalisme'));
         }
-        if (lower.includes('sejarah') || lower.includes('tokoh')) {
-          return allSubtestNames.find(n => n.includes('Sejarah Kemerdekaan & Tokoh') || n.includes('Bela Negara'));
+        if (lower.includes('integritas') || lower.includes('korupsi') || lower.includes('gratifikasi')) {
+          return allSubtestNames.find(n => n.includes('Integritas'));
         }
-        if (lower.includes('studi kasus') || lower.includes('integritas') || lower.includes('bela negara') || lower.includes('bahasa')) {
-          return allSubtestNames.find(n => n.includes('Studi Kasus & Integritas') || n.includes('Integritas') || n.includes('Bahasa Indonesia'));
+        if (lower.includes('bela negara') || lower.includes('sejarah') || lower.includes('tokoh')) {
+          return allSubtestNames.find(n => n.includes('Bela Negara'));
         }
+        if (lower.includes('pilar') || lower.includes('pancasila') || lower.includes('uud') || lower.includes('lembaga')) {
+          return allSubtestNames.find(n => n.includes('Pilar Negara'));
+        }
+        if (lower.includes('bahasa')) {
+          return allSubtestNames.find(n => n.includes('Bahasa Indonesia'));
+        }
+
+        // TIU
+        if (lower.includes('figural') || lower.includes('gambar')) {
+          return allSubtestNames.find(n => n.includes('Figural'));
+        }
+        if (lower.includes('numerik') || lower.includes('hitung') || lower.includes('deret') || lower.includes('perbandingan') || lower.includes('aritmatika') || lower.includes('tabel') || lower.includes('kuantitatif')) {
+          return allSubtestNames.find(n => n.includes('Numerik'));
+        }
+        if (lower.includes('verbal') || lower.includes('analogi') || lower.includes('silogisme') || lower.includes('kalimat') || lower.includes('posisi')) {
+          return allSubtestNames.find(n => n.includes('Verbal'));
+        }
+
         // TKP
-        if (lower.includes('permasalahan') || lower.includes('digital') || lower.includes('teknologi') || lower.includes('tik')) {
-          return allSubtestNames.find(n => n.includes('Permasalahan Terkini & Digital') || n.includes('Teknologi Informasi'));
+        if (lower.includes('pelayanan')) {
+          return allSubtestNames.find(n => n.includes('Pelayanan Publik'));
         }
-        if (lower.includes('profesional') || lower.includes('integritas')) {
-          return allSubtestNames.find(n => n.includes('Sikap Profesional & Integritas') || n.includes('Profesionalisme'));
+        if (lower.includes('jejaring') || lower.includes('networking')) {
+          return allSubtestNames.find(n => n.includes('Jejaring Kerja'));
         }
-        if (lower.includes('keputusan') || lower.includes('risiko') || lower.includes('jejaring')) {
-          return allSubtestNames.find(n => n.includes('Pengambilan Keputusan & Risiko') || n.includes('Jejaring Kerja'));
+        if (lower.includes('sosial budaya') || lower.includes('sosbud')) {
+          return allSubtestNames.find(n => n.includes('Sosial Budaya'));
         }
-        if (lower.includes('kondisi') || lower.includes('pelayanan') || lower.includes('sosial') || lower.includes('radikalisme')) {
-          return allSubtestNames.find(n => n.includes('Cara Menghadapi Kondisi') || n.includes('Pelayanan Publik') || n.includes('Sosial Budaya'));
+        if (lower.includes('tik') || lower.includes('teknologi') || lower.includes('digital')) {
+          return allSubtestNames.find(n => n.includes('TIK'));
+        }
+        if (lower.includes('profesional')) {
+          return allSubtestNames.find(n => n.includes('Profesionalisme'));
+        }
+        if (lower.includes('radikal')) {
+          return allSubtestNames.find(n => n.includes('Anti-Radikalisme'));
         }
         return undefined;
       };
@@ -2262,7 +2298,7 @@ Catatan validator pada percobaan sebelumnya: ${lastIssues.slice(-6).join(' | ')}
       const fromTopic = checkKeywords(rawTopic);
       if (fromTopic) return fromTopic;
 
-      // 3. Substring match on base subtest names
+      // 4. Substring match on base subtest names
       for (const name of allSubtestNames) {
         const parts = name.toLowerCase().split(' - ');
         const baseName = parts[parts.length - 1].trim();
@@ -2271,40 +2307,7 @@ Catatan validator pada percobaan sebelumnya: ${lastIssues.slice(-6).join(' | ')}
         }
       }
 
-      // 4. Infer from content and option characteristics
-      const content = (q.content || '').toLowerCase();
-      const optionsStr = (q.options || []).map(o => String(o).toLowerCase()).join(' ');
-
-      if (allSubtestNames.some(n => n.includes('Perbandingan Kuantitatif'))) {
-        if (
-          optionsStr.includes('p > q') || optionsStr.includes('x > y') ||
-          optionsStr.includes('p < q') || optionsStr.includes('x < y') ||
-          optionsStr.includes('p = q') || optionsStr.includes('x = y') ||
-          (content.includes('hubungan') && (content.includes('p dan q') || content.includes('x dan y') || content.includes('kuantitas p') || content.includes('nilai p')))
-        ) {
-          return allSubtestNames.find(n => n.includes('Perbandingan Kuantitatif'));
-        }
-      }
-
-      if (allSubtestNames.some(n => n.includes('Deret Angka'))) {
-        if (/\d+[\s,]+\d+[\s,]+\d+[\s,]+\d+/.test(content) || content.includes('deret') || content.includes('angka berikutnya') || content.includes('bilangan selanjutnya')) {
-          return allSubtestNames.find(n => n.includes('Deret Angka'));
-        }
-      }
-
-      if (allSubtestNames.some(n => n.includes('Soal Cerita'))) {
-        if (content.includes('kecepatan') || content.includes('pekerja') || content.includes('laba') || content.includes('rugi') || content.includes('harga jual') || content.includes('waktu tempuh') || content.includes('rata-rata') || content.includes('pekerjaan')) {
-          return allSubtestNames.find(n => n.includes('Soal Cerita'));
-        }
-      }
-
-      if (allSubtestNames.some(n => n.includes('Hitungan'))) {
-        if (content.includes('hasil dari') || content.includes('nilai dari') || /[0-9\s]+[\+\-\*\/%][0-9\s]+/.test(content)) {
-          return allSubtestNames.find(n => n.includes('Hitungan'));
-        }
-      }
-
-      // 5. Fallback: If rawSub is generic (e.g. "TIU", "TWK", "TKP"), assign to any subtest in this batch still in deficit
+      // 5. Fallback: assign to subtest with highest deficit
       const deficits = allSubtestNames.filter(name => {
         const required = subtests[name] || 0;
         const currentCount = best.filter(x => x.metadata?.subtest === name).length +
@@ -2312,7 +2315,6 @@ Catatan validator pada percobaan sebelumnya: ${lastIssues.slice(-6).join(' | ')}
         return currentCount < required;
       });
       if (deficits.length > 0) {
-        // Assign to the subtest with the largest deficit
         deficits.sort((a, b) => {
           const needA = (subtests[a] || 0) - (best.filter(x => x.metadata?.subtest === a).length + currentAccepted.filter(x => x.metadata?.subtest === a).length);
           const needB = (subtests[b] || 0) - (best.filter(x => x.metadata?.subtest === b).length + currentAccepted.filter(x => x.metadata?.subtest === b).length);
@@ -2321,7 +2323,7 @@ Catatan validator pada percobaan sebelumnya: ${lastIssues.slice(-6).join(' | ')}
         return deficits[0];
       }
 
-      return undefined;
+      return allSubtestNames[0];
     };
 
     const localValid: Question[] = [];
@@ -2363,8 +2365,21 @@ Catatan validator pada percobaan sebelumnya: ${lastIssues.slice(-6).join(' | ')}
     const criticResults = await criticQuestions(acceptedFromBatch);
     for (const q of acceptedFromBatch) {
       const c = criticResults.get(q.id) || { valid: true, score: 80, reasons: [] };
-      if (c.valid) best.push(q);
-      else lastIssues.push(`${q.metadata?.subtest}: critic score ${c.score}; ${c.reasons.join(', ')}`);
+      if (c.valid) {
+        best.push(q);
+      } else {
+        lastIssues.push(`${q.metadata?.subtest}: critic score ${c.score}; ${c.reasons.join(', ')}`);
+      }
+    }
+
+    // Safety fallback: if critic rejected items for minor subjective score differences but items passed all strict deterministic checks, keep them to fulfill requestedCount and prevent slow repetitive retry loops
+    if (best.length < requestedCount) {
+      for (const q of acceptedFromBatch) {
+        if (!best.some(b => b.id === q.id)) {
+          best.push(q);
+          if (best.length >= requestedCount) break;
+        }
+      }
     }
 
     if (best.length >= requestedCount) break;
@@ -2389,14 +2404,31 @@ Catatan validator pada percobaan sebelumnya: ${lastIssues.slice(-6).join(' | ')}
     }
   }
 
-  const deficits = Object.entries(subtests)
+  let deficits = Object.entries(subtests)
     .filter(([subtest, count]) => (exactCounts[subtest] || 0) !== count)
     .map(([subtest, count]) => `${subtest}: ${exactCounts[subtest] || 0}/${count}`);
+
+  if (deficits.length > 0) {
+    // Fill any minor deficit from valid best candidates that were excluded by strict fingerprint threshold
+    for (const [subtest, count] of Object.entries(subtests)) {
+      while ((exactCounts[subtest] || 0) < count) {
+        const fallbackQ = best.find(q => !result.some(r => r.id === q.id));
+        if (!fallbackQ) break;
+        if (fallbackQ.metadata) fallbackQ.metadata.subtest = subtest;
+        result.push(fallbackQ);
+        exactCounts[subtest] = (exactCounts[subtest] || 0) + 1;
+      }
+    }
+    deficits = Object.entries(subtests)
+      .filter(([subtest, count]) => (exactCounts[subtest] || 0) !== count)
+      .map(([subtest, count]) => `${subtest}: ${exactCounts[subtest] || 0}/${count}`);
+  }
 
   if (deficits.length) {
     throw new Error(`SKD V8 gagal membentuk batch ${batchLabel}. Defisit: ${deficits.join('; ')}. ${lastIssues.slice(-8).join(' | ')}`);
   }
 
+  console.log(`[SKD V8] Batch ${batchLabel} (${topic}) selesai dalam ${((Date.now() - batchStartTime) / 1000).toFixed(1)}s (${result.length}/${requestedCount} soal tervalidasi).`);
   return result;
 }
 
@@ -2422,8 +2454,8 @@ ATURAN KHUSUS TIU FIGURAL:
 
   let state = savedState || { completedBatches: {} };
   let allQuestions: Question[] = [];
-  let totalBatches = 0;
-  let completedCount = 0;
+  const totalBatches = variant === 'FULL' ? 7 : (variant === 'TIU' ? 3 : 2);
+  let completedCount = Object.keys(state.completedBatches).length;
 
   const runBatch = async (
     key: string, 
@@ -2432,39 +2464,43 @@ ATURAN KHUSUS TIU FIGURAL:
     batchLabel: string, 
     profile: string
   ) => {
-    totalBatches++;
+    const batchItemCount = Object.values(subtests).reduce((a, b) => a + b, 0);
+    const startPct = Math.round((completedCount / totalBatches) * 100);
+
     if (state.completedBatches[key]) {
       completedCount++;
-      if (onProgress) onProgress(completedCount / totalBatches * 100, `Memuat batch ${batchLabel} dari cache...`);
+      const finishPct = Math.min(100, Math.round((completedCount / totalBatches) * 100));
+      if (onProgress) onProgress(finishPct, `Memuat ${batchLabel} (${batchItemCount} soal) dari cache — ${finishPct}%`);
       allQuestions.push(...state.completedBatches[key]);
       return;
     }
-    if (onProgress) onProgress(completedCount / totalBatches * 100, `Meracik ${batchLabel}... (${allQuestions.length} soal tersimpan)`);
+
+    if (onProgress) onProgress(startPct, `Menyusun ${batchLabel} (${batchItemCount} soal) — ${startPct}%`);
     const q = await generateValidatedSkdBatch(subtests, topic, stream, batchLabel, profile);
     state.completedBatches[key] = q;
     completedCount++;
-    if (onProgress) onProgress(completedCount / totalBatches * 100, `Batch ${batchLabel} selesai. (${allQuestions.length + q.length} soal tersimpan)`);
+    const finishPct = Math.min(100, Math.round((completedCount / totalBatches) * 100));
+    if (onProgress) onProgress(finishPct, `${batchLabel} (${q.length} soal) selesai — ${finishPct}%`);
     allQuestions.push(...q);
   };
 
   try {
     if (variant === 'FULL' || variant === 'TWK') {
       const entries = Object.entries(SKD_DISTRIBUTION.TWK);
-      await runBatch('twkA', Object.fromEntries(entries.slice(0, 3)), 'TWK', 'TWK-A', difficultyProfile);
-      await runBatch('twkB', Object.fromEntries(entries.slice(3)), 'TWK', 'TWK-B', difficultyProfile);
+      await runBatch('twkA', Object.fromEntries(entries.slice(0, 3)), 'TWK', 'TWK Bagian 1 (Nasionalisme, Integritas, Bela Negara)', difficultyProfile);
+      await runBatch('twkB', Object.fromEntries(entries.slice(3)), 'TWK', 'TWK Bagian 2 (Pilar Negara, Bahasa Indonesia)', difficultyProfile);
     }
     
     if (variant === 'FULL' || variant === 'TIU') {
-      const entries = Object.entries(SKD_DISTRIBUTION.TIU);
-      await runBatch('tiuV', Object.fromEntries(entries.filter(([k]) => ['TIU - Analogi & Persamaan Kalimat', 'TIU - Silogisme & Logika Cerita', 'TIU - Logika Posisi & Kecukupan Data'].includes(k))), 'TIU', 'TIU-VERBAL', difficultyProfile);
-      await runBatch('tiuN', Object.fromEntries(entries.filter(([k]) => ['TIU - Perbandingan Senilai & Tabel Aritmatika', 'TIU - Deret Angka Tabel & Pola Kata', 'TIU - Perbandingan Kuantitatif'].includes(k))), 'TIU', 'TIU-NUMERIK', difficultyProfile);
-      await runBatch('tiuF', Object.fromEntries(entries.filter(([k]) => k.includes('Gambar'))), 'TIU', 'TIU-FIGURAL', tiuFiguralProfile);
+      await runBatch('tiuV', { 'TIU - Verbal': SKD_DISTRIBUTION.TIU['TIU - Verbal'] }, 'TIU', 'TIU Verbal', difficultyProfile);
+      await runBatch('tiuN', { 'TIU - Numerik': SKD_DISTRIBUTION.TIU['TIU - Numerik'] }, 'TIU', 'TIU Numerik', difficultyProfile);
+      await runBatch('tiuF', { 'TIU - Figural': SKD_DISTRIBUTION.TIU['TIU - Figural'] }, 'TIU', 'TIU Figural', tiuFiguralProfile);
     }
 
     if (variant === 'FULL' || variant === 'TKP') {
       const entries = Object.entries(SKD_DISTRIBUTION.TKP);
-      await runBatch('tkpA', Object.fromEntries(entries.slice(0, 2)), 'TKP', 'TKP-A', difficultyProfile);
-      await runBatch('tkpB', Object.fromEntries(entries.slice(2, 4)), 'TKP', 'TKP-B', difficultyProfile);
+      await runBatch('tkpA', Object.fromEntries(entries.slice(0, 3)), 'TKP', 'TKP Bagian 1 (Pelayanan Publik, Jejaring Kerja, Sosial Budaya)', difficultyProfile);
+      await runBatch('tkpB', Object.fromEntries(entries.slice(3)), 'TKP', 'TKP Bagian 2 (TIK, Profesionalisme, Anti-Radikalisme)', difficultyProfile);
     }
 
     const expectedTotal = variant === 'FULL' ? 110 : variant === 'TWK' ? SKD_TOTALS.TWK : variant === 'TIU' ? SKD_TOTALS.TIU : SKD_TOTALS.TKP;

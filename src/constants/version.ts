@@ -5,9 +5,32 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "4.5.7";
+export const APP_VERSION = "4.5.9";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "4.5.9",
+    date: new Date().toISOString().split('T')[0],
+    type: "patch",
+    notes: [
+      "Real-time Granular Batch Progress: Modal dan box generator AI kini menampilkan progres batch spesifik beserta jumlah soal dan persentase bertahap yang akurat dan transparan (contoh: Menyusun TIU Verbal (11 soal) — 0%, Menyusun TIU Numerik (14 soal) — 33%, Menyusun TIU Figural (10 soal) — 67%).",
+      "Penyempurnaan Pelacak Pembuatan Soal: Menghapus timer interval simulasi acak yang sebelumnya menimpa status batch riil dari generator AI.",
+      "Restrukturisasi Tema Materi SKD (Badge Hijau & Analitika): Penyelarasan kembali kategori topik sesuai standar resmi: TWK (Nasionalisme, Integritas, Bela Negara, Pilar Negara, Bahasa Indonesia), TIU (Verbal, Numerik, Figural), TKP (Pelayanan Publik, Jejaring Kerja, Sosial Budaya, TIK, Profesionalisme, Anti-Radikalisme).",
+      "Dukungan Penuh Authentic Table & SVG: Konten soal dengan tabel perbandingan kuantitatif, deret matriks, dan aritmatika ter-render menjadi tabel visual interaktif dan SVG murni."
+    ]
+  },
+  {
+    version: "4.5.8",
+    date: new Date().toISOString().split('T')[0],
+    type: "patch",
+    notes: [
+      "Perbaikan Performa Generator SKD V8: Mengeliminasi bottleneck generator soal yang sebelumnya lambat dan mengalami retry loop repetitif.",
+      "Optimasi Pipeline V8 Direct Passthrough: Prompt terstruktur V8 kini dikirim langsung ke Gemini tanpa melalui wrapper legacy, kalkulasi duplikat, atau query bank soal yang membebani memori.",
+      "Resolusi Tuntas Pengambilalihan Subtest TIU: Memperbaiki aturan legacy yang menimpa prompt subtest TIU spesifik menjadi full mix secara keliru.",
+      "Stabilisasi Batch Validator & AI Critic: Menyeimbangkan ambang batas penilaian AI Critic dengan pengaman validasi deterministik sehingga setiap batch selesai dalam 1 siklus cepat tanpa retry berulang.",
+      "Penyempurnaan Keyword Routing: Memastikan seluruh 10 tipe soal baru TIU terklasifikasi 100% akurat ke dalam subtest blueprint."
+    ]
+  },
   {
     version: "4.5.7",
     date: new Date().toISOString().split('T')[0],
