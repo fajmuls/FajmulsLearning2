@@ -4,6 +4,7 @@ export class RateLimitError extends Error {
     this.name = 'RateLimitError';
   }
 }
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { db } from './firebase';
 import { collection, doc, setDoc, getDocs, deleteDoc, query, where, writeBatch } from 'firebase/firestore';
@@ -998,79 +999,99 @@ export const buildQuestionPrompt = async (
       const isTkp = (typeof context === 'string' && (context.toUpperCase().includes('TKP') || context.toUpperCase().includes('KARAKTERISTIK PRIBADI'))) || (category === 'SKD' && difficultyOverride === 'TKP');
 
       if (isTwk) {
-           difficultyContext = `CONTEXT: SKD TWK (Tes Wawasan Kebangsaan) - TARGET DIFFICULTY: 8-10/10 (ELITE KEDINASAN LEVEL).
+           difficultyContext = `CONTEXT: SKD TWK (Tes Wawasan Kebangsaan) - TARGET DIFFICULTY: 8-10/10 (STANDAR RESMI CAT BKN TERKINI).
            
            ${HOTS_PHILOSOPHY}
 
-           THEME & TOPICS (STRICTLY FOLLOW THESE 5 PILAR NEGARA, incorporating specific subjects):
-           - Nasionalisme (20%): Menguji semangat kecintaan pada bangsa, menghormati keragaman, membina persatuan.
-           - Integritas (20%): Kejujuran, ketangguhan, komitmen aparatur, anti-korupsi.
-           - Bela Negara (20%): Peran aktif, ancaman militer/non-militer (digital, disinformasi, radikalisme, cyber attack), ketahanan nasional di era modern. JANGAN hanya bertanya "Mana contoh bela negara?".
-           - Pilar Negara (Pancasila, UUD 1945, NKRI, Bhinneka Tunggal Ika, Sejarah) (20%): 
-             * Pancasila: Konflik antarnilai, prioritas kebijakan, penerapan sila modern. JANGAN buat soal "Sila keberapa?". Gunakan dilema kebijakan di mana opsi tampak sama-sama baik.
-             * UUD 1945: Kasus HAM, konflik kewenangan lembaga, checks and balances, constitutional reasoning. JANGAN tanya isi pasal secara hafalan mentah.
-             * NKRI: Otonomi daerah, pusat vs daerah, konflik identitas. Buat kasus tanpa menyebut kata "persatuan" secara eksplisit.
-             * Bhinneka Tunggal Ika: Keberagaman, konflik sosial, pluralisme. JANGAN buat pertanyaan "obvious" tentang toleransi. Gunakan konflik riil (misal: tradisi vs fasilitas umum) di mana opsi tampak masuk akal.
-             * Sejarah: Kronologi + sebab-akibat. Misal: "Jika peristiwa X tidak terjadi, maka...".
-           - Bahasa Negara / Bahasa Indonesia (20%): Kaidah, ejaan, kalimat efektif, multi-error editing dalam satu paragraf (salah diksi, struktur, tanda baca sekaligus). JANGAN hanya bertanya "Mana kalimat yang benar?".
+           TEMA & MATERI UTAMA TWK TERKINI (IKUTI 6 MATERI UTAMA INI):
+           1. Penerapan Nilai Pancasila dalam Kehidupan Sehari-hari:
+              - Pengamalan butir-butir Pancasila dalam interaksi sosial, ranah publik, keluarga, dan lingkungan kerja.
+              - Jebakan Pengecoh Butir: Distraktor menyajikan pengamalan sila lain yang sama-sama luhur (misal esensi Sila ke-2 kemanusiaan & martabat dihadapkan dengan Sila ke-5 keadilan alokasi & fasilitas umum, atau Sila ke-1 toleransi beragama vs Sila ke-3 persatuan). Peserta harus teliti membedakan esensi butir sila!
+           2. Nasionalisme:
+              - Menjaga kedaulatan bangsa, rasa cinta dan bangga pada produk lokal, pertahanan identitas budaya dari pengaruh negatif globalisasi, integrasi nasional.
+           3. Toleransi Antar Suku, Agama, dan Budaya:
+              - Pluralisme Bhinneka Tunggal Ika, moderasi beragama, penyelesaian konflik keberagaman secara arif tanpa diskriminasi.
+           4. Studi Kasus Penerapan Nilai Kebangsaan:
+              - Studi kasus dilema kebijakan aparatur sipil negara, pelayanan publik berintegritas, netralitas ASN, anti-korupsi & pencegahan gratifikasi terselubung.
+           5. Sejarah Kemerdekaan:
+              - Peristiwa krusial sekitar Proklamasi 17 Agustus 1945, sidang BPUPKI dan PPKI, dinamika Rengasdengklok, Agresi Militer Belanda I & II, serta jalur diplomasi (Perjanjian Linggarjati, Renville, Roem-Royen, Konferensi Meja Bundar).
+           6. Tokoh Sejarah dan Nilai yang Dipelajari dari Perjuangannya:
+              - Nilai teladan dari tokoh bangsa: integritas & kesederhanaan Mohammad Hatta, kecerdasan diplomasi Haji Agus Salim / Sutan Sjahrir, kegigihan gerilya Jenderal Soedirman, perjuangan pendidikan Ki Hajar Dewantara, dll.
+           7. Pasal-Pasal UUD 1945 & Lembaga Negara (HAFALAN PASAL RIIL DENGAN JEBAKAN KONSEPTUAL):
+              - WAJIB hadirkan pasal-pasal konstitusi riil:
+                * Hak Asasi Manusia (Klaster Pasal 28A hingga 28J)
+                * Pembelaan Negara vs Pertahanan (Pasal 27 ayat 3 vs Pasal 30 ayat 1 & 2)
+                * Lembaga Negara & Peradilan: Pasal 24A (MA), 24B (KY), 24C (MK), Pasal 20 & 22D (DPR vs DPD), Pasal 23E (BPK)
+                * Mekanisme Perubahan UUD 1945 (Pasal 37 ayat 1-5)
+              - Opsi pengecoh (distraktor) WAJIB menyajikan pasal atau ayat serumpun yang sangat mirip sehingga menguji ketelitian pemahaman hukum tata negara peserta.
 
-           CRITICAL TWK RULES (ELITE DIFFICULTY 8-10/10 & SANGAT MENGECOH):
-           1. **FORMAT SOAL**: Menyerupai SKD asli (Teks based, tanpa SVG). Gunakan: konsep -> penerapan -> konflik nilai -> menentukan prinsip/kebijakan yang PALING tepat.
-           2. **HAFALAN BUKAN SEGALANYA**: Jangan jadikan hafalan murni sebagai satu-satunya kesulitan. Minimal harus ada 1 tahap penalaran/analisis dari peserta untuk memecahkan kasus.
-           3. **TIDAK BERTELE-TELE**: Jangan sekadar membuat soal sulit dengan "kalimat panjang + istilah rumit + cerita bertele-tele". Cukupkan informasi, berikan opsi yang sama-sama bernilai kebenaran sebagian, dan biarkan peserta memilih yang PALING tepat.
-           4. **CLUE (HINT)**: Jangan berikan clue/hint yang terlalu eksplisit atau langsung menunjuk jawaban.
-           5. **DISTRACTORS (PENGECOH)**: Distraktor harus sangat realistis dan mewakili kesalahan analisis yang wajar. Semua opsi harus terdengar masuk akal, logis, atau konstitusional.
-           6. **KESEIMBANGAN OPSI**: Panjang teks opsi A hingga E harus relatif seimbang/setara agar peserta tidak bisa menebak jawaban hanya dari panjang teks.
-           7. **PEMBAHASAN (EXPLANATION)**: Pembahasan WAJIB menjelaskan secara komprehensif mengapa jawaban yang benar adalah TEPAT, **DAN** mengapa setiap opsi lainnya (distraktor) adalah KURANG TEPAT atau SALAH. Ini sangat krusial!`;
+           CRITICAL TWK RULES (ELITE DIFFICULTY 8-10/10 & PENGECOH MENJEBAK):
+           1. **FORMAT SOAL**: Menyerupai SKD asli (Teks studi kasus atau analisis kewenangan hukum).
+           2. **ANTI-OBVIOUS**: Kelima pilihan jawaban (A, B, C, D, E) HARUS tampak benar, positif, bijak, dan konstitusional. Dilarang keras opsi negatif atau konyol!
+           3. **KESEIMBANGAN OPSI**: Panjang teks opsi A hingga E harus relatif seimbang (selisih maksimal 2-4 kata). Jawaban benar dilarang menjadi opsi terpanjang.
+           4. **PEMBAHASAN (EXPLANATION)**: Jelaskan mengapa jawaban benar tepat berdasar pasal/butir sila terkait, DAN jelaskan letak ketidaktepatan opsi pengecoh.`;
       } else if (isTiu) {
-           difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - TARGET DIFFICULTY: 8-10/10 (ELITE KEDINASAN LEVEL).
+           difficultyContext = `CONTEXT: SKD TIU (Tes Intelegensia Umum) - TARGET DIFFICULTY: 8-10/10 (STANDAR CAT BKN TERKINI).
            
            ${HOTS_PHILOSOPHY}
 
-           THEME & TOPICS (STRICTLY FOLLOW THESE):
+           RAGAM MATERI & MODEL SOAL TIU TERKINI:
            1. Kemampuan Verbal:
-              - Analogi: Hubungan kata harus sangat spesifik dan dapat memiliki beberapa interpretasi (fungsi, sebab-akibat, bagian-keseluruhan, derajat). DILARANG menggunakan pasangan mudah (seperti dokter : rumah sakit).
-              - Silogisme: Gunakan 3-5 premis, negasi, kuantor (sebagian/semua), dan kesimpulan tidak langsung. DILARANG membuat pola repetitif (Semua A B. C A. Maka C B). Variasikan pertanyaan (pasti benar, mungkin benar, tidak mungkin benar, kesimpulan tidak valid).
-              - Analitis: WAJIB MENJADI SOAL TERSULIT. Gunakan 5-7 entitas dengan multiple constraint (urutan, posisi, jadwal, grouping). Variasikan pertanyaan (mana yang pasti, mungkin, mustahil, konsekuensi jika X terjadi, konsekuensi jika X dan Y ditukar).
-           2. Kemampuan Numerik (Berhitung, Deret, Perbandingan, Soal Cerita):
-              - WAJIB Minimal 2 tahap perhitungan (multi-step reasoning).
-              - DILARANG menggunakan angka absurd atau sangat besar. Kesulitan murni dari alur logika.
-              - Materi: aritmetika, persentase, rasio, pecahan, umur, pekerjaan, kecepatan, peluang, aljabar.
-              - ANTI-REPETISI: Rotasikan materi dengan ketat (persentase -> rasio -> umur -> kecepatan -> peluang, dll). Jangan buat topik yang sama berurutan.
-           3. Kemampuan Figural (Jika memuat gambar/SVG/deskripsi spasial):
-              - Analogi Gambar, Ketidaksamaan, Serial.
-              - Level 9-10: WAJIB menggabungkan 2-3 aturan sekaligus (contoh: rotasi + jumlah titik berubah + posisi bergeser).
-              - Variasi: matriks 3x3 (Sembilan Kotak), odd one out, refleksi, kombinasi transformasi. DILARANG membuat matriks 2x2.
-              - BAGI SELURUH SOAL FIGURAL, SELURUH OPSI JAWABAN (A-E) WAJIB BERUPA KODE SVG MURNI. JANGAN GUNAKAN TEKS PADA OPSI.
+              - **Analogi Objek Nyata & Kehidupan Sehari-hari**:
+                * DILARANG KERAS menggunakan kosa kata kamus ilmiah asing yang rumit (hindari kata klise seperti dikotomi, eufemisme, paradoks).
+                * WAJIB gunakan benda konkret, perkakas, pakaian/alat pelindung tubuh, fenomena alam, atau kegiatan sehari-hari yang memicu logika relasi fungsional atau sebab-akibat (contoh: Topi : Sarung Tangan : Sepatu = Helm : Sarung Tangan Motor : Sepatu Bot; Kunci : Gembok = Sandi : Brankas; Jarum : Benang = Kuas : Cat; Benih : Pohon = Janin : Bayi).
+                * Format: 2-3 variabel (A : B = C : D atau A : B : C = P : Q : R) atau analogi situasi/kalimat.
+              - **Soal Persamaan Kalimat**:
+                * Menentukan kalimat yang memiliki makna, struktur logika, atau gagasan pokok yang sepadan dengan kalimat wacana.
+              - **Silogisme Premis Panjang & Ketelitian**:
+                * 3-4 premis bernarasi kaya yang menuntut ketelitian membaca kuantor (Semua, Sebagian, Tidak Ada, Hanya Jika).
+              - **Logika Posisi & Analitis**:
+                * Urutan tempat duduk (melingkar/berhadapan/sebaris), susunan lantai/kamar apartemen, peringkat juara, atau jadwal antrean dengan batasan ketat.
+              - **Soal Cerita dengan Ketelitian Membaca Informasi**:
+                * Cerita studi kasus dengan rincian data tersebar yang membutuhkan ketelitian menyaring fakta relevan.
+           2. Kemampuan Numerik:
+              - **Perbandingan Senilai dan Tidak Senilai (Berbalik Nilai)**:
+                * Masalah pekerja vs lama hari, kecepatan vs waktu tempuh, kapasitas mesin, atau pakan ternak.
+              - **Soal Cerita & Aritmatika Sosial Menggunakan Tabel**:
+                * Jika membantu penyajian data (daftar harga, diskon bertingkat, tabel spesifikasi kerja), WAJIB buatkan tabel Markdown (\`| Kolom 1 | Kolom 2 |\`). Ada soal yang menggunakan tabel dan ada yang tanpa tabel.
+              - **Soal Kecukupan Informasi (Data Sufficiency - ala Penalaran Umum UTBK)**:
+                * Pertanyaan utama disertai Pernyataan (1) dan Pernyataan (2), dengan 5 opsi baku kecukupan data A-E.
+              - **Deret Angka Bentuk Tabel**:
+                * Tabel matriks angka (3x3 atau 2x4) di mana salah satu sel berisi tanda tanya (?) yang harus diisi berdasar operasi baris/kolom.
+              - **Suku Kata atau Pola Angka/Kata**:
+                * Pola pembentukan kata dari suku kata / sandi kata berpola, serta deret angka berpola unik.
+              - **Perbandingan Kuantitatif (P vs Q)**:
+                * Nilai hubungan kuantitatif P dan Q bervariasi ($P > Q$, $P < Q$, $P = Q$, atau hubungan tidak dapat ditentukan).
+           3. Kemampuan Figural:
+              - Analogi Gambar, Ketidaksamaan (Odd One Out), Serial Gambar.
+              - Seluruh opsi (A-E) figural WAJIB berupa kode <svg> murni dengan viewBox="0 0 100 100".
 
-           CRITICAL TIU RULES (ELITE DIFFICULTY & PENGECOH EKSTREM):
-           1. **KESULITAN LOGIKA, BUKAN KOMPUTASI**: Kesulitan 8-10/10 harus berasal dari "multi-step reasoning", BUKAN angka besar/kotor.
-           2. **KESEIMBANGAN OPSI**: Opsi (A-E) harus menjebak. Distraktor harus berupa angka/jawaban yang dihasilkan jika peserta melewatkan satu langkah logika (kesalahan yang realistis).
-           3. **PEMBAHASAN (EXPLANATION)**: Pembahasan WAJIB menguraikan langkah penyelesaian secara runtut (step-by-step) hingga jawaban benar, **DAN** menjelaskan letak jebakan pada distraktor utama (mengapa opsi lain salah).
-           4. **FORMAT**: Hanya 1 jawaban paling tepat. Hindari clue eksplisit.`;
+           CRITICAL TIU RULES:
+           1. **LOGIKA BUKAN HAFALAN ISTILAH**: Kesulitan berasal dari multi-step reasoning dan kejelian logika, bukan kosa kata asing.
+           2. **PEMBAHASAN RUNTUT**: Uraikan langkah penyelesaian step-by-step beserta alasan mengapa pengecoh salah.`;
       } else if (isTkp) {
-           difficultyContext = `CONTEXT: SKD TKP (Tes Karakteristik Pribadi) - TARGET DIFFICULTY: 8-10/10 (ELITE KEDINASAN LEVEL).
+           difficultyContext = `CONTEXT: SKD TKP (Tes Karakteristik Pribadi) - TARGET DIFFICULTY: 8-10/10 (STANDAR CAT BKN TERKINI).
            
            ${HOTS_PHILOSOPHY}
            ${TKP_SCORING_RULE}
 
-           THEME & TOPICS (STRICTLY FOLLOW THESE):
-           1. Pelayanan Publik: Aturan + kebutuhan masyarakat + keterbatasan sumber daya.
-           2. Jejaring Kerja (Kerja Sama): Teman kompeten tapi sulit diajak kerja sama, senior menolak metode baru, konflik antaranggota, deadline mendesak. JANGAN buat konflik repetitif "teman malas".
-           3. Sosial Budaya: Menghormati budaya bertabrakan dengan SOP/aturan organisasi (Konflik Level 9). JANGAN sekadar "hargai perbedaan".
-           4. TIK (Teknologi Informasi): Efisiensi vs keamanan data, prosedur vs eskalasi, AI, phishing, kebocoran data. Ini sangat krusial untuk soal tersulit.
-           5. Profesionalisme & Integritas: Masukkan dua masalah sekaligus (misal: double deadline, tugas mendesak A vs tugas penting B tanpa deadline jelas). JANGAN buat jawaban benar (poin 5) terlalu moralistik/obvious. Beberapa opsi harus sama-sama benar secara moral namun mekanismenya beda.
-           6. Anti-Radikalisme.
-           7. Orientasi Hasil: Cepat selesai vs kualitas, target individu vs tim, jangka pendek vs panjang.
-           8. Komunikasi & Adaptasi: Komunikasi dua arah, kecepatan vs ketelitian, sistem lama vs baru.
+           4 CLUSTER MATERI TKP TERKINI:
+           1. Permasalahan yang Sedang Terjadi:
+              - Adaptasi digitalisasi birokrasi, pemanfaatan kecerdasan buatan (AI) untuk efisiensi kantor, etika bermedia sosial, penanganan disinformasi/hoax di lingkungan kerja, fleksibilitas kerja (WFA/hybrid), keamanan data privasi.
+           2. Sikap Profesional:
+              - Integritas aparatur, menolak gratifikasi halus (hadiah/fasilitas terselubung dari rekanan), menjaga rahasia jabatan, komitmen menuntaskan tugas di bawah tekanan deadline tinggi.
+           3. Pengambilan Keputusan:
+              - Ketegasan menentukan prioritas di antara dua tugas mendesak, manajemen risiko terukur, keberanian mengambil diskresi yang sah demi kepentingan publik dan kelancaran organisasi.
+           4. Cara Menghadapi Kondisi:
+              - Menghadapi komplain masyarakat yang emosional dengan tenang dan solutif, perubahan instruksi pimpinan secara tiba-tiba, kendala sarana-prasarana darurat, kolaborasi dengan rekan kerja lintas generasi atau bertabiat sulit.
 
-           CRITICAL TKP RULES (STRICT 1-5 GRADATION & ANTI-OBVIOUS):
-           1. SISTEM SCORING WAJIB: 5-4-3-2-1.
-           2. TINGKAT KESULITAN: Kasus tidak perlu sangat panjang, melainkan 5 opsi harus sama-sama terlihat BAIK dan BISA DIBELA. Perbedaan antar opsi terletak pada tingkat efektivitas, prosedur, dan kematangan profesionalisme.
-           3. DISTORSI PILIHAN: JANGAN buat gradasi opsi yang konyol (A. Diam, B. Sedikit bantu, C. Bantu, D. Sangat bantu, E. Sempurna). Semua opsi (1-5) harus berbentuk respons aktif, formal, dan meyakinkan seolah-olah itu jawaban yang benar.
-           4. OPSI POIN 5: Poin 5 adalah solusi "Inovatif", "Adaptif", dan "Sesuai prosedur", namun dirumuskan secara taktis dan wajar. Tidak boleh "Terlalu Sempurna" atau moralistik yang tidak realistis.
-           5. PEMBAHASAN (EXPLANATION): Pembahasan WAJIB menjelaskan alasan di balik penetapan skor 5, 4, 3, 2, dan 1 untuk masing-masing opsi. Jelaskan perbedaan tipis efektivitas di antara kelima opsi tersebut.
-           6. KESEIMBANGAN PANJANG OPSI: Seluruh 5 opsi (A, B, C, D, E) HARUS memiliki panjang kalimat yang setara dan seimbang (selisih antarelemen maksimal 2-4 kata saja). DILARANG KERAS membuat opsi poin 5 menjadi opsi yang paling panjang atau paling bertele-tele!`;
+           ATURAN SKOR & PERBEDAAN TIPIS POIN 5 VS 4:
+           1. **SEMUA OPSI POSITIF & MASUK AKAL**: Kelima opsi (A, B, C, D, E) HARUS berupa tindakan profesional, sopan, dan positif. DILARANG membuat opsi negatif, malas, apatis, atau pasif!
+           2. **PERBEDAAN TIPIS POIN 5 VS 4**:
+              - Poin 4: Solusi prosedural/personal yang baik, patuh SOP, menyelesaikan tugasnya sendiri dengan tertib dan bertanggung jawab.
+              - Poin 5: Solusi berinisiatif sistemik, skala prioritas yang tepat (menyeimbangkan jangka pendek & jangka panjang), koordinasi lintas pihak secara taktis, dan perbaikan berkelanjutan tanpa melanggar aturan.
+           3. **KESEIMBANGAN PANJANG OPSI**: Seluruh 5 opsi (A-E) HARUS memiliki panjang kalimat yang setara dan seimbang (selisih antaropsi maksimal 2-4 kata saja). DILARANG membuat opsi poin 5 paling panjang!
+           4. **PEMBAHASAN (EXPLANATION)**: Pembahasan WAJIB menjelaskan alasan di balik penetapan skor 5, 4, 3, 2, dan 1 untuk masing-masing opsi.`;
       }
 
       if (category === 'SKD' && typeof context === 'string' && (context.toUpperCase().includes('TIU') || context.toUpperCase().includes('INTELEGENSIA'))) {
@@ -1678,64 +1699,56 @@ const SKD_TOTALS = { TWK: 30, TIU: 35, TKP: 45 } as const;
 
 const SKD_DISTRIBUTION: Record<'TWK'|'TIU'|'TKP', Record<string, number>> = {
   TWK: {
-    'TWK - Nasionalisme': 6,
-    'TWK - Integritas': 6,
-    'TWK - Bela Negara': 6,
-    'TWK - Pilar Negara': 6,
-    'TWK - Bahasa Indonesia': 6
+    'TWK - Penerapan Nilai Pancasila': 6,
+    'TWK - Pasal UUD 1945 & Lembaga Negara': 6,
+    'TWK - Nasionalisme & Toleransi': 6,
+    'TWK - Sejarah Kemerdekaan & Tokoh': 6,
+    'TWK - Studi Kasus & Integritas': 6
   },
   TIU: {
-    'TIU - Analogi': 3,
-    'TIU - Silogisme': 3,
-    'TIU - Analitis': 4,
-    'TIU - Hitungan': 4,
-    'TIU - Deret Angka': 4,
-    'TIU - Perbandingan Kuantitatif': 3,
-    'TIU - Soal Cerita': 4,
+    'TIU - Analogi & Persamaan Kalimat': 4,
+    'TIU - Silogisme & Logika Cerita': 4,
+    'TIU - Logika Posisi & Kecukupan Data': 4,
+    'TIU - Perbandingan Senilai & Tabel Aritmatika': 5,
+    'TIU - Deret Angka Tabel & Pola Kata': 4,
+    'TIU - Perbandingan Kuantitatif': 4,
     'TIU - Analogi Gambar': 3,
     'TIU - Serial Gambar': 4,
     'TIU - Ketidaksamaan Gambar': 3
   },
   TKP: {
-    'TKP - Pelayanan Publik': 8,
-    'TKP - Jejaring Kerja': 8,
-    'TKP - Sosial Budaya': 8,
-    'TKP - Teknologi Informasi dan Komunikasi': 7,
-    'TKP - Profesionalisme': 7,
-    'TKP - Anti Radikalisme': 7
+    'TKP - Permasalahan Terkini & Digital': 11,
+    'TKP - Sikap Profesional & Integritas': 12,
+    'TKP - Pengambilan Keputusan & Risiko': 11,
+    'TKP - Cara Menghadapi Kondisi & Pelayanan': 11
   }
 };
 
 const V8_COMMON_RULES = `
-[V8.1 — FRESH PATTERN & ANTI-OBVIOUS VALIDATED SKD ENGINE]
-Anda adalah penulis soal SKD (TWK, TIU, TKP) tingkat Master yang bertugas meracik ITEM BARU yang SEGAR, BERAGAM, dan TIDAK KLIKSE.
-Tujuan: menghasilkan soal yang autentik terhadap karakter SKD/CAT BKN terkini, sulit secara terukur, objektif, dan dapat diverifikasi.
+[V8.2 — CAT BKN HOTS & LOGICAL REASONING ENGINE]
+Anda adalah pembuat soal SKD (TWK, TIU, TKP) berstandar CAT BKN resmi terkini.
+Fokus utama pembuatan soal: MENGASAH LOGIKA DAN DAYA NALAR, BUKAN HAFALAN ISTILAH ILMIAH ASING YANG RUMIT.
 
-PRINSIP KESULITAN & ANTI-OBVIOUS (SANGAT KRUSIAL):
-- Naikkan kesulitan melalui kedalaman reasoning, penyaringan premis, kedekatan distractor (pengecoh bermutu tinggi), dan pertimbangan kontekstual.
-- Tepat satu jawaban benar untuk TWK dan TIU.
-- KESEIMBANGAN PANJANG & KUALITAS OPSI:
-  * Kelima opsi jawaban (A, B, C, D, E) HARUS memiliki panjang kalimat yang setara dan seimbang (selisih antarelemen maksimal 2-4 kata).
-  * DILARANG KERAS membuat opsi jawaban benar/skor tertinggi menjadi opsi yang paling panjang atau paling bertele-tele!
-  * KHUSUS TWK: Kelima opsi jawaban HARUS tampak positif, formal, dan plausible (masuk akal). DILARANG membuat opsi yang jelas-jelas bernada negatif, apatis, anarkis, korup, atau konyol sehingga peserta bisa menebak jawaban benar hanya dengan mencari kalimat yang paling bijak tanpa membaca wacana!
-- ANTI-REPETISI & FRESHNESS MANDATE (KHUSUS TIU & TWK):
-  * DILARANG KERAS menggunakan template soal yang itu-itu lagi dengan sekadar mengganti angka atau nama tokoh.
-  * TIU NUMERIK & VERBAL wajib menggunakan ragam pola matematika dan kerangka logika yang luas (bukan deret aritmatika dasar sederhana atau soal pekerja tambahan klise).
-  * Setiap soal dalam satu batch harus memiliki pola logika, konteks cerita, dan pendekatan penyelesaian yang BERBEDA secara fundamental.
+PRINSIP INTI PER SUBTES:
+1. TIU (ANALIS LOGIKA & OBJEK NYATA):
+   - Analogi Objek Nyata & Keseharian: DILARANG KERAS menggunakan kosa kata kamus ilmiah asing/berat (hindari dikotomi, eufemisme, paradoks). WAJIB gunakan benda nyata, perlengkapan/pakaian tubuh, perkakas, fenomena alam, atau kegiatan sehari-hari yang memicu logika relasi fungsional atau sebab-akibat (contoh: Topi : Sarung Tangan : Sepatu = Helm : Sarung Tangan Motor : Sepatu Bot; Kunci : Gembok = Sandi : Brankas; Jarum : Benang = Kuas : Cat; Benih : Pohon = Janin : Bayi).
+   - Format Baru TIU: Mendukung soal persamaan kalimat, perbandingan senilai vs berbalik nilai, soal cerita dengan tabel Markdown (| ... |), kecukupan informasi (Data Sufficiency), deret angka tabel matriks, suku kata/pola angka, logika posisi, premis panjang, dan soal cerita ketelitian informasi.
+2. TWK (PASAL UUD 1945, PANCASILA & KEBANGSAAN):
+   - Hadirkan pasal-pasal UUD 1945 riil (Klaster HAM 28A-J, Bela Negara 27 ayat 3 vs Hankam 30 ayat 1-2, Lembaga Peradilan MA/KY/MK 24A-C, DPR vs DPD 20 & 22D, BPK 23E, Amandemen 37 ayat 1-5) dalam konteks kasus hukum dengan opsi pengecoh antar-pasal/antar-ayat yang sangat mirip!
+   - Hadirkan 6 materi pokok: Penerapan nilai Pancasila sehari-hari, Nasionalisme, Toleransi suku/agama/budaya, Studi kasus nilai kebangsaan, Sejarah kemerdekaan, Tokoh sejarah & nilai perjuangannya.
+   - Pengecoh Butir Pancasila harus menguji pembedaan tajam antar-sila (misal Sila 2 Kemanusiaan vs Sila 5 Keadilan Sosial).
+3. TKP (SEMUA OPSI POSITIF & PERBEDAAN TIPIS 5 VS 4):
+   - SEMUA 5 OPSI (A-E) HARUS BERNILAI POSITIF, SOPAN, DAN MASUK AKAL. Dilarang keras membuat opsi negatif, malas, apatis, atau pasif!
+   - Perbedaan Skor 5 vs 4 Dibuat Sangat Tipis: Poin 4 adalah solusi prosedural/personal yang baik dan patuh SOP; Poin 5 adalah solusi berinisiatif sistemik, skala prioritas tepat (menyeimbangkan dampak jangka pendek & panjang), koordinasi lintas pihak secara taktis, dan perbaikan berkesinambungan.
+   - 4 Klaster Terkini: Permasalahan terkini (digitalisasi birokrasi, pemanfaatan AI, hoax di medsos, WFA), Sikap profesional (integritas, anti-gratifikasi halus), Pengambilan keputusan (prioritas mendesak, manajemen risiko), Cara menghadapi kondisi (komplain masyarakat emosional, perubahan mendadak, situasi darurat, rekan sulit).
+4. KESEIMBANGAN PANJANG OPSI (ANTI-OBVIOUS):
+   - Kelima opsi jawaban (A-E) HARUS memiliki panjang kalimat yang setara dan seimbang (selisih maksimal 2-4 kata).
+   - DILARANG KERAS membuat opsi bernilai benar/skor 5 menjadi yang paling panjang!
 
 VALIDITAS:
-- Sebelum menulis opsi, selesaikan masalah secara internal dan verifikasi hasil.
-- Jangan membuat premise kontradiktif, underdetermined, atau memiliki dua jawaban benar.
-- Distractor harus berasal dari miskonsepsi konseptual atau jebakan kalkulasi yang masuk akal, bukan acak.
-- Gunakan bahasa Indonesia baku, natural, dan ringkas.
-
-METADATA:
-- metadata.topic harus salah satu dari: TWK, TIU, TKP.
-- metadata.subtest harus sama persis dengan blueprint.
-- metadata.difficulty hanya: Easy, Medium, Hard, HOTS.
-- metadata.idealTimeSeconds harus realistis.
-- metadata.trapPattern menjelaskan jebakan utama secara singkat.
-- shortcut boleh kosong jika tidak ada shortcut yang aman.
+- Tepat satu jawaban benar untuk TWK dan TIU.
+- Untuk TKP, seluruh 5 opsi memiliki gradasi poin 1-5 secara konsisten.
+- Gunakan tabel Markdown jika menyajikan data kuantitatif atau matriks pada soal cerita TIU.
 `;
 
 function createRandomSeed(prefix: string): string {
@@ -1994,7 +2007,7 @@ async function criticQuestions(questions: Question[]): Promise<Map<string, { val
   if (!questions.length) return results;
 
   const payload = questions.map(serializeForCritic).join(',\n');
-  const prompt = `${V8_COMMON_RULES}\n\nTUGAS AUDIT INDEPENDEN BATCH.\nAnda bukan pembuat soal. Jangan percaya claimedAnswer. Audit setiap item secara independen.\nUntuk setiap ID:\n1) Selesaikan soal dari awal.\n2) Cek tepat satu jawaban benar untuk TWK/TIU.\n3) AUDIT KUALITAS OPSI TWK (ANTI-OBVIOUS): Periksa apakah opsi jawaban benar TWK terlalu mencolok/obvious. Jika ada satu opsi yang sangat bijak/panjang sedangkan opsi lain jelas-jelas bernada negatif/apatis/konyol sehingga peserta tidak perlu membaca soal, tandai valid=false dan beri issue 'opsi TWK terlalu obvious / distractor tidak plausible'.\n4) AUDIT KUALITAS POLA TIU: Periksa apakah soal TIU menggunakan pola klise berulang (seperti deret aritmatika dasar sederhana atau pekerja tambahan standar tanpa variasi). Pastikan perhitungan mathematically exact dan logika analitis tidak kontradiktif.\n5) Untuk TKP, cek ranking 1-5 konsisten dan tidak ada dua respons setara. PASTIKAN panjang kelima opsi seimbang dan opsi poin 5 TIDAK MENCOLOK LEBIH PANJANG dari opsi lainnya. Jika opsi 5 jelas paling panjang/obvious dibanding opsi lain, tandai valid=false dan beri issue 'opsi skor 5 terlalu obvious/panjang'.\n6) Cek fakta, ambiguitas, reasoning, dan kualitas distractor.\n7) valid=true hanya jika tidak ada masalah material. score 0-100.\n\nITEMS:\n[${payload}]\n\nKembalikan satu report untuk SETIAP ID, tanpa tambahan teks.`;
+  const prompt = `${V8_COMMON_RULES}\n\nTUGAS AUDIT INDEPENDEN BATCH.\nAnda bukan pembuat soal. Jangan percaya claimedAnswer. Audit setiap item secara independen.\nUntuk setiap ID:\n1) Selesaikan soal dari awal.\n2) Cek tepat satu jawaban benar untuk TWK/TIU.\n3) AUDIT KUALITAS OPSI TWK (ANTI-OBVIOUS & JEBAKAN PASAL/BUTIR): Periksa apakah opsi jawaban benar TWK terlalu mencolok/obvious. Pastikan semua opsi positif dan plausible. Jika pasal konstitusi atau butir sila diuji, pastikan pengecohnya adalah pasal serumpun atau butir sila lain yang sangat mirip.\n4) AUDIT KUALITAS LOGIKA TIU: Periksa apakah analogi menggunakan objek nyata/keseharian fungsional yang memicu logika (bukan istilah kamus ilmiah asing). Pastikan perhitungan, perbandingan senilai/tidak senilai, kecukupan informasi, dan tabel matriks deret exact dan tidak kontradiktif.\n5) Untuk TKP, cek ranking 1-5 konsisten dan SEMUA OPSI BERNILAI POSITIF. Perbedaan poin 5 vs 4 harus tipis (inisiatif sistemik vs prosedural). PASTIKAN panjang kelima opsi seimbang dan opsi poin 5 TIDAK MENCOLOK LEBIH PANJANG dari opsi lainnya.\n6) Cek fakta, ambiguitas, reasoning, dan kualitas distractor.\n7) valid=true hanya jika tidak ada masalah material. score 0-100.\n\nITEMS:\n[${payload}]\n\nKembalikan satu report untuk SETIAP ID, tanpa tambahan teks.`;
 
   try {
     const response = await callGemini<any>(prompt, skdCriticBatchSchema, undefined, {
@@ -2045,76 +2058,59 @@ async function generateValidatedSkdBatch(
     .join('\n');
 
   const topicRules = topic === 'TWK'
-    ? `TWK RULES — STANDAR HOTS BKN TINGKAT TINGGI & ANTI-OBVIOUS:
+    ? `TWK RULES — STANDAR CAT BKN TERKINI (HAFALAN PASAL RIIL, 6 MATERI POKOK, & ANTI-OBVIOUS):
 1. MANDAT ANTI-OBVIOUS MUTLAK (SANGAT KRUSIAL):
    - KELIMA PILIHAN JAWABAN (A, B, C, D, E) HARUS TAMPAK BENAR, POSITIF, BIJAK, DAN BERMORAL BAIK.
-   - DILARANG KERAS membuat opsi yang jelas-jelas tercela, malas, apatis, anarkis, korup, atau konyol (seperti "membiarkan masalah", "mementingkan diri sendiri", "memaksakan kehendak", "menolak bekerja sama", "mengkritik tanpa solusi").
-   - Peserta TIDAK BOLEH BISA MENEBAK JAWABAN HANYA DENGAN MEMILIH OPSI YANG PALING BIJAK / PALING PANCASILAIS TANPA MEMBACA SOAL!
+   - DILARANG KERAS membuat opsi yang jelas-jelas tercela, malas, apatis, anarkis, korup, atau konyol.
+   - Peserta TIDAK BOLEH BISA MENEBAK JAWABAN HANYA DENGAN MEMILIH OPSI YANG PALING BIJAK TANPA MEMBACA SOAL!
    - Keseimbangan Panjang Opsi: Kelima opsi HARUS memiliki panjang kalimat yang setara dan seimbang (selisih kata maksimal 2-4 kata). Opsi jawaban benar DILARANG menjadi opsi yang paling panjang!
 
-2. DISTRAKTOR DIBANGUN DARI JEBAKAN KONSEPTUAL SPESIFIK (BUKAN MORALITAS BAIK VS BURUK):
-   - Pilar Negara (Pancasila):
-     * Jika soal menanyakan butir Sila ke-2 (Kemanusiaan), maka 4 opsi pengecoh adalah tindakan luhur pengamalan Sila ke-5 (Keadilan Sosial), Sila ke-3 (Persatuan), atau Sila ke-4 (Musyawarah). Semua opsi sama-sama bernilai Pancasila, peserta harus teliti mengidentifikasi esensi Sila yang tepat!
-     * Bedakan secara tajam: Kemanusiaan (Sila 2 - empati, martabat, hak asasi) vs Keadilan Sosial (Sila 5 - pemerataan fasilitas, gotong royong memajukan daerah, tidak boros, hak milik umum).
-   - Pilar Negara (UUD 1945 & Lembaga Negara):
-     * Jebakan wewenang konstitusional: Pengecoh menawarkan tindakan terpuji yang melompati wewenang lembaga (misal wewenang Komisi Yudisial disangka Mahkamah Agung, wewenang Presiden disangka DPR, wewenang BPK disangka KPK).
-     * Hierarki perundang-undangan (UU No. 12/2011 jo UU No. 13/2022) dan tata urutan norma hukum.
-   - Bela Negara (5 Nilai Dasar):
-     * Wacana menggambarkan aksi warga/aparatur. Pilihan opsi A-E merepresentasikan indikator dari 5 Nilai Bela Negara (Cinta Tanah Air, Sadar Berbangsa & Bernegara, Setia pada Pancasila, Rela Berkorban, Kemampuan Awal Bela Negara). Peserta WAJIB menganalisis wacana secara mendalam untuk menentukan nilai mana yang secara spesifik tercermin.
-   - Integritas & Anti-Korupsi:
-     * Dilema integritas birokrasi: Pengecoh adalah tindakan yang tampak solutif dan membantu rekan/masyarakat, namun memiliki cacat administrasi halus (benturan kepentingan terselubung, melompati SOP tanpa diskresi sah, atau menerima fasilitas gratifikasi pasif).
-   - Nasionalisme:
-     * Menghadapi tantangan globalisasi, kedaulatan ekonomi, identitas kebangsaan, dan disinformasi digital. Pengecoh adalah tindakan primordialisme atau chauvinisme terselubung yang tampak patriotik namun merusak persatuan.
-   - Bahasa Indonesia:
-     * Paragraf wacana kontekstual (kebijakan publik, sains, sosio-kultural). Pengecoh ide pokok adalah fakta yang ada di teks tapi berfungsi sebagai gagasan penjelas. Pengecoh kalimat efektif adalah kalimat yang tampak wajar tapi mengandung kesalahan gramatikal halus (pleonasme, ketidaksejajaran afiks, hilangnya subjek karena preposisi awal).`
+2. 6 MATERI POKOK & JEBAKAN KONSEPTUAL SPESIFIK:
+   - 1. Penerapan Nilai Pancasila dalam Kehidupan Sehari-hari:
+     * Pengamalan butir sila dalam studi kasus sosial/kantor. Distraktor menyajikan tindakan terpuji yang mencerminkan sila lain (terutama Sila 2 Kemanusiaan vs Sila 5 Keadilan Sosial, Sila 1 vs Sila 3).
+   - 2. Nasionalisme:
+     * Kedaulatan ekonomi, perlindungan dan apresiasi produk dalam negeri, pertahanan identitas budaya dari pengaruh luar, kesadaran integrasi teritorial.
+   - 3. Toleransi Antar Suku, Agama, dan Budaya:
+     * Kerukunan Bhinneka Tunggal Ika, moderasi beragama, penyelesaian konflik keberagaman tanpa diskriminasi.
+   - 4. Studi Kasus Penerapan Nilai Kebangsaan:
+     * Dilema integritas aparatur sipil negara, netralitas ASN dalam pemilu/pilkada, pencegahan gratifikasi terselubung, akuntabilitas pelayanan publik.
+   - 5. Sejarah Kemerdekaan:
+     * Detil peristiwa sekitar Proklamasi 17 Agustus 1945, dinamika sidang BPUPKI/PPKI, peristiwa Rengasdengklok, Agresi Militer Belanda I & II, diplomasi Linggarjati/Renville/Roem-Royen/KMB.
+   - 6. Tokoh Sejarah dan Nilai yang Dipelajari dari Perjuangannya:
+     * Keteladanan nilai kejujuran Moh. Hatta, diplomasi cerdas Agus Salim & Sutan Sjahrir, pengorbanan Jenderal Soedirman, pendidikan Ki Hajar Dewantara.
+   - 7. Hafalan Pasal UUD 1945 & Lembaga Negara:
+     * Uji pemahaman pasal-pasal riil: HAM (28A-J), Bela Negara 27(3) vs Hankam 30(1-2), Lembaga Peradilan MA (24A), KY (24B), MK (24C), Lembaga Legislatif DPR (20) vs DPD (22D), BPK (23E), Perubahan UUD 37(1-5).
+     * Opsi pengecoh WAJIB menyajikan pasal atau ayat serumpun yang sangat mirip dan menjebak!`
     : topic === 'TIU'
-      ? `TIU RULES — POLA FRESH, BERAGAM, & MULTI-STEP REASONING:
-1. ANTI-REPETISI & FRESH PATTERNS (DILARANG MENGULANG TEMPLATE DENGAN HANYA MENGGANTI ANGKA):
-   - Soal TIU harus segar, menantang logika analitis, dan memiliki kerangka penyelesaian yang bervariasi.
-   - Jangan pernah menghasilkan soal deret aritmatika dasar sederhana atau soal pekerja tambahan standar yang itu-itu lagi.
+      ? `TIU RULES — POLA FRESH, LOGIKA OBJEK NYATA, & 10 RAGAM SOAL BARU:
+1. MANDAT UTAMA: MENGASAH LOGIKA, BUKAN HAFALAN ISTILAH ILMIAH ASING:
+   - DILARANG KERAS menggunakan kosa kata kamus ilmiah rumit/asing yang tidak memicu penalaran logika.
+   - WAJIB gunakan analogi objek nyata, benda konkret, pakaian/alat pelindung tubuh, perkakas, fenomena alam, atau kegiatan sehari-hari yang memicu logika relasi fungsional dan sebab-akibat (contoh: Topi : Sarung Tangan : Sepatu = Helm : Sarung Tangan Motor : Sepatu Bot; Jarum : Benang = Kuas : Cat).
 
-2. SUBTES NUMERIK:
-   - Deret Angka / Huruf (Wajib gunakan ragam arketipe berbeda):
-     * Pola 1: Deret 3 larik (triple alternating series) dengan pola operasi berbeda di setiap larik.
-     * Pola 2: Deret Fibonacci termodifikasi (suku n = a_{n-1} + a_{n-2} ± k atau operasi campuran).
-     * Pola 3: Deret bertingkat non-linear (selisih tingkat dua membentuk barisan kuadrat atau bilangan prima).
-     * Pola 4: Deret kelompok/kluster (pola berulang tiap 3 angka dengan relasi internal, misal [a, b, a×b + 1]).
-     * Pola 5: Deret fraksional dan desimal berpola relasi pembilang-penyebut terpisah.
-     * Pola 6: Deret huruf dengan lompatan berdasar urutan bilangan prima atau rotasi modular terbalik.
-   - Berhitung Cepat & Aljabar:
-     * Gunakan kecerdikan manipulasi aljabar (identitas aljabar a² - b², (a+b+c)², faktorisasi a³ ± b³).
-     * Operator matematika khusus yang didefinisikan baru (a ⋆ b = ...) dengan substitusi berlapis.
-     * Sifat keterbagian (divisibility), modulo dan sisa pembagian bilangan berpangkat.
-     * Pecahan aljabar bertingkat (telescoping series).
-   - Perbandingan Kuantitatif (P vs Q):
-     * Kunci jawaban WAJIB divariasikan (P > Q, P < Q, P = Q, atau hubungan tidak dapat ditentukan jika ada ambiguitas domain). JANGAN selalu 'tidak dapat ditentukan'!
-     * Gunakan domain variabel pecahan (0 < x < 1 di mana x³ < x² < x < √x), bilangan bulat negatif (a < b < 0), geometri tersembunyi (luas arsir vs keliling), atau persentase bolak-balik.
-   - Soal Cerita (Aritmatika Sosial & Penalaran Terapan):
-     * Manajemen proyek multi-tahap dengan efisiensi tenaga kerja berbeda atau jeda mesin (BUKAN rumus pekerja tambahan klise W × D = konstan).
-     * Aritmatika finansial riil (sistem bagi hasil proporsional modal & waktu, margin bertingkat, penyusutan aset).
-     * Masalah campuran konsentrasi dinamis 3 zat atau penggantian sebagian larutan.
-     * Kecepatan relatif kompleks (kecepatan berubah di tengah jalan, papasan dengan selisih waktu berangkat, atau gerak arus).
-     * Analisis himpunan 3 kriteria (Diagram Venn 3 lingkaran) dalam konteks survei profesional.
-
-3. SUBTES VERBAL:
-   - Analogi: Gunakan format double-gap (A : … = … : D) atau 3-variabel (A : B : C = P : Q : R) dengan kosa kata KBBI tingkat tinggi dan relasi objektif non-debatabel.
-   - Silogisme: Gunakan 3-4 premis dengan kombinasi kuantor (Semua, Sebagian, Tidak Ada) dan syarat bersyarat (Jika-Maka), negasi majemuk (De Morgan), dan dilema konstruktif. Pengecoh memodelkan kesalahan logika formal.
-   - Analitis: Gunakan variasi skenario meja bundar/berhadapan, penjadwalan multi-kriteria (hari, shift, ruangan), penempatan lantai apartemen, atau eliminasi kondisi mutlak ("Pernyataan yang PASTI SALAH").
-
-4. SUBTES FIGURAL:
-   - Gunakan SVG 2D bersih dan presisi dengan transformasi gabungan (rotasi + penambahan elemen + inversi shading).`
-      : `TKP RULES:
-- Skenario profesional nyata dan abu-abu, tetapi tetap memiliki ranking kualitas respons yang jelas.
-- Kelima opsi harus sama-sama plausible, namun berbeda dalam kualitas: 5 paling efektif dan paling selaras kompetensi; 1 paling lemah.
-- KESEIMBANGAN PANJANG OPSI (ANTI-OBVIOUS MANDATE - SANGAT KRUSIAL):
-  * Kelima opsi (A, B, C, D, E) HARUS MEMILIKI PANJANG KALIMAT YANG HAMPIR IDENTIK / SEIMBANG (perbedaan panjang antarkelima opsi maksimal 2-4 kata saja).
-  * DILARANG KERAS membuat opsi bernilai 5 menjadi opsi yang paling panjang, paling bertele-tele, atau paling detail! Peserta ujian tidak boleh menebak jawaban terbaik hanya dengan melihat opsi mana yang paling panjang teksnya.
-  * Opsi skor 5 harus dirumuskan secara taktis, padat, dan proporsional.
-  * Sebaliknya, opsi bernilai 1, 2, 3, dan 4 juga WAJIB ditulis lengkap dengan elaborasi dan panjang yang sepadan, berupa tindakan profesional yang terkesan masuk akal namun memiliki kelemahan prinsipil (bukan kalimat pendek pasif seperti "Diam saja", "Masa bodoh", dll).
-  * Opsi skor 4 harus sangat kompetitif dan logis, sehingga dilema terasa nyata.
-- Jangan membuat opsi 5 hanya “paling baik hati”. Nilai pelayanan, integritas, kolaborasi, adaptasi, komunikasi, pengendalian risiko, dan kepatuhan yang proporsional.
-- Hindari template klise. Variasikan setting, stakeholder, informasi dan trade-off.
-- Pastikan tidak ada opsi yang sekaligus mengandung semua keunggulan sehingga jawabannya terlalu mudah.`;
+2. 10 RAGAM MODEL SOAL TIU TERKINI:
+   - 1. Analogi Kata & Objek Nyata: Relasi fungsional objek konkret, derajat intensitas, atau sebab-akibat.
+   - 2. Soal Persamaan Kalimat: Menemukan kalimat yang sepadan secara struktur logika dan substansi gagasan.
+   - 3. TIU Perbandingan Senilai dan Tidak Senilai (Berbalik Nilai): Kecepatan, tenaga kerja vs waktu, debit air, pakan.
+   - 4. Soal Cerita Silogisme, Figural, dan Aritmatika Sosial Menggunakan Tabel: Jika perlu tabel data (daftar harga/spesifikasi), WAJIB buat tabel Markdown (| Kolom 1 | Kolom 2 |). Ada soal bertabel dan ada yang tanpa tabel.
+   - 5. Soal Kecukupan Informasi (Data Sufficiency ala UTBK): Pertanyaan disertai Pernyataan (1) dan (2) dengan 5 opsi baku kelayakan informasi.
+   - 6. Deret Angka Bentuk Tabel: Matriks angka 3x3 atau 2x4 dengan salah satu sel bertanda (?) berdasar operasi baris/kolom.
+   - 7. Suku Kata atau Pola Angka/Kata: Pola transformasi suku kata, sandi berulang, dan deret angka tingkat dua.
+   - 8. Logika Posisi (Analitis): Urutan posisi tempat duduk, penataan meja, antrean, atau lantai gedung.
+   - 9. Premis Panjang yang Butuh Ketelitian: Silogisme 3-4 premis bernarasi kaya yang menguji penalaran kuantor.
+   - 10. Soal Berbentuk Cerita dengan Ketelitian Membaca Informasi: Studi kasus kontekstual yang menguji ketelitian memilah informasi relevan.`
+      : `TKP RULES — SEMUA OPSI POSITIF, PERBEDAAN TIPIS 5 VS 4, & 4 KLASTER TERKINI:
+1. SEMUA 5 OPSI (A-E) HARUS BERNILAI POSITIF, SOPAN, DAN MASUK AKAL:
+   - DILARANG KERAS membuat opsi negatif, malas, apatis, anarkis, atau pasif! Seluruh pilihan harus menunjukkan respons bertanggung jawab.
+2. PERBEDAAN TIPIS POIN 5 VS 4:
+   - Poin 4: Solusi prosedural/personal yang baik, patuh SOP, menyelesaikan tugas dengan tertib.
+   - Poin 5: Solusi berinisiatif sistemik, skala prioritas tepat (menyeimbangkan dampak jangka pendek & panjang), koordinasi lintas pihak secara taktis, dan perbaikan berkesinambungan.
+3. 4 KLASTER MATERI TKP TERKINI:
+   - 1. Permasalahan yang Sedang Terjadi: Digitalisasi birokrasi, adopsi AI, etika bermedia sosial, penanganan hoax kantor, fleksibilitas kerja (WFA/hybrid), perlindungan privasi.
+   - 2. Sikap Profesional: Integritas aparatur, menolak gratifikasi halus (hadiah/fasilitas rekanan), kerahasiaan data, komitmen target di bawah tekanan tinggi.
+   - 3. Pengambilan Keputusan: Prioritas di antara tugas mendesak, manajemen risiko, keberanian mengambil diskresi yang sah demi pelayanan publik.
+   - 4. Cara Menghadapi Kondisi: Menghadapi komplain masyarakat emosional secara arif dan solutif, perubahan instruksi pimpinan mendadak, situasi darurat fasilitas, kolaborasi dengan rekan berkarakter sulit.
+4. KESEIMBANGAN PANJANG OPSI (ANTI-OBVIOUS):
+   - Seluruh 5 opsi (A-E) HARUS memiliki panjang kalimat yang setara dan seimbang (selisih antaropsi maksimal 2-4 kata saja). DILARANG membuat opsi poin 5 paling panjang!`;
 
   const prompt = `${V8_COMMON_RULES}
 
@@ -2201,26 +2197,24 @@ Catatan validator pada percobaan sebelumnya: ${lastIssues.slice(-6).join(' | ')}
       // 2. Specific aliases / keywords in subtest or topic
       const checkKeywords = (text: string): string | undefined => {
         const lower = text.toLowerCase();
-        if (lower.includes('perbandingan') || lower.includes('kuantitatif')) {
+        // TIU
+        if (lower.includes('analogi') && !lower.includes('gambar') || lower.includes('persamaan kalimat')) {
+          return allSubtestNames.find(n => n.includes('Analogi & Persamaan Kalimat') || n.includes('Analogi'));
+        }
+        if (lower.includes('silogisme') || lower.includes('cerita') && lower.includes('logika')) {
+          return allSubtestNames.find(n => n.includes('Silogisme & Logika Cerita') || n.includes('Silogisme'));
+        }
+        if (lower.includes('posisi') || lower.includes('kecukupan data') || lower.includes('data sufficiency') || lower.includes('analitis')) {
+          return allSubtestNames.find(n => n.includes('Logika Posisi & Kecukupan Data') || n.includes('Analitis'));
+        }
+        if (lower.includes('senilai') || lower.includes('berbalik nilai') || (lower.includes('tabel') && lower.includes('aritmatika')) || lower.includes('soal cerita') || lower.includes('hitungan')) {
+          return allSubtestNames.find(n => n.includes('Perbandingan Senilai') || n.includes('Soal Cerita') || n.includes('Hitungan'));
+        }
+        if (lower.includes('deret') || lower.includes('pola kata') || lower.includes('suku kata')) {
+          return allSubtestNames.find(n => n.includes('Deret Angka') || n.includes('Pola Kata'));
+        }
+        if (lower.includes('perbandingan kuantitatif') || lower.includes('kuantitatif')) {
           return allSubtestNames.find(n => n.includes('Perbandingan Kuantitatif'));
-        }
-        if (lower.includes('soal cerita') || lower.includes('cerita')) {
-          return allSubtestNames.find(n => n.includes('Soal Cerita'));
-        }
-        if (lower.includes('deret')) {
-          return allSubtestNames.find(n => n.includes('Deret Angka'));
-        }
-        if (lower.includes('hitungan') || lower.includes('berhitung') || lower.includes('aritmatika')) {
-          return allSubtestNames.find(n => n.includes('Hitungan'));
-        }
-        if (lower.includes('analogi') && !lower.includes('gambar')) {
-          return allSubtestNames.find(n => n.includes('Analogi') && !n.includes('Gambar'));
-        }
-        if (lower.includes('silogisme')) {
-          return allSubtestNames.find(n => n.includes('Silogisme'));
-        }
-        if (lower.includes('analitis')) {
-          return allSubtestNames.find(n => n.includes('Analitis'));
         }
         if (lower.includes('analogi') && lower.includes('gambar')) {
           return allSubtestNames.find(n => n.includes('Analogi Gambar'));
@@ -2231,38 +2225,34 @@ Catatan validator pada percobaan sebelumnya: ${lastIssues.slice(-6).join(' | ')}
         if (lower.includes('ketidaksamaan')) {
           return allSubtestNames.find(n => n.includes('Ketidaksamaan Gambar'));
         }
-        if (lower.includes('nasionalisme')) {
-          return allSubtestNames.find(n => n.includes('Nasionalisme'));
+        // TWK
+        if (lower.includes('pancasila') || lower.includes('nilai pancasila')) {
+          return allSubtestNames.find(n => n.includes('Penerapan Nilai Pancasila') || n.includes('Pilar Negara'));
         }
-        if (lower.includes('integritas')) {
-          return allSubtestNames.find(n => n.includes('Integritas'));
+        if (lower.includes('pasal') || lower.includes('uud') || lower.includes('lembaga negara')) {
+          return allSubtestNames.find(n => n.includes('Pasal UUD 1945') || n.includes('Pilar Negara'));
         }
-        if (lower.includes('bela negara')) {
-          return allSubtestNames.find(n => n.includes('Bela Negara'));
+        if (lower.includes('nasionalisme') || lower.includes('toleransi')) {
+          return allSubtestNames.find(n => n.includes('Nasionalisme & Toleransi') || n.includes('Nasionalisme'));
         }
-        if (lower.includes('pilar negara') || lower.includes('pancasila') || lower.includes('uud')) {
-          return allSubtestNames.find(n => n.includes('Pilar Negara'));
+        if (lower.includes('sejarah') || lower.includes('tokoh')) {
+          return allSubtestNames.find(n => n.includes('Sejarah Kemerdekaan & Tokoh') || n.includes('Bela Negara'));
         }
-        if (lower.includes('bahasa indonesia') || lower.includes('bahasa')) {
-          return allSubtestNames.find(n => n.includes('Bahasa Indonesia'));
+        if (lower.includes('studi kasus') || lower.includes('integritas') || lower.includes('bela negara') || lower.includes('bahasa')) {
+          return allSubtestNames.find(n => n.includes('Studi Kasus & Integritas') || n.includes('Integritas') || n.includes('Bahasa Indonesia'));
         }
-        if (lower.includes('pelayanan')) {
-          return allSubtestNames.find(n => n.includes('Pelayanan Publik'));
+        // TKP
+        if (lower.includes('permasalahan') || lower.includes('digital') || lower.includes('teknologi') || lower.includes('tik')) {
+          return allSubtestNames.find(n => n.includes('Permasalahan Terkini & Digital') || n.includes('Teknologi Informasi'));
         }
-        if (lower.includes('jejaring')) {
-          return allSubtestNames.find(n => n.includes('Jejaring Kerja'));
+        if (lower.includes('profesional') || lower.includes('integritas')) {
+          return allSubtestNames.find(n => n.includes('Sikap Profesional & Integritas') || n.includes('Profesionalisme'));
         }
-        if (lower.includes('sosial budaya') || lower.includes('sosbud')) {
-          return allSubtestNames.find(n => n.includes('Sosial Budaya'));
+        if (lower.includes('keputusan') || lower.includes('risiko') || lower.includes('jejaring')) {
+          return allSubtestNames.find(n => n.includes('Pengambilan Keputusan & Risiko') || n.includes('Jejaring Kerja'));
         }
-        if (lower.includes('teknologi') || lower.includes('tik') || lower.includes('komunikasi')) {
-          return allSubtestNames.find(n => n.includes('Teknologi Informasi'));
-        }
-        if (lower.includes('profesionalisme') || lower.includes('profesional')) {
-          return allSubtestNames.find(n => n.includes('Profesionalisme'));
-        }
-        if (lower.includes('radikalisme') || lower.includes('anti radikalisme')) {
-          return allSubtestNames.find(n => n.includes('Anti Radikalisme'));
+        if (lower.includes('kondisi') || lower.includes('pelayanan') || lower.includes('sosial') || lower.includes('radikalisme')) {
+          return allSubtestNames.find(n => n.includes('Cara Menghadapi Kondisi') || n.includes('Pelayanan Publik') || n.includes('Sosial Budaya'));
         }
         return undefined;
       };
@@ -2466,8 +2456,8 @@ ATURAN KHUSUS TIU FIGURAL:
     
     if (variant === 'FULL' || variant === 'TIU') {
       const entries = Object.entries(SKD_DISTRIBUTION.TIU);
-      await runBatch('tiuV', Object.fromEntries(entries.filter(([k]) => ['TIU - Analogi', 'TIU - Silogisme', 'TIU - Analitis'].includes(k))), 'TIU', 'TIU-VERBAL', difficultyProfile);
-      await runBatch('tiuN', Object.fromEntries(entries.filter(([k]) => ['TIU - Hitungan', 'TIU - Deret Angka', 'TIU - Perbandingan Kuantitatif', 'TIU - Soal Cerita'].includes(k))), 'TIU', 'TIU-NUMERIK', difficultyProfile);
+      await runBatch('tiuV', Object.fromEntries(entries.filter(([k]) => ['TIU - Analogi & Persamaan Kalimat', 'TIU - Silogisme & Logika Cerita', 'TIU - Logika Posisi & Kecukupan Data'].includes(k))), 'TIU', 'TIU-VERBAL', difficultyProfile);
+      await runBatch('tiuN', Object.fromEntries(entries.filter(([k]) => ['TIU - Perbandingan Senilai & Tabel Aritmatika', 'TIU - Deret Angka Tabel & Pola Kata', 'TIU - Perbandingan Kuantitatif'].includes(k))), 'TIU', 'TIU-NUMERIK', difficultyProfile);
       await runBatch('tiuF', Object.fromEntries(entries.filter(([k]) => k.includes('Gambar'))), 'TIU', 'TIU-FIGURAL', tiuFiguralProfile);
     }
 
@@ -2475,7 +2465,6 @@ ATURAN KHUSUS TIU FIGURAL:
       const entries = Object.entries(SKD_DISTRIBUTION.TKP);
       await runBatch('tkpA', Object.fromEntries(entries.slice(0, 2)), 'TKP', 'TKP-A', difficultyProfile);
       await runBatch('tkpB', Object.fromEntries(entries.slice(2, 4)), 'TKP', 'TKP-B', difficultyProfile);
-      await runBatch('tkpC', Object.fromEntries(entries.slice(4)), 'TKP', 'TKP-C', difficultyProfile);
     }
 
     const expectedTotal = variant === 'FULL' ? 110 : variant === 'TWK' ? SKD_TOTALS.TWK : variant === 'TIU' ? SKD_TOTALS.TIU : SKD_TOTALS.TKP;

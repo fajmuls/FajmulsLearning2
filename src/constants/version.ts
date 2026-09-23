@@ -5,9 +5,23 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "4.5.6";
+export const APP_VERSION = "4.5.7";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "4.5.7",
+    date: new Date().toISOString().split('T')[0],
+    type: "minor",
+    notes: [
+      "Pembaruan Komprehensif Generator Soal SKD CAT BKN Terkini: Mengadaptasi kurikulum dan standar logika tes SKD terbaru untuk TWK, TIU, dan TKP yang berfokus pada daya nalar tajam peserta.",
+      "TIU — Analogi Objek Nyata & Kehidupan Sehari-hari: Mengganti kosa kata kamus ilmiah asing dengan analogi benda konkret, pakaian/alat pelindung tubuh, instrumen kerja, fenomena alam, atau kegiatan sehari-hari yang memicu logika relasi fungsional dan sebab-akibat.",
+      "TIU — 10 Ragam Soal Baru: Mendukung soal persamaan kalimat, perbandingan senilai vs berbalik nilai, soal cerita/silogisme/aritmatika dengan tabel Markdown (| ... |), kecukupan informasi (Data Sufficiency), deret angka tabel matriks, suku kata/pola angka, logika posisi, premis panjang, dan soal cerita ketelitian informasi.",
+      "TWK — Pasal UUD 1945 & Butir Pancasila Riil: Mengintegrasikan pasal-pasal konstitusi nyata (HAM 28A-J, Bela Negara 27(3) vs Hankam 30(1-2), Lembaga MA/KY/MK 24A-C, DPR vs DPD, BPK, Amandemen 37) dengan opsi pengecoh pasal/ayat serumpun yang sangat mirip dan menjebak, serta pembedaan butir Pancasila yang tajam.",
+      "TWK — 6 Materi Pokok Kebangsaan: Penerapan nilai Pancasila sehari-hari, Nasionalisme, Toleransi antar suku/agama/budaya, Studi kasus nilai kebangsaan/integritas aparatur, Sejarah kemerdekaan, dan Teladan nilai tokoh pejuang bangsa.",
+      "TKP — Opsi Serba Positif & Perbedaan Tipis 5 vs 4: Seluruh 5 pilihan jawaban (A-E) bernilai positif dan profesional tanpa opsi negatif/malas/pasif. Skor 5 unggul pada inisiatif sistemik dan skala prioritas taktis dibanding skor 4 yang prosedural, dengan panjang opsi tetap seimbang.",
+      "TKP — 4 Klaster Isu Terkini: Permasalahan yang sedang terjadi (digitalisasi birokrasi, AI, hoax medsos, WFA), Sikap profesional (integritas, anti-gratifikasi halus), Pengambilan keputusan (prioritas mendesak, manajemen risiko), dan Cara menghadapi kondisi darurat/komplain publik."
+    ]
+  },
   {
     version: "4.5.6",
     date: new Date().toISOString().split('T')[0],
