@@ -5,9 +5,19 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "4.5.9";
+export const APP_VERSION = "4.6.0";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "4.6.0",
+    date: new Date().toISOString().split('T')[0],
+    type: "minor",
+    notes: [
+      "Peningkatan Visual Matriks Angka & Tabel Interaktif TIU: Sistem kini secara cerdas mendeteksi format deret matriks angka (3x3, 2x4, baris x kolom) tanpa garis header dan merendernya menjadi Matriks Angka Asli (Authentic Matrix Grid) dengan kurung matematis elegan, sel angka yang tegas, serta badge interaktif berkedip pada tanda tanya (?). Tampilan mentah tanda pipa (|) telah sepenuhnya ditiadakan.",
+      "Live Preview Soal Pertama (Batch 1 Selesai): Modal pembuat soal AI kini langsung menampilkan preview kartu soal pertama yang telah tervalidasi seketika setelah Batch 1 rampung (sebelum seluruh batch tuntas), lengkap dengan opsi perbesar layar agar peserta dapat mempelajari soal sembari menunggu sisa batch diracik.",
+      "Integrasi Responsif & LaTeX Matriks: Seluruh sel angka dan simbol dalam matriks maupun tabel mendukung ekspresi matematis KaTeX dan tata letak responsif yang nyaman diakses dari ponsel maupun desktop."
+    ]
+  },
   {
     version: "4.5.9",
     date: new Date().toISOString().split('T')[0],

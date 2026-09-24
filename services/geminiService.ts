@@ -1774,14 +1774,19 @@ PEMBAGIAN SUBTES & TEMA RESMI (WAJIB TEPAT):
    - "TKP - Profesionalisme": Integritas kerja ASN, menolak gratifikasi, memprioritaskan tugas dinas di atas urusan pribadi.
    - "TKP - Anti-Radikalisme": Sikap tegas anti-radikal, setia pada Pancasila dan NKRI, literasi kritis propaganda intoleran.
 
-4. TABEL ASLI PADA SOAL (WAJIB DIIKUTI):
-   - Jika soal menyajikan data kuantitatif, perbandingan, atau deret matriks:
-     WAJIB tuliskan tabel Markdown yang rapi dengan format:
-     | Header 1 | Header 2 | Header 3 |
-     | :--- | :---: | ---: |
-     | Data A1 | Data A2 | Data A3 |
-     | Data B1 | Data B2 | Data B3 |
-     Aplikasi akan secara otomatis merendernya menjadi tabel interaktif asli yang rapi, responsif, dan elegan.
+4. TABEL ASLI & MATRIKS ANGKA PADA SOAL (WAJIB DIIKUTI):
+   - Jika soal menyajikan data kuantitatif, perbandingan, atau deret matriks angka:
+     WAJIB tuliskan tabel Markdown rapi (baik tabel ber-header maupun matriks angka murni):
+     | Kolom 1 | Kolom 2 | Kolom 3 |
+     | :---: | :---: | :---: |
+     | 3 | 7 | 15 |
+     | 4 | 9 | 19 |
+     | 5 | 11 | ? |
+     Atau matriks deret angka baris x kolom:
+     | 3 | 7 | 15 |
+     | 4 | 9 | 19 |
+     | 5 | 11 | ? |
+     Aplikasi akan secara otomatis merendernya menjadi Matriks Angka & Tabel Interaktif Asli yang rapi, elegan, dan responsif. Dilarang menyajikan baris angka renggang tanpa pembatas tabel.
 
 5. ATURAN TKP MUTLAK (SEMUA OPSI POSITIF & PANJANG SEIMBANG):
    - SEMUA 5 OPSI (A-E) HARUS BERNILAI POSITIF, SOPAN, DAN MASUK AKAL. Dilarang opsi negatif/pasif!
@@ -2432,7 +2437,12 @@ Catatan validator pada percobaan sebelumnya: ${lastIssues.slice(-6).join(' | ')}
   return result;
 }
 
-export const generateSkdSimulation = async (stream: SkdStreamType, variant: 'FULL' | 'TWK' | 'TIU' | 'TKP' = 'FULL', savedState?: any, onProgress?: (progress: number, msg: string) => void): Promise<{ completed: boolean, questions?: Question[], state?: any, errorMsg?: string }> => {
+export const generateSkdSimulation = async (
+  stream: SkdStreamType, 
+  variant: 'FULL' | 'TWK' | 'TIU' | 'TKP' = 'FULL', 
+  savedState?: any, 
+  onProgress?: (progress: number, msg: string, previewQuestion?: Question) => void
+): Promise<{ completed: boolean, questions?: Question[], state?: any, errorMsg?: string }> => {
   const difficultyProfile = `
 AUTHENTIC-HARD PROFILE:
 - ±20% Medium, ±60% Hard, ±20% HOTS.
@@ -2470,18 +2480,21 @@ ATURAN KHUSUS TIU FIGURAL:
     if (state.completedBatches[key]) {
       completedCount++;
       const finishPct = Math.min(100, Math.round((completedCount / totalBatches) * 100));
-      if (onProgress) onProgress(finishPct, `Memuat ${batchLabel} (${batchItemCount} soal) dari cache — ${finishPct}%`);
       allQuestions.push(...state.completedBatches[key]);
+      const currentPreview = allQuestions[0];
+      if (onProgress) onProgress(finishPct, `Memuat ${batchLabel} (${batchItemCount} soal) dari cache — ${finishPct}%`, currentPreview);
       return;
     }
 
-    if (onProgress) onProgress(startPct, `Menyusun ${batchLabel} (${batchItemCount} soal) — ${startPct}%`);
+    const previewBefore = allQuestions[0];
+    if (onProgress) onProgress(startPct, `Menyusun ${batchLabel} (${batchItemCount} soal) — ${startPct}%`, previewBefore);
     const q = await generateValidatedSkdBatch(subtests, topic, stream, batchLabel, profile);
     state.completedBatches[key] = q;
     completedCount++;
-    const finishPct = Math.min(100, Math.round((completedCount / totalBatches) * 100));
-    if (onProgress) onProgress(finishPct, `${batchLabel} (${q.length} soal) selesai — ${finishPct}%`);
     allQuestions.push(...q);
+    const previewAfter = allQuestions[0];
+    const finishPct = Math.min(100, Math.round((completedCount / totalBatches) * 100));
+    if (onProgress) onProgress(finishPct, `${batchLabel} (${q.length} soal) selesai — ${finishPct}%`, previewAfter);
   };
 
   try {

@@ -3971,10 +3971,15 @@ function App() {
             skdStream || "CPNS",
             skdVariant,
             activeGenTask?.savedState,
-            (progressVal, msg) => {
+            (progressVal, msg, previewQ) => {
               setActiveGenTask((prev) => {
                 if (!prev || prev.id !== taskId) return prev;
-                return { ...prev, progress: progressVal, message: msg };
+                return { 
+                  ...prev, 
+                  progress: progressVal, 
+                  message: msg,
+                  previewQuestion: previewQ || prev.previewQuestion
+                };
               });
             }
           );
@@ -4104,10 +4109,15 @@ function App() {
       const skdVariant = task.skdVariant || (task.title.includes('Spesial TWK') ? 'TWK' : task.title.includes('Spesial TIU') ? 'TIU' : task.title.includes('Spesial TKP') ? 'TKP' : 'FULL');
       const skdStream = task.skdStream || 'CPNS';
       
-      const res = await Gemini.generateSkdSimulation(skdStream, skdVariant as any, task.savedState, (progressVal, msg) => {
+      const res = await Gemini.generateSkdSimulation(skdStream, skdVariant as any, task.savedState, (progressVal, msg, previewQ) => {
           setActiveGenTask((prev) => {
             if (!prev || prev.id !== task.id) return prev;
-            return { ...prev, progress: progressVal, message: msg };
+            return { 
+              ...prev, 
+              progress: progressVal, 
+              message: msg,
+              previewQuestion: previewQ || prev.previewQuestion
+            };
           });
       });
       

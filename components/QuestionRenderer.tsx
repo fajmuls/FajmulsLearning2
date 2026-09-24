@@ -227,43 +227,94 @@ export interface ParsedMarkdownTable {
     headers: string[];
     rows: string[][];
     alignments: ('left' | 'center' | 'right')[];
+    hasHeader: boolean;
+    isMatrix?: boolean;
 }
+
+const extractCellsFromPipeRow = (row: string): string[] => {
+    return row
+        .trim()
+        .replace(/^\|/, '')
+        .replace(/\|$/, '')
+        .split('|')
+        .map(c => c.trim());
+};
+
+const isPipeRow = (line: string): boolean => {
+    const trimmed = line.trim();
+    if (!trimmed.includes('|')) return false;
+    const cells = extractCellsFromPipeRow(trimmed);
+    return cells.length >= 2;
+};
+
+const isSeparatorRow = (line: string): boolean => {
+    const trimmed = line.trim();
+    if (!trimmed.includes('|') || !trimmed.includes('-')) return false;
+    const cells = extractCellsFromPipeRow(trimmed);
+    return cells.length >= 2 && cells.every(c => /^:?-+:?$/.test(c));
+};
 
 export const parseMarkdownTable = (block: string): ParsedMarkdownTable | null => {
     const rawLines = block.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
     if (rawLines.length < 2) return null;
-    if (!rawLines[0].startsWith('|') || !rawLines[1].startsWith('|')) return null;
 
-    const extractCells = (row: string) => {
-        return row
-            .replace(/^\|/, '')
-            .replace(/\|$/, '')
-            .split('|')
-            .map(c => c.trim());
-    };
+    // Check if it's a standard markdown table with separator at index 1
+    if (isSeparatorRow(rawLines[1])) {
+        const headers = extractCellsFromPipeRow(rawLines[0]);
+        const separatorCells = extractCellsFromPipeRow(rawLines[1]);
+        if (headers.length === 0 || separatorCells.length !== headers.length) return null;
 
-    const headers = extractCells(rawLines[0]);
-    const separatorCells = extractCells(rawLines[1]);
-    if (headers.length === 0 || separatorCells.length !== headers.length) return null;
+        const alignments: ('left' | 'center' | 'right')[] = separatorCells.map(c => {
+            if (c.startsWith(':') && c.endsWith(':')) return 'center';
+            if (c.endsWith(':')) return 'right';
+            return 'left';
+        });
 
-    const isSeparatorRow = separatorCells.every(c => /^:?-+:?$/.test(c));
-    if (!isSeparatorRow) return null;
+        const rows: string[][] = [];
+        for (let i = 2; i < rawLines.length; i++) {
+            if (!isPipeRow(rawLines[i])) break;
+            const cells = extractCellsFromPipeRow(rawLines[i]);
+            while (cells.length < headers.length) cells.push('');
+            rows.push(cells.slice(0, headers.length));
+        }
 
-    const alignments: ('left' | 'center' | 'right')[] = separatorCells.map(c => {
-        if (c.startsWith(':') && c.endsWith(':')) return 'center';
-        if (c.endsWith(':')) return 'right';
-        return 'left';
-    });
-
-    const rows: string[][] = [];
-    for (let i = 2; i < rawLines.length; i++) {
-        if (!rawLines[i].startsWith('|')) break;
-        const cells = extractCells(rawLines[i]);
-        while (cells.length < headers.length) cells.push('');
-        rows.push(cells.slice(0, headers.length));
+        return { headers, rows, alignments, hasHeader: true, isMatrix: false };
     }
 
-    return { headers, rows, alignments };
+    // Check if it's a headerless pipe matrix/table (all lines have pipes and consistent columns)
+    const allPipeLines = rawLines.filter(isPipeRow);
+    if (allPipeLines.length >= 2) {
+        const parsedRows = allPipeLines.map(extractCellsFromPipeRow);
+        const colCount = Math.max(...parsedRows.map(r => r.length));
+        if (colCount < 2) return null;
+
+        // Check if row 0 looks like a header (mostly text) while other rows are numeric/data
+        const row0IsNumeric = parsedRows[0].some(c => /^\d+$/.test(c.replace(/[^0-9]/g, '')) || c === '?');
+        const subsequentAreNumeric = parsedRows.slice(1).some(row => row.some(c => /^\d+$/.test(c.replace(/[^0-9]/g, '')) || c === '?'));
+
+        const hasHeader = !row0IsNumeric && subsequentAreNumeric;
+        const isMatrix = row0IsNumeric || !hasHeader;
+
+        if (hasHeader) {
+            const headers = parsedRows[0];
+            while (headers.length < colCount) headers.push('');
+            const rows = parsedRows.slice(1).map(r => {
+                while (r.length < colCount) r.push('');
+                return r;
+            });
+            const alignments = Array(colCount).fill('center');
+            return { headers, rows, alignments, hasHeader: true, isMatrix: false };
+        } else {
+            const rows = parsedRows.map(r => {
+                while (r.length < colCount) r.push('');
+                return r;
+            });
+            const alignments = Array(colCount).fill('center');
+            return { headers: [], rows, alignments, hasHeader: false, isMatrix: true };
+        }
+    }
+
+    return null;
 };
 
 export const splitByTables = (text: string): { isTable: boolean; content: string; table?: ParsedMarkdownTable }[] => {
@@ -274,27 +325,47 @@ export const splitByTables = (text: string): { isTable: boolean; content: string
 
     while (i < lines.length) {
         const trimmed = lines[i].trim();
-        if (trimmed.startsWith('|') && trimmed.endsWith('|') && i + 1 < lines.length) {
-            const nextTrimmed = lines[i + 1].trim();
-            if (nextTrimmed.startsWith('|') && nextTrimmed.includes('-') && /^\|(?:\s*:?-+:?\s*\|)+$/.test(nextTrimmed)) {
-                if (currentNonTable.length > 0) {
-                    segments.push({ isTable: false, content: currentNonTable.join('\n') });
-                    currentNonTable = [];
-                }
-                const tableLines: string[] = [];
-                while (i < lines.length && lines[i].trim().startsWith('|')) {
-                    tableLines.push(lines[i].trim());
-                    i++;
-                }
-                const parsed = parseMarkdownTable(tableLines.join('\n'));
-                if (parsed) {
-                    segments.push({ isTable: true, content: tableLines.join('\n'), table: parsed });
-                } else {
-                    segments.push({ isTable: false, content: tableLines.join('\n') });
-                }
-                continue;
+        
+        // 1. Standard markdown table check (line i has pipes, line i+1 has separator dashes)
+        if (isPipeRow(trimmed) && i + 1 < lines.length && isSeparatorRow(lines[i + 1])) {
+            if (currentNonTable.length > 0) {
+                segments.push({ isTable: false, content: currentNonTable.join('\n') });
+                currentNonTable = [];
             }
+            const tableLines: string[] = [];
+            while (i < lines.length && (isPipeRow(lines[i]) || isSeparatorRow(lines[i]))) {
+                tableLines.push(lines[i].trim());
+                i++;
+            }
+            const parsed = parseMarkdownTable(tableLines.join('\n'));
+            if (parsed) {
+                segments.push({ isTable: true, content: tableLines.join('\n'), table: parsed });
+            } else {
+                segments.push({ isTable: false, content: tableLines.join('\n') });
+            }
+            continue;
         }
+
+        // 2. Headerless pipe matrix check (at least 2 consecutive pipe rows)
+        if (isPipeRow(trimmed) && i + 1 < lines.length && isPipeRow(lines[i + 1])) {
+            if (currentNonTable.length > 0) {
+                segments.push({ isTable: false, content: currentNonTable.join('\n') });
+                currentNonTable = [];
+            }
+            const tableLines: string[] = [];
+            while (i < lines.length && isPipeRow(lines[i])) {
+                tableLines.push(lines[i].trim());
+                i++;
+            }
+            const parsed = parseMarkdownTable(tableLines.join('\n'));
+            if (parsed) {
+                segments.push({ isTable: true, content: tableLines.join('\n'), table: parsed });
+            } else {
+                segments.push({ isTable: false, content: tableLines.join('\n') });
+            }
+            continue;
+        }
+
         currentNonTable.push(lines[i]);
         i++;
     }
@@ -309,6 +380,41 @@ export const splitByTables = (text: string): { isTable: boolean; content: string
 export const AuthenticTableRenderer: React.FC<{
     table: ParsedMarkdownTable;
 }> = React.memo(({ table }) => {
+    // If it's a matrix or headerless table (such as TIU 3x3 or 2x4 number matrices)
+    if (table.isMatrix || !table.hasHeader) {
+        const colCount = table.rows[0]?.length || 3;
+        return (
+            <div className="my-3 sm:my-5 flex flex-col items-center justify-center w-full overflow-x-auto py-1">
+                <div className="inline-flex items-stretch border-l-4 border-r-4 border-indigo-400 dark:border-indigo-500 rounded-2xl bg-white/90 dark:bg-slate-850/90 shadow-sm px-2.5 sm:px-4 py-2.5 sm:py-3.5 border-t border-b border-slate-200/80 dark:border-slate-700/80 max-w-full">
+                    <div 
+                        className="grid gap-2 sm:gap-3 items-center justify-center min-w-max" 
+                        style={{ gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))` }}
+                    >
+                        {table.rows.map((row, rIdx) => 
+                            row.map((cell, cIdx) => {
+                                const trimmedCell = cell.trim();
+                                const isQuestionMark = trimmedCell === '?' || trimmedCell === '??' || trimmedCell.startsWith('?');
+                                return (
+                                    <div
+                                        key={`${rIdx}-${cIdx}`}
+                                        className={`min-w-[44px] sm:min-w-[56px] min-h-[40px] sm:min-h-[50px] px-2.5 py-1.5 rounded-xl flex items-center justify-center text-center transition-all ${
+                                            isQuestionMark 
+                                                ? 'bg-amber-100/90 dark:bg-amber-950/70 border-2 border-dashed border-amber-400 dark:border-amber-500 text-amber-700 dark:text-amber-300 font-black text-base sm:text-lg animate-pulse shadow-xs'
+                                                : 'bg-slate-50/90 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-700/80 font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-2xs'
+                                        }`}
+                                    >
+                                        <SimpleMarkdown text={cell} isOption={true} />
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Standard markdown table with headers
     return (
         <div className="my-3 sm:my-4 w-full overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-750 shadow-xs bg-white dark:bg-slate-850">
             <table className="w-full text-left text-xs sm:text-sm border-collapse">
@@ -337,12 +443,20 @@ export const AuthenticTableRenderer: React.FC<{
                             {row.map((cell, cIdx) => {
                                 const align = table.alignments[cIdx] || 'center';
                                 const alignClass = align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left';
+                                const trimmedCell = cell.trim();
+                                const isQuestionMark = trimmedCell === '?' || trimmedCell === '??' || trimmedCell.startsWith('?');
                                 return (
                                     <td
                                         key={cIdx}
                                         className={`py-2 px-3 sm:py-2.5 sm:px-4 border-r last:border-r-0 border-slate-200 dark:border-slate-700 ${alignClass}`}
                                     >
-                                        <SimpleMarkdown text={cell} isOption={true} />
+                                        {isQuestionMark ? (
+                                            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-950/60 border border-dashed border-amber-400 text-amber-700 dark:text-amber-300 font-black text-xs sm:text-sm animate-pulse">
+                                                ?
+                                            </span>
+                                        ) : (
+                                            <SimpleMarkdown text={cell} isOption={true} />
+                                        )}
                                     </td>
                                 );
                             })}

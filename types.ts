@@ -405,6 +405,7 @@ export interface BackgroundGenTask {
     createdAt: string;
     savedState?: any;
     errorMsg?: string;
+    previewQuestion?: Question;
 }
 
 export interface TargetSubtestScore {
