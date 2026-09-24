@@ -269,7 +269,17 @@ export const HistoryView: React.FC<HistoryProps> = ({
     };
 
     const sortedHistory = useMemo(() => {
-        const sorted = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        // First deduplicate history by id
+        const uniqueItems: TestHistoryItem[] = [];
+        const seen = new Set<string>();
+        for (const item of history) {
+            if (!item || !item.id) continue;
+            if (!seen.has(item.id)) {
+                seen.add(item.id);
+                uniqueItems.push(item);
+            }
+        }
+        const sorted = uniqueItems.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         const attemptCounts: Record<string, number> = {};
         return sorted.map(item => {
             const key = item.packageId || item.packageTitle || item.category;
@@ -380,23 +390,15 @@ export const HistoryView: React.FC<HistoryProps> = ({
                     subTitle = 'Materi TIU';
                 } else if (lowTitle.includes('tkp')) {
                     subTitle = 'Materi TKP';
-                } else if (lowTitle.includes('kedinasan')) {
-                    if (lowTitle.includes('gabungan')) {
-                        subTitle = 'SKD Kedinasan Full Gabungan';
-                    } else if (lowTitle.includes('to skd kedinasan') || lowTitle.includes('try out skd kedinasan') || lowTitle.includes('to ') || lowTitle.includes('try out')) {
-                        subTitle = 'TO SKD Kedinasan Full';
-                    } else {
-                        subTitle = 'SKD Kedinasan Full';
-                    }
+                } else if (lowTitle.includes('kedinasan') || item.skdStream === 'KEDINASAN') {
+                    subTitle = 'SKD Kedinasan Full';
                 } else if (lowTitle.includes('simulasi') || lowTitle.includes('lengkap') || lowTitle.includes('cpns full')) {
                     subTitle = 'Simulasi SKD CPNS Full';
-                } else if (item.skdStream === 'KEDINASAN') {
-                    subTitle = 'SKD Kedinasan Full';
                 } else {
-                    subTitle = 'Materi SKD';
+                    subTitle = 'Simulasi SKD CPNS Full';
                 }
             }
- else if (cat === 'UTBK') {
+            else if (cat === 'UTBK') {
                 if (lowTitle.includes('simulasi')) subTitle = 'Try Out UTBK';
                 else subTitle = 'Materi UTBK';
             } else if (cat === 'BUTAWRNA') {
@@ -410,9 +412,9 @@ export const HistoryView: React.FC<HistoryProps> = ({
             if (!groups[cat]) {
                 groups[cat] = { category: cat, subCategories: {} };
                 
-                // For SKD, pre-initialize the required 5 subcategories to ensure they always show up
+                // For SKD, pre-initialize the required 5 distinct subcategories
                 if (cat === 'SKD') {
-                    const skdSubs = ['Simulasi SKD CPNS Full', 'Materi TWK', 'Materi TIU', 'Materi TKP', 'TO SKD Kedinasan Full', 'SKD Kedinasan Full', 'SKD Kedinasan Full Gabungan'];
+                    const skdSubs = ['Simulasi SKD CPNS Full', 'Materi TWK', 'Materi TIU', 'Materi TKP', 'SKD Kedinasan Full'];
                     skdSubs.forEach(s => {
                         groups[cat].subCategories[s] = {
                             title: s,

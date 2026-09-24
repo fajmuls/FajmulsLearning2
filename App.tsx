@@ -2818,11 +2818,15 @@ function App() {
     setCurrentView("LOGIN");
   };
   const saveToHistory = async (item: TestHistoryItem) => {
-    const updated = [item, ...testHistory];
-    setTestHistory(updated);
-    if (userProfile?.isGuest) {
-      safeLocalStorageSet("fajmuls_guest_history", updated, true);
-    } else if (userProfile?.uid) {
+    setTestHistory((prev) => {
+      const filtered = prev.filter((h) => h.id !== item.id);
+      const updated = [item, ...filtered];
+      if (userProfile?.isGuest) {
+        safeLocalStorageSet("fajmuls_guest_history", updated, true);
+      }
+      return updated;
+    });
+    if (!userProfile?.isGuest && userProfile?.uid) {
       await FirebaseService.saveHistoryToCloud(userProfile.uid, item);
     }
   };

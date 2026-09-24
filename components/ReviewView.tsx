@@ -220,11 +220,14 @@ const QuestionReviewCard: React.FC<QuestionReviewCardProps> = React.memo(({
     onCopy,
     onRevealSelfTest,
 }) => {
+    const hasAnswered = Boolean(ans && ans.selectedAnswer && ans.selectedAnswer.trim() !== '');
+    const isCorrectNonTkp = hasAnswered && (ans?.isCorrect || (ans?.scoreEarned !== undefined && ans.scoreEarned >= 4));
+
     return (
         <div 
             id={`question-card-${originalIndex}`}
             onClick={() => onSelectCard(fIdx)}
-            className={`rounded-3xl bg-white dark:bg-slate-800 border transition-all p-5 sm:p-6 space-y-4 shadow-sm cursor-pointer ${
+            className={`scroll-mt-28 rounded-3xl bg-white dark:bg-slate-800 border transition-all p-5 sm:p-6 space-y-4 shadow-sm cursor-pointer ${
                 isActiveInList 
                     ? 'ring-2 ring-indigo-500 border-indigo-400 dark:border-indigo-500 shadow-md'
                     : isBest 
@@ -236,9 +239,11 @@ const QuestionReviewCard: React.FC<QuestionReviewCardProps> = React.memo(({
             <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-slate-100 dark:border-slate-700/60">
                 <div className="flex items-center gap-2.5">
                     <span className={`w-7 h-7 rounded-xl font-black text-xs flex items-center justify-center ${
-                        ans?.isCorrect || (ans?.scoreEarned && ans.scoreEarned >= 4)
-                            ? 'bg-emerald-500 text-white'
-                            : 'bg-rose-500 text-white'
+                        isTkp
+                            ? (hasAnswered ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600')
+                            : (hasAnswered 
+                                ? (isCorrectNonTkp ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white')
+                                : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600')
                     }`}>
                         {originalIndex + 1}
                     </span>
@@ -248,6 +253,11 @@ const QuestionReviewCard: React.FC<QuestionReviewCardProps> = React.memo(({
                     {isTkp && (
                         <span className="px-2 py-0.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-black border border-indigo-500/20">
                             Poin 1-5
+                        </span>
+                    )}
+                    {!hasAnswered && (
+                        <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-black border border-slate-200 dark:border-slate-600">
+                            Tidak Dijawab
                         </span>
                     )}
                     {ans?.isDoubtful && (
@@ -618,11 +628,17 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
     const [speakingQuestionId, setSpeakingQuestionId] = useState<string | null>(null);
     const [showShortcutModal, setShowShortcutModal] = useState<boolean>(false);
 
-    // Scroll helper for List Mode (smooth and non-intrusive)
+    // Scroll helper for List Mode (smooth and non-intrusive with top bar clearance)
     const scrollToQuestion = useCallback((originalIndex: number) => {
         const el = document.getElementById(`question-card-${originalIndex}`);
         if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            const topBarOffset = 90;
+            const elementPosition = el.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.pageYOffset - topBarOffset;
+            window.scrollTo({
+                top: Math.max(0, offsetPosition),
+                behavior: 'smooth'
+            });
         }
     }, []);
 
@@ -854,33 +870,33 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                 }
             }
 
-            // Font size shortcuts (matching Session Engine: Q = down, W = up)
-            if (e.key === 'w' || e.key === 'W') {
+            // Font size shortcuts (matching Session Engine: Q / NumpadSubtract = down, W / NumpadAdd = up)
+            if (e.key === 'w' || e.key === 'W' || e.code === 'NumpadAdd' || e.key === '+') {
                 e.preventDefault();
                 changeFontSize('up');
                 return;
             }
-            if (e.key === 'q' || e.key === 'Q') {
+            if (e.key === 'q' || e.key === 'Q' || e.code === 'NumpadSubtract' || e.key === '-') {
                 e.preventDefault();
                 changeFontSize('down');
                 return;
             }
-            if (e.key === '0') {
+            if (e.key === '0' || e.code === 'Numpad0') {
                 e.preventDefault();
                 resetFontSize();
                 return;
             }
 
-            // View Mode Toggle (V)
-            if (e.key === 'v' || e.key === 'V') {
+            // View Mode Toggle (V / NumpadDivide)
+            if (e.key === 'v' || e.key === 'V' || e.code === 'NumpadDivide') {
                 e.preventDefault();
                 SoundManager.play('click');
                 setStudyMode(prev => prev === 'LIST' ? 'FOCUS' : 'LIST');
                 return;
             }
 
-            // Self-Test Toggle (T)
-            if (e.key === 't' || e.key === 'T') {
+            // Self-Test Toggle (T / NumpadMultiply)
+            if (e.key === 't' || e.key === 'T' || e.code === 'NumpadMultiply') {
                 e.preventDefault();
                 SoundManager.play('click');
                 setIsSelfTestMode(prev => {
@@ -891,18 +907,18 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                 return;
             }
 
-            // Filter Shortcuts (1: All, 2: Wrong, 3: Flagged, 4: Best, 5: Understood, 6: Ununderstood)
-            if (e.key === '1') { setFilterType('ALL'); SoundManager.play('click'); return; }
-            if (e.key === '2') { setFilterType('WRONG'); SoundManager.play('click'); return; }
-            if (e.key === '3') { setFilterType('FLAGGED'); SoundManager.play('click'); return; }
-            if (e.key === '4') { setFilterType('BEST'); SoundManager.play('click'); return; }
-            if (e.key === '5') { setFilterType('UNDERSTOOD'); SoundManager.play('click'); return; }
-            if (e.key === '6') { setFilterType('UNUNDERSTOOD'); SoundManager.play('click'); return; }
+            // Filter Shortcuts (1: All, 2: Wrong, 3: Flagged, 4: Best, 5: Understood, 6: Ununderstood) - Supports Numpad1-6
+            if (e.key === '1' || e.code === 'Numpad1') { setFilterType('ALL'); SoundManager.play('click'); return; }
+            if (e.key === '2' || e.code === 'Numpad2') { setFilterType('WRONG'); SoundManager.play('click'); return; }
+            if (e.key === '3' || e.code === 'Numpad3') { setFilterType('FLAGGED'); SoundManager.play('click'); return; }
+            if (e.key === '4' || e.code === 'Numpad4') { setFilterType('BEST'); SoundManager.play('click'); return; }
+            if (e.key === '5' || e.code === 'Numpad5') { setFilterType('UNDERSTOOD'); SoundManager.play('click'); return; }
+            if (e.key === '6' || e.code === 'Numpad6') { setFilterType('UNUNDERSTOOD'); SoundManager.play('click'); return; }
 
             // Actions on current question
             if (currentActiveQuestion) {
-                // Toggle Understood (U)
-                if (e.key === 'u' || e.key === 'U') {
+                // Toggle Understood (U / NumpadDecimal)
+                if (e.key === 'u' || e.key === 'U' || e.code === 'NumpadDecimal') {
                     e.preventDefault();
                     toggleUnderstood(currentActiveQuestion.id);
                     return;
@@ -938,9 +954,8 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                 }
             }
 
-            // Arrow keys & j/k navigation for BOTH Focus Mode and List Mode
-            // ArrowUp and ArrowDown are deliberately omitted so they perform smooth natural page scrolling!
-            if (e.key === 'ArrowLeft' || e.key === 'k' || e.key === 'K') {
+            // Arrow keys & j/k navigation for BOTH Focus Mode and List Mode (Also support Pad / Numpad arrows)
+            if (e.key === 'ArrowLeft' || e.key === 'k' || e.key === 'K' || e.code === 'Numpad4' && !e.shiftKey) {
                 e.preventDefault();
                 if (studyMode === 'FOCUS') {
                     if (focusIndex > 0) {
@@ -963,7 +978,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                 return;
             }
 
-            if (e.key === 'ArrowRight' || e.key === 'j' || e.key === 'J') {
+            if (e.key === 'ArrowRight' || e.key === 'j' || e.key === 'J' || e.code === 'Numpad6' && !e.shiftKey) {
                 e.preventDefault();
                 if (studyMode === 'FOCUS') {
                     if (focusIndex < filteredQuestions.length - 1) {
@@ -2075,22 +2090,25 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                         const isBest = bestQuestionsSet.has(fq.id);
                                                         const isUnderstood = understoodSet.has(fq.id);
                                                         const isTkp = Boolean(fq.metadata?.subtest?.toUpperCase().includes('TKP') || (fq.tkpPoints && fq.tkpPoints.length > 0));
+                                                        const hasAnswered = Boolean(ans && ans.selectedAnswer && ans.selectedAnswer.trim() !== '');
                                                         const isCurrent = fIdx === currentIndex;
 
                                                         let boxStyle = '';
                                                         let pointLabel: number | null = null;
 
-                                                        if (isTkp) {
+                                                        if (!hasAnswered) {
+                                                            boxStyle = 'bg-slate-200/90 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 hover:bg-slate-300/80';
+                                                        } else if (isTkp) {
                                                             const points = getTkpEarnedPoints(fq, ans);
                                                             pointLabel = points;
                                                             if (points !== null) {
                                                                 const tkpStyle = getTkpPointStyle(points);
                                                                 boxStyle = tkpStyle.navBoxClass;
                                                             } else {
-                                                                boxStyle = 'bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700';
+                                                                boxStyle = 'bg-slate-200/90 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600';
                                                             }
                                                         } else {
-                                                            const isCorrect = ans?.isCorrect || (ans?.scoreEarned && ans.scoreEarned >= 4);
+                                                            const isCorrect = ans?.isCorrect || (ans?.scoreEarned !== undefined && ans.scoreEarned >= 4);
                                                             boxStyle = isCorrect
                                                                 ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
                                                                 : 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-700';
@@ -2101,14 +2119,19 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                                 key={fq.id}
                                                                 onClick={() => setFocusIndex(fIdx)}
                                                                 className={`relative shrink-0 w-10 h-10 rounded-xl font-black text-xs transition-all flex flex-col items-center justify-center ${boxStyle} ${
-                                                                    isCurrent ? 'ring-2 ring-indigo-500 ring-offset-2 scale-105' : 'opacity-85 hover:opacity-100'
+                                                                    isCurrent ? 'ring-2 ring-indigo-500 ring-offset-2 scale-105 shadow-md' : 'opacity-85 hover:opacity-100'
                                                                 }`}
-                                                                title={isTkp ? `Soal #${realQIdx + 1} (TKP: ${pointLabel !== null ? `${pointLabel} Poin` : 'Belum Dijawab'})` : `Soal #${realQIdx + 1}`}
+                                                                title={isTkp ? `Soal #${realQIdx + 1} (TKP: ${pointLabel !== null ? `${pointLabel} Poin` : 'Tidak Dijawab'})` : `Soal #${realQIdx + 1} (${hasAnswered ? (ans?.isCorrect ? 'Benar' : 'Salah') : 'Tidak Dijawab'})`}
                                                             >
                                                                 <span className="leading-none">{realQIdx + 1}</span>
                                                                 {isTkp && pointLabel !== null && (
                                                                     <span className="text-[7px] font-black opacity-95 leading-none mt-0.5">
                                                                         {pointLabel}p
+                                                                    </span>
+                                                                )}
+                                                                {!hasAnswered && (
+                                                                    <span className="text-[7px] font-bold opacity-75 leading-none mt-0.5">
+                                                                        -
                                                                     </span>
                                                                 )}
                                                                 <div className="flex items-center gap-0.5 absolute -top-1 -right-1">
@@ -2190,7 +2213,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
 
                         {/* Right Sidebar: Navigation Matrix (Col 1) */}
                         <div className="hidden lg:block lg:col-span-1">
-                            <div className="sticky top-6 bg-white dark:bg-slate-800 rounded-3xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+                            <div className="sticky top-20 lg:top-24 bg-white dark:bg-slate-800 rounded-3xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
                                         Navigasi Soal
@@ -2207,21 +2230,24 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                         const isBest = bestQuestionsSet.has(q.id);
                                         const isUnderstood = understoodSet.has(q.id);
                                         const isTkp = Boolean(q.metadata?.subtest?.toUpperCase().includes('TKP') || (q.tkpPoints && q.tkpPoints.length > 0));
+                                        const hasAnswered = Boolean(ans && ans.selectedAnswer && ans.selectedAnswer.trim() !== '');
 
                                         let boxStyle = '';
                                         let pointLabel: number | null = null;
 
-                                        if (isTkp) {
+                                        if (!hasAnswered) {
+                                            boxStyle = 'bg-slate-200/90 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 hover:bg-slate-300/80';
+                                        } else if (isTkp) {
                                             const points = getTkpEarnedPoints(q, ans);
                                             pointLabel = points;
                                             if (points !== null) {
                                                 const tkpStyle = getTkpPointStyle(points);
                                                 boxStyle = tkpStyle.navBoxClass;
                                             } else {
-                                                boxStyle = 'bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700';
+                                                boxStyle = 'bg-slate-200/90 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600';
                                             }
                                         } else {
-                                            const isCorrect = ans?.isCorrect || (ans?.scoreEarned && ans.scoreEarned >= 4);
+                                            const isCorrect = ans?.isCorrect || (ans?.scoreEarned !== undefined && ans.scoreEarned >= 4);
                                             boxStyle = isCorrect
                                                 ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100'
                                                 : 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-700 hover:bg-rose-100';
@@ -2239,14 +2265,19 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                                     SoundManager.play('click');
                                                 }}
                                                 className={`relative h-11 rounded-xl font-black text-xs transition-all flex flex-col items-center justify-center ${boxStyle} ${
-                                                    isCurrentInList ? 'ring-2 ring-slate-900 dark:ring-white ring-offset-2 scale-105 shadow-md z-10' : 'hover:scale-105 shadow-xs'
+                                                    isCurrentInList ? 'ring-2 ring-indigo-600 dark:ring-indigo-400 ring-offset-2 scale-105 shadow-md z-10' : 'hover:scale-105 shadow-xs'
                                                 }`}
-                                                title={isTkp ? `Soal #${qIdx + 1} (TKP: ${pointLabel !== null ? `${pointLabel} Poin` : 'Belum Dijawab'})` : `Soal #${qIdx + 1} (${ans?.isCorrect ? 'Benar' : 'Salah'})`}
+                                                title={isTkp ? `Soal #${qIdx + 1} (TKP: ${pointLabel !== null ? `${pointLabel} Poin` : 'Tidak Dijawab'})` : `Soal #${qIdx + 1} (${hasAnswered ? (ans?.isCorrect ? 'Benar' : 'Salah') : 'Tidak Dijawab'})`}
                                             >
                                                 <span className="leading-tight">{qIdx + 1}</span>
                                                 {isTkp && pointLabel !== null && (
                                                     <span className="text-[8px] font-black opacity-95 leading-none">
                                                         {pointLabel}p
+                                                    </span>
+                                                )}
+                                                {!hasAnswered && (
+                                                    <span className="text-[7px] font-bold opacity-75 leading-none">
+                                                        -
                                                     </span>
                                                 )}
                                                 <div className="flex items-center gap-0.5 absolute -top-1 -right-1">
@@ -2262,9 +2293,9 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                 <div className="pt-3 border-t border-slate-100 dark:border-slate-700 text-[10px] space-y-2.5 text-slate-500 dark:text-slate-400">
                                     <div className="space-y-1">
                                         <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-                                            TWK / TIU:
+                                            TWK / TIU / TPA:
                                         </div>
-                                        <div className="flex items-center gap-3">
+                                        <div className="grid grid-cols-3 gap-2">
                                             <div className="flex items-center gap-1.5">
                                                 <div className="w-2.5 h-2.5 rounded bg-emerald-500 shrink-0" />
                                                 <span>Benar</span>
@@ -2272,6 +2303,10 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                                             <div className="flex items-center gap-1.5">
                                                 <div className="w-2.5 h-2.5 rounded bg-rose-500 shrink-0" />
                                                 <span>Salah</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-2.5 h-2.5 rounded bg-slate-400 shrink-0" />
+                                                <span>Kosong</span>
                                             </div>
                                         </div>
                                     </div>
@@ -2308,81 +2343,6 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ item, onBack, onToggleSt
                             </div>
                         </div>
 
-                    </div>
-                )}
-
-                {/* Floating Quick Navigation & Font Bar in LIST Mode */}
-                {studyMode === 'LIST' && filteredQuestions.length > 0 && (
-                    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-xl rounded-2xl px-4 py-2 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-200">
-                        <button
-                            onClick={() => {
-                                const next = Math.max(0, activeListIndex - 1);
-                                setActiveListIndex(next);
-                                const target = filteredQuestions[next];
-                                if (target) {
-                                    requestAnimationFrame(() => scrollToQuestion(target.originalIndex));
-                                }
-                                SoundManager.play('click');
-                            }}
-                            disabled={activeListIndex === 0}
-                            className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-slate-600 transition flex items-center gap-1 text-xs font-bold"
-                            title="Soal Sebelumnya (←)"
-                        >
-                            <ChevronLeft size={16} />
-                            <span className="hidden sm:inline">Prev</span>
-                        </button>
-
-                        <div className="text-xs font-black text-slate-700 dark:text-slate-300 px-2 flex items-center gap-1.5">
-                            <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">
-                                #{filteredQuestions[Math.min(activeListIndex, filteredQuestions.length - 1)]?.originalIndex + 1 || 1}
-                            </span>
-                            <span className="text-slate-400 font-normal">
-                                ({Math.min(activeListIndex + 1, filteredQuestions.length)} / {filteredQuestions.length})
-                            </span>
-                        </div>
-
-                        <button
-                            onClick={() => {
-                                const next = Math.min(filteredQuestions.length - 1, activeListIndex + 1);
-                                setActiveListIndex(next);
-                                const target = filteredQuestions[next];
-                                if (target) {
-                                    requestAnimationFrame(() => scrollToQuestion(target.originalIndex));
-                                }
-                                SoundManager.play('click');
-                            }}
-                            disabled={activeListIndex >= filteredQuestions.length - 1}
-                            className="p-1.5 rounded-xl bg-indigo-600 text-white disabled:opacity-30 hover:bg-indigo-700 transition flex items-center gap-1 text-xs font-bold shadow-xs"
-                            title="Soal Selanjutnya (→)"
-                        >
-                            <span className="hidden sm:inline">Next</span>
-                            <ChevronRight size={16} />
-                        </button>
-
-                        <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block" />
-
-                        {/* Font size quick toggles */}
-                        <div className="hidden sm:flex items-center gap-1">
-                            <button
-                                onClick={() => changeFontSize('down')}
-                                disabled={fontSize === 'xs'}
-                                className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 transition"
-                                title="Perkecil Font (Shortcut: Q)"
-                            >
-                                <Minus size={13} />
-                            </button>
-                            <span className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 px-1">
-                                {fontSize.toUpperCase()}
-                            </span>
-                            <button
-                                onClick={() => changeFontSize('up')}
-                                disabled={fontSize === 'xl'}
-                                className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 transition"
-                                title="Perbesar Font (Shortcut: W)"
-                            >
-                                <Plus size={13} />
-                            </button>
-                        </div>
                     </div>
                 )}
 

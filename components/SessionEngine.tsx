@@ -1353,7 +1353,11 @@ export const SessionEngine: React.FC<SessionEngineProps> = ({
         }
         clearSavedSession(); 
         SoundManager.play('finish');
-        onComplete(Object.values(answerMapRef.current));
+        // Only pass valid answers (either with a selected answer or flagged as doubtful)
+        const finalAnswers = Object.values(answerMapRef.current).filter(
+            a => (a.selectedAnswer && a.selectedAnswer.trim() !== '') || a.isDoubtful
+        );
+        onComplete(finalAnswers);
     };
 
     const handleEarlyExit = () => {

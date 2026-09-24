@@ -256,10 +256,10 @@ const isSeparatorRow = (line: string): boolean => {
 
 export const parseMarkdownTable = (block: string): ParsedMarkdownTable | null => {
     const rawLines = block.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    if (rawLines.length < 2) return null;
+    if (rawLines.length === 0) return null;
 
     // Check if it's a standard markdown table with separator at index 1
-    if (isSeparatorRow(rawLines[1])) {
+    if (rawLines.length >= 2 && isSeparatorRow(rawLines[1])) {
         const headers = extractCellsFromPipeRow(rawLines[0]);
         const separatorCells = extractCellsFromPipeRow(rawLines[1]);
         if (headers.length === 0 || separatorCells.length !== headers.length) return null;
@@ -283,17 +283,17 @@ export const parseMarkdownTable = (block: string): ParsedMarkdownTable | null =>
 
     // Check if it's a headerless pipe matrix/table (all lines have pipes and consistent columns)
     const allPipeLines = rawLines.filter(isPipeRow);
-    if (allPipeLines.length >= 2) {
+    if (allPipeLines.length >= 1) {
         const parsedRows = allPipeLines.map(extractCellsFromPipeRow);
         const colCount = Math.max(...parsedRows.map(r => r.length));
         if (colCount < 2) return null;
 
         // Check if row 0 looks like a header (mostly text) while other rows are numeric/data
         const row0IsNumeric = parsedRows[0].some(c => /^\d+$/.test(c.replace(/[^0-9]/g, '')) || c === '?');
-        const subsequentAreNumeric = parsedRows.slice(1).some(row => row.some(c => /^\d+$/.test(c.replace(/[^0-9]/g, '')) || c === '?'));
+        const subsequentAreNumeric = parsedRows.length > 1 && parsedRows.slice(1).some(row => row.some(c => /^\d+$/.test(c.replace(/[^0-9]/g, '')) || c === '?'));
 
         const hasHeader = !row0IsNumeric && subsequentAreNumeric;
-        const isMatrix = row0IsNumeric || !hasHeader;
+        const isMatrix = row0IsNumeric || !hasHeader || parsedRows.length === 1;
 
         if (hasHeader) {
             const headers = parsedRows[0];
@@ -346,8 +346,8 @@ export const splitByTables = (text: string): { isTable: boolean; content: string
             continue;
         }
 
-        // 2. Headerless pipe matrix check (at least 2 consecutive pipe rows)
-        if (isPipeRow(trimmed) && i + 1 < lines.length && isPipeRow(lines[i + 1])) {
+        // 2. Multi-row or single-row pipe matrix check
+        if (isPipeRow(trimmed)) {
             if (currentNonTable.length > 0) {
                 segments.push({ isTable: false, content: currentNonTable.join('\n') });
                 currentNonTable = [];

@@ -5,9 +5,21 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "4.6.0";
+export const APP_VERSION = "4.6.1";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "4.6.1",
+    date: new Date().toISOString().split('T')[0],
+    type: "patch",
+    notes: [
+      "Perbaikan Riwayat Belajar & Anti-Duplikasi: Mencegah duplikasi entri riwayat belajar dan kartu paket, serta memastikan kalkulasi attempt dan kartu subtes terstandarisasi.",
+      "Perbaikan Deteksi Jawaban Kosong & Soal Terbaik (SessionEngine): Menandai Soal Terbaik pada soal yang belum dijawab kini tidak lagi membenarkan soal secara keliru; status tidak dijawab tersimpan murni kosong.",
+      "Navigasi Box & Indikator Soal Kosong: Menambahkan pembeda visual kotak navigasi soal yang tidak dijawab (abu-abu/slate) untuk membedakannya dari Benar (hijau), Salah (merah), dan Gradasi TKP (1-5), lengkap dengan legenda petunjuk.",
+      "Bebas Tabrakan Top Bar saat Navigasi Soal: Menyesuaikan kalkulasi scroll position dan sticky margin navigasi sehingga nomor soal dan header kartu selalu muncul presisi di bawah top bar tanpa tertutup.",
+      "Pembersihan Floating Bar & Dukungan Numpad: Menghilangkan tombol melayang yang menghalangi konten pembahasan, dengan tetap mempertahankan seluruh fungsi pintasan keyboard termasuk tombol Numpad."
+    ]
+  },
   {
     version: "4.6.0",
     date: new Date().toISOString().split('T')[0],
