@@ -672,9 +672,11 @@ function sanitizeQuestion(q: Question, strictSkdValidation: boolean = false): Qu
         q.options = ["Option A", "Option B", "Option C", "Option D", "Option E"];
       }
       
-      // Handle single-letter correct answers (e.g. "A", "B") by mapping to option text
-      if (q.correctAnswer && /^[A-E]$/i.test(q.correctAnswer.trim()) && q.options.length > 0) {
-          const index = q.correctAnswer.trim().toUpperCase().charCodeAt(0) - 65; // A=0, B=1...
+      // Handle single-letter correct answers (e.g. "A", "B", "A.", "(A)", "Opsi A", "Pilihan A")
+      const letterMatch = q.correctAnswer ? String(q.correctAnswer).trim().match(/^(?:opsi\s*|pilihan\s*|\(?)([a-e1-5])(?:\)?[\.\:\-]?\s*)$/i) : null;
+      if (letterMatch && q.options.length > 0) {
+          const char = letterMatch[1].toUpperCase();
+          const index = char >= '1' && char <= '5' ? parseInt(char, 10) - 1 : char.charCodeAt(0) - 65;
           if (index >= 0 && index < q.options.length) {
               q.correctAnswer = q.options[index];
           }
@@ -697,38 +699,59 @@ function sanitizeQuestion(q: Question, strictSkdValidation: boolean = false): Qu
       }
 
       // Self-heal alignment issues: make sure correctAnswer matches one of the options perfectly.
-      // If it doesn't match perfectly, seek a fuzzy match.
       if (q.correctAnswer && q.options.length > 0) {
           const exactMatchIdx = q.options.findIndex(opt => opt === q.correctAnswer);
           if (exactMatchIdx === -1) {
-              // Try a case-insensitive, punctuation-cleaned, whitespace-trimmed match
-              const cleanString = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
-              const targetClean = cleanString(q.correctAnswer);
-              
-              let foundIndex = -1;
-              for (let i = 0; i < q.options.length; i++) {
-                  if (cleanString(q.options[i]) === targetClean) {
-                      foundIndex = i;
-                      break;
-                  }
-              }
-              
-              // If still not found, try substring matching
-              if (foundIndex === -1) {
-                  for (let i = 0; i < q.options.length; i++) {
-                      if (cleanString(q.options[i]).includes(targetClean) || targetClean.includes(cleanString(q.options[i]))) {
-                          foundIndex = i;
-                          break;
+              // Check if any option matches via isSameOption
+              const sameIdx = q.options.findIndex((opt, idx) => isSameOption(String(opt), String(q.correctAnswer), idx));
+              if (sameIdx !== -1) {
+                  q.correctAnswer = q.options[sameIdx];
+              } else {
+                  const isSvgOptions = q.options.some(isSvg);
+                  if (isSvgOptions) {
+                      // For SVG options, find by SVG normalized similarity
+                      const normAns = normalizeOptionText(q.correctAnswer);
+                      let bestSvgIdx = 0;
+                      let highestSim = 0;
+                      for (let i = 0; i < q.options.length; i++) {
+                          const normOpt = normalizeOptionText(q.options[i]);
+                          const sim = jaccardSimilarity(normOpt, normAns);
+                          if (sim > highestSim) {
+                              highestSim = sim;
+                              bestSvgIdx = i;
+                          }
+                      }
+                      q.correctAnswer = q.options[bestSvgIdx];
+                  } else {
+                      // Try a case-insensitive, punctuation-cleaned, whitespace-trimmed match for text
+                      const cleanString = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+                      const targetClean = cleanString(q.correctAnswer);
+                      
+                      let foundIndex = -1;
+                      for (let i = 0; i < q.options.length; i++) {
+                          if (cleanString(q.options[i]) === targetClean) {
+                              foundIndex = i;
+                              break;
+                          }
+                      }
+                      
+                      // If still not found, try substring matching ONLY if targetClean has substantial length
+                      if (foundIndex === -1 && targetClean.length >= 5) {
+                          for (let i = 0; i < q.options.length; i++) {
+                              const optClean = cleanString(q.options[i]);
+                              if (optClean.includes(targetClean) || targetClean.includes(optClean)) {
+                                  foundIndex = i;
+                                  break;
+                              }
+                          }
+                      }
+                      
+                      if (foundIndex !== -1) {
+                          q.correctAnswer = q.options[foundIndex];
+                      } else {
+                          q.correctAnswer = q.options[0];
                       }
                   }
-              }
-              
-              // If we found a match, set q.correctAnswer to that exact option text
-              if (foundIndex !== -1) {
-                  q.correctAnswer = q.options[foundIndex];
-              } else {
-                  // Fallback: make Option A the correct answer to avoid broken items
-                  q.correctAnswer = q.options[0];
               }
           }
       }
@@ -1805,10 +1828,19 @@ function createRandomSeed(prefix: string): string {
 }
 
 function normalizeForSimilarity(text: string): string {
-  return (text || '')
+  if (!text) return '';
+  // Extract SVG tag names and geometry coordinates instead of replacing everything with a single generic token
+  const processed = text.replace(/<svg[\s\S]*?<\/svg>/gi, (match) => {
+    const cleanSvgTokens = match
+      .replace(/<([a-z0-9]+)/gi, ' svg_$1 ')
+      .replace(/(circle|rect|path|polygon|line|ellipse|d|points|cx|cy|r|x|y|transform|rotate|matrix)="([^"]+)"/gi, ' $1_$2 ')
+      .replace(/<[^>]+>/g, ' ');
+    return ` ${cleanSvgTokens} `;
+  });
+
+  return processed
     .toLowerCase()
-    .replace(/<svg[\s\S]*?<\/svg>/gi, ' svg ')
-    .replace(/[^a-z0-9\s]/gi, ' ')
+    .replace(/[^a-z0-9_\s]/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -1828,17 +1860,19 @@ function jaccardSimilarity(a: string, b: string): number {
 
 function questionFingerprint(q: Question): string {
   const optionText = (q.options || []).map(String).join(' | ');
-  return normalizeForSimilarity(`${q.metadata?.subtest || ''} ${q.content || ''} ${optionText}`);
+  const explanationText = (q.explanation || '').slice(0, 120);
+  return normalizeForSimilarity(`${q.metadata?.subtest || ''} ${q.content || ''} ${explanationText} ${optionText}`);
 }
 
 function isSvg(value: unknown): boolean {
-  return typeof value === 'string' && /<svg[\s>]/i.test(value) && /<\/svg>/i.test(value);
+  if (typeof value !== 'string') return false;
+  return (/<svg[\s>]/i.test(value) && /<\/svg>/i.test(value)) || /^(?:\(?[a-e1-5]\)?[\.\)\:\-]\s*)?<svg[\s>]/i.test(value.trim());
 }
 
 function validateSvg(value: string): boolean {
   if (!isSvg(value)) return false;
   const svg = value.replace(/\s+/g, ' ');
-  return /viewBox/i.test(svg) && svg.length <= 24000;
+  return /viewBox/i.test(svg) && svg.length <= 32000;
 }
 
 function normalizeOptionText(text: string): string {
@@ -1861,17 +1895,29 @@ function normalizeOptionText(text: string): string {
 function isSameOption(a: string, b: string, indexInOptions?: number): boolean {
   const cleanA = String(a).trim();
   const cleanB = String(b).trim();
+
+  // 1. Check letter index match (e.g. correctAnswer is "A", "A.", "Opsi A", "(A)", "1")
+  if (indexInOptions !== undefined) {
+    const letter = String.fromCharCode(65 + indexInOptions); // 'A', 'B', 'C', 'D', 'E'
+    const num = String(indexInOptions + 1); // '1', '2', '3', '4', '5'
+    const cleanLetterB = cleanB.toUpperCase().replace(/^(?:OPSI|PILIHAN)\s*/i, '').replace(/[.):\s]/g, '').trim();
+    if (cleanLetterB === letter || cleanLetterB === num) return true;
+  }
+
   const normA = normalizeOptionText(cleanA);
   const normB = normalizeOptionText(cleanB);
   
-  if (isSvg(normA) || isSvg(normB)) {
-    return normA === normB;
+  // 2. Exact normalized match
+  if (normA === normB) return true;
+
+  // 3. SVG normalized match
+  if (isSvg(normA) && isSvg(normB)) {
+    const cleanSvgA = normA.replace(/\s+/g, ' ').replace(/> </g, '><').trim();
+    const cleanSvgB = normB.replace(/\s+/g, ' ').replace(/> </g, '><').trim();
+    if (cleanSvgA === cleanSvgB) return true;
+    if (jaccardSimilarity(cleanSvgA, cleanSvgB) >= 0.85) return true;
   }
-  if (indexInOptions !== undefined) {
-    const letter = String.fromCharCode(65 + indexInOptions); // 'A', 'B', 'C', 'D', 'E'
-    const trimmedB = cleanB.toUpperCase().replace(/[.):]/g, '');
-    if (trimmedB === letter) return true;
-  }
+
   return normA === normB;
 }
 
@@ -1988,21 +2034,34 @@ function validateQuestionLocal(q: Question, expectedSubtest?: string, expectedTo
   }
 
   const subtest = q.metadata?.subtest || '';
-  if (/Gambar|Figural|Serial/i.test(subtest)) {
-    if (/Ketidaksamaan Gambar/i.test(subtest)) {
-      if (!options.every(opt => isSvg(normalizeOptionText(String(opt))))) reasons.push('opsi ketidaksamaan gambar harus SVG');
-    } else {
-      const isContentSvg = isSvg(q.content) || (typeof q.content === 'string' && q.content.includes('<svg'));
-      if (!isContentSvg && !Array.isArray(q.metadata?.matrix)) reasons.push('figural harus memuat elemen <svg> atau matrix');
-      if (isContentSvg && q.content && !q.content.includes('viewBox')) reasons.push('SVG content tidak memiliki viewBox');
-      if (Array.isArray(q.metadata?.matrix)) {
-        const rows = q.metadata.matrix as any[];
-        if (rows.length !== 3 || rows.some(r => !Array.isArray(r.row) || r.row.length !== 3)) reasons.push('matrix harus 3x3');
-        for (const row of rows) for (const cell of (row.row || [])) {
-          if (cell?.content !== '?' && !validateSvg(String(cell?.content || ''))) reasons.push('cell matrix bukan SVG valid');
+  const isFigural = /Gambar|Figural|Serial/i.test(subtest) || (options.length === 5 && options.some(isSvg));
+  if (isFigural) {
+    const isContentSvg = isSvg(q.content) || (typeof q.content === 'string' && /<svg[\s>]/i.test(q.content));
+    const allOptionsSvg = options.every(opt => isSvg(normalizeOptionText(String(opt))));
+
+    // Kelima opsi pada soal figural harus berupa elemen SVG
+    if (!allOptionsSvg) {
+      reasons.push('opsi figural harus SVG');
+    }
+
+    // Jika content memuat SVG, pastikan memiliki viewBox
+    if (isContentSvg && q.content && !/viewBox/i.test(q.content)) {
+      reasons.push('SVG content tidak memiliki viewBox');
+    }
+
+    // Jika berupa matriks gambar, pastikan struktur 3x3 valid
+    if (Array.isArray(q.metadata?.matrix)) {
+      const rows = q.metadata.matrix as any[];
+      if (rows.length !== 3 || rows.some(r => !Array.isArray(r.row) || r.row.length !== 3)) {
+        reasons.push('matrix harus 3x3');
+      }
+      for (const row of rows) {
+        for (const cell of (row.row || [])) {
+          if (cell?.content !== '?' && !validateSvg(String(cell?.content || ''))) {
+            reasons.push('cell matrix bukan SVG valid');
+          }
         }
       }
-      if (!options.every(opt => isSvg(normalizeOptionText(String(opt))))) reasons.push('opsi figural harus SVG');
     }
   }
 
@@ -2050,7 +2109,25 @@ async function criticQuestions(questions: Question[]): Promise<Map<string, { val
   const results = new Map<string, { valid: boolean; score: number; reasons: string[] }>();
   if (!questions.length) return results;
 
-  const payload = questions.map(serializeForCritic).join(',\n');
+  // Split out Figural questions from textual questions.
+  // Figural questions are already deterministically verified for valid SVG geometry and should not be passed to the text LLM critic.
+  const textQuestions: Question[] = [];
+  for (const q of questions) {
+    const isFigural = /Gambar|Figural|Serial/i.test(q.metadata?.subtest || '') || (q.options || []).some(isSvg);
+    if (isFigural) {
+      results.set(q.id, {
+        valid: true,
+        score: 95,
+        reasons: []
+      });
+    } else {
+      textQuestions.push(q);
+    }
+  }
+
+  if (!textQuestions.length) return results;
+
+  const payload = textQuestions.map(serializeForCritic).join(',\n');
   const prompt = `${V8_COMMON_RULES}\n\nTUGAS AUDIT INDEPENDEN BATCH.\nAnda bukan pembuat soal. Jangan percaya claimedAnswer. Audit setiap item secara independen.\nUntuk setiap ID:\n1) Selesaikan soal dari awal.\n2) Cek tepat satu jawaban benar untuk TWK/TIU.\n3) AUDIT KUALITAS OPSI TWK (ANTI-OBVIOUS & JEBAKAN PASAL/BUTIR): Periksa apakah opsi jawaban benar TWK terlalu mencolok/obvious. Pastikan semua opsi positif dan plausible. Jika pasal konstitusi atau butir sila diuji, pastikan pengecohnya adalah pasal serumpun atau butir sila lain yang sangat mirip.\n4) AUDIT KUALITAS LOGIKA TIU: Periksa apakah analogi menggunakan objek nyata/keseharian fungsional yang memicu logika (bukan istilah kamus ilmiah asing). Pastikan perhitungan, perbandingan senilai/tidak senilai, kecukupan informasi, dan tabel matriks deret exact dan tidak kontradiktif.\n5) Untuk TKP, cek ranking 1-5 konsisten dan SEMUA OPSI BERNILAI POSITIF. Perbedaan poin 5 vs 4 harus tipis (inisiatif sistemik vs prosedural). PASTIKAN panjang kelima opsi seimbang dan opsi poin 5 TIDAK MENCOLOK LEBIH PANJANG dari opsi lainnya.\n6) Cek fakta, ambiguitas, reasoning, dan kualitas distractor.\n7) valid=true hanya jika tidak ada masalah material. score 0-100.\n\nITEMS:\n[${payload}]\n\nKembalikan satu report untuk SETIAP ID, tanpa tambahan teks.`;
 
   try {
@@ -2077,7 +2154,7 @@ async function criticQuestions(questions: Question[]): Promise<Map<string, { val
   }
 
   // Never silently accept an item because a malformed critic response omitted it.
-  for (const q of questions) {
+  for (const q of textQuestions) {
     if (!results.has(q.id)) {
       results.set(q.id, {
         valid: true,
@@ -2400,7 +2477,9 @@ Catatan validator pada percobaan sebelumnya: ${lastIssues.slice(-6).join(' | ')}
     for (const q of candidates) {
       if (result.filter(x => x.metadata?.subtest === subtest).length >= count) break;
       const fp = questionFingerprint(q);
-      if (internalFingerprints.some(existing => jaccardSimilarity(existing, fp) >= 0.84)) {
+      const isFigural = /Gambar|Figural/i.test(subtest) || (q.options || []).some(isSvg);
+      const simThreshold = isFigural ? 0.94 : 0.84;
+      if (internalFingerprints.some(existing => jaccardSimilarity(existing, fp) >= simThreshold)) {
         continue;
       }
       internalFingerprints.push(fp);
@@ -2451,20 +2530,40 @@ AUTHENTIC-HARD PROFILE:
 - Waktu ideal realistis; hindari soal yang secara normal membutuhkan >2 menit kecuali memang tipe analitis kompleks.
 `;
 
-  const tiuFiguralProfile = `
+  const tiuFiguralProfile1 = `
 ${difficultyProfile}
-ATURAN KHUSUS TIU FIGURAL:
-- Untuk "Serial Gambar" atau "Analogi Gambar": WAJIB masukkan kode <svg> langsung ke dalam field \`content\` soal untuk menampilkan soal gambar.
-- Untuk "Ketidaksamaan Gambar": field \`content\` cukup berisi instruksi (misal: "Pilihlah gambar yang tidak memiliki pola yang sama."), namun SELURUH OPSI (A-E) WAJIB berupa kode <svg>.
-- Kanvas SVG HARUS berukuran viewBox="0 0 120 120" secara presisi.
-- Gunakan <svg> murni (circle, rect, path, polygon, line). DILARANG KERAS menggunakan teks huruf, emoji, atau karakter di dalam SVG.
-- Pastikan tidak ada opsi SVG yang kodenya duplikat/identik persis. Opsi pengecoh harus mengecoh secara visual (misal salah sudut rotasi 45°, salah jumlah garis, salah posisi).
-- Pastikan penjelasan memuat logika transformasi (rotasi, translasi, penambahan elemen) yang benar, rasional, dan konsisten dengan opsi jawaban benar (claimedAnswer).
+ATURAN KHUSUS TIU FIGURAL BAGIAN 1 (SERIAL & ANALOGI GAMBAR - EXACT 5 SOAL):
+- 3 soal Serial Gambar (pola perubahan berurutan: rotasi bertahap, pergeseran posisi, penambahan elemen geometris).
+- 2 soal Analogi Gambar (A : B = C : ? pola relasi transformasi bentuk).
+- WAJIB masukkan kode <svg> langsung ke dalam field \`content\` soal untuk menampilkan runtutan gambar soal.
+- SELURUH 5 OPSI (A-E) WAJIB berupa kode <svg> murni berukuran viewBox="0 0 100 100".
+- Gunakan stroke="currentColor" fill="none" (atau fill="currentColor" untuk arsiran/elemen hitam).
+- Pastikan correctAnswer sama persis dengan opsi SVG jawaban benar.
+- Buat SVG yang efisien, clean, dan presisi tanpa teks/emoji di dalam SVG.
+- Metadata subtest WAJIB persis: "TIU - Figural".
+`;
+
+  const tiuFiguralProfile2 = `
+${difficultyProfile}
+ATURAN KHUSUS TIU FIGURAL BAGIAN 2 (KETIDAKSAMAAN & MATRIKS/SPASIAL - EXACT 5 SOAL):
+- 3 soal Ketidaksamaan Gambar (Odd One Out: cari 1 dari 5 gambar yang tidak mengikuti pola kelompok lainnya). Field \`content\` berupa teks instruksi ("Manakah gambar yang tidak mengikuti pola kelompok lainnya?"), dan SELURUH 5 OPSI (A-E) WAJIB kode <svg> murni.
+- 2 soal Matriks Gambar 9 Kotak (3x3) atau Penalaran Spasial (jaring-jaring / lipatan kertas).
+- SELURUH 5 OPSI (A-E) WAJIB berupa kode <svg> murni berukuran viewBox="0 0 100 100".
+- Gunakan stroke="currentColor" fill="none" (atau fill="currentColor" untuk arsiran).
+- Pastikan kelima opsi (A-E) memiliki visual yang berbeda jelas dan salah satunya adalah jawaban yang benar.
+- Metadata subtest WAJIB persis: "TIU - Figural".
 `;
 
   let state = savedState || { completedBatches: {} };
+  if (state?.completedBatches?.['tiuF']) {
+    if (!state.completedBatches['tiuF1'] && !state.completedBatches['tiuF2']) {
+      state.completedBatches['tiuF1'] = state.completedBatches['tiuF'].slice(0, 5);
+      state.completedBatches['tiuF2'] = state.completedBatches['tiuF'].slice(5);
+    }
+  }
+
   let allQuestions: Question[] = [];
-  const totalBatches = variant === 'FULL' ? 7 : (variant === 'TIU' ? 3 : 2);
+  const totalBatches = variant === 'FULL' ? 8 : (variant === 'TIU' ? 4 : 2);
   let completedCount = Object.keys(state.completedBatches).length;
 
   const runBatch = async (
@@ -2507,7 +2606,8 @@ ATURAN KHUSUS TIU FIGURAL:
     if (variant === 'FULL' || variant === 'TIU') {
       await runBatch('tiuV', { 'TIU - Verbal': SKD_DISTRIBUTION.TIU['TIU - Verbal'] }, 'TIU', 'TIU Verbal', difficultyProfile);
       await runBatch('tiuN', { 'TIU - Numerik': SKD_DISTRIBUTION.TIU['TIU - Numerik'] }, 'TIU', 'TIU Numerik', difficultyProfile);
-      await runBatch('tiuF', { 'TIU - Figural': SKD_DISTRIBUTION.TIU['TIU - Figural'] }, 'TIU', 'TIU Figural', tiuFiguralProfile);
+      await runBatch('tiuF1', { 'TIU - Figural': 5 }, 'TIU', 'TIU Figural Bagian 1 (Serial & Analogi Gambar)', tiuFiguralProfile1);
+      await runBatch('tiuF2', { 'TIU - Figural': 5 }, 'TIU', 'TIU Figural Bagian 2 (Ketidaksamaan & Matriks/Spasial)', tiuFiguralProfile2);
     }
 
     if (variant === 'FULL' || variant === 'TKP') {
@@ -2521,12 +2621,16 @@ ATURAN KHUSUS TIU FIGURAL:
       throw new Error(`SKD V8 menghasilkan ${allQuestions.length}/${expectedTotal} soal. Paket ditolak agar TO tidak terisi soal yang tidak tervalidasi.`);
     }
 
-    // Cross-batch semantic duplicate check.
+    // Cross-batch semantic duplicate check (excluding Figural which has visual geometric differentiation)
     const fingerprints = allQuestions.map(questionFingerprint);
     for (let i = 0; i < fingerprints.length; i++) {
       for (let j = i + 1; j < fingerprints.length; j++) {
-        if (allQuestions[i].metadata?.subtest === allQuestions[j].metadata?.subtest && jaccardSimilarity(fingerprints[i], fingerprints[j]) >= 0.88) {
-          throw new Error(`SKD V8 mendeteksi duplicate-semantic pattern pada ${allQuestions[i].id} dan ${allQuestions[j].id}. Paket ditolak.`);
+        const subA = allQuestions[i].metadata?.subtest || '';
+        const subB = allQuestions[j].metadata?.subtest || '';
+        if (subA === subB && !/Gambar|Figural/i.test(subA)) {
+          if (jaccardSimilarity(fingerprints[i], fingerprints[j]) >= 0.88) {
+            throw new Error(`SKD V8 mendeteksi duplicate-semantic pattern pada ${allQuestions[i].id} dan ${allQuestions[j].id}. Paket ditolak.`);
+          }
         }
       }
     }

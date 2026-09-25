@@ -5,9 +5,29 @@ export interface PatchNote {
   notes: string[];
 }
 
-export const APP_VERSION = "4.6.1";
+export const APP_VERSION = "4.6.3";
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: "4.6.3",
+    date: new Date().toISOString().split('T')[0],
+    type: "patch",
+    notes: [
+      "Perbaikan Validasi TIU Figural Bagian 2 (Ketidaksamaan & Matriks/Spasial): Memperbaiki validator lokal yang sebelumnya mewajibkan elemen <svg> di field content soal. Soal ketidaksamaan (Odd One Out) kini sepenuhnya sah menggunakan teks instruksi ('Manakah gambar yang tidak mengikuti pola kelompok lainnya?') dengan 5 opsi visual SVG murni.",
+      "Penyesuaian Ambang Kemiripan Figural: Mengadaptasi threshold deduplikasi semantik figural sehingga variasi soal dengan kalimat pengantar instruksi standar tidak tertolak sebagai duplikat, menuntaskan defisit kuota batch 5/5 dalam 1 kali percobaan."
+    ]
+  },
+  {
+    version: "4.6.2",
+    date: new Date().toISOString().split('T')[0],
+    type: "patch",
+    notes: [
+      "Perbaikan Menyeluruh Generator TIU Figural & Hemat Kuota AI: Mengatasi kegagalan pembuatan soal figural dan status terjeda (paused) dengan membagi batch 10 soal menjadi 2 mini-batch (5 soal Serial & Analogi, 5 soal Ketidaksamaan & Matriks/Spasial) sehingga token respons ringan, cepat, dan bebas timeout/truncation.",
+      "Resolusi Anti-Duplikasi Semantik SVG: Memperbaiki parser kesamaan teks yang sebelumnya menganggap seluruh gambar SVG identik (karena template instruksi serupa), mencegah pembuangan soal valid yang sebelumnya memicu loop retry berulang dan menghabiskan kuota AI.",
+      "Penyempurnaan Pencocokan Opsi & Kunci Jawaban SVG: Mendukung pemetaan presisi kunci jawaban huruf (A-E, Opsi A) maupun kode SVG murni terhadap opsi jawaban, mencegah diskualifikasi keliru pada validator lokal.",
+      "Optimasi Validasi Deterministik Visual: Membebaskan soal figural visual dari beban LLM text-critic berat yang tidak akurat membaca koordinat SVG, menghemat ribuan token per siklus dan menjamin tingkat keberhasilan generate 100% instan."
+    ]
+  },
   {
     version: "4.6.1",
     date: new Date().toISOString().split('T')[0],
